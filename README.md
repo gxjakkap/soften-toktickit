@@ -16,7 +16,7 @@ Full-stack monorepo:
 1. Start the database:
 
    ```bash
-   docker compose up -d
+   pnpm db:up
    ```
 
 2. Install dependencies:

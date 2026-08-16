@@ -1,16 +1,7 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
-import { app } from './app.js'
-import { prisma } from './db.js'
-
-describe('GET /api/health', () => {
-  it('returns ok status', async () => {
-    const res = await request(app).get('/api/health')
-
-    expect(res.status).toBe(200)
-    expect(res.body).toEqual({ status: 'ok', service: 'TokTickIT API' })
-  })
-})
+import { app } from '../../src/app.js'
+import { prisma } from '../../src/db.js'
 
 describe('GET /api/categories', () => {
   it('returns all categories ordered by id ascending', async () => {

@@ -13,3 +13,9 @@
 |:----|:---:|:---:|
 | Initiate a health check implementation task | Create a health check function<br><br>- Create /api/health where the json response contains status = ok and service = TokTickIT API.<br>- A Supertest test verifies the endpoint.<br>- Client display status from /api/health<br>- Error message when client can’t reach backend<br><br>additionally<br>- set up pnpm workspace on the root and add both folders to pnpm-workspace<br>- set up vite proxy for the backend on dev<br><br>Additional instructions<br>- Do **not** add anything not instructed in this prompt.<br>- If any subagent is spawned by you, at the end of the loop, print out the prompts you've given to your subagents to me.| Worked but missed some styling issues on frontend. |
 | Fixing styling issue on frontend | looks kinda weird. maybe we ditch the vite boilerplate code and start clean. we only need the api status for now<br><br>[attached screenshot of the page] | Worked well. Removed the Vite boilerplate and the conflicting starter CSS, leaving just the API status display. |
+
+## Issue 3
+
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Initiate a category seeding task | seed a category for it ticket requests<br><br>** DO EXACTLY WHAT I TOLD AND NOTHING ELSE. IF SOMETHING IS NOT CLEAR, ASK. **<br><br>- create prisma model with this at a minimum<br><br>model Category {<br>id Int @id @default(autoincrement())<br>name String<br>@unique<br>createdAt DateTime @default(now())<br>}<br><br>then migrate the models to the dev database. then insert these category as a seed data: Account and Access, Hardware, Software, and Network. The seed should be safe to run multiple time.| Worked in one shot. |

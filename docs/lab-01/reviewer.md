@@ -5,3 +5,9 @@ Name: Noppawit Tanmanee
 Student ID: 67070501082
 GitHub Username: [FakeKase](https://github.com/FakeKase)
 PR Link: [https://github.com/gxjakkap/soften-toktickit/pull/6](https://github.com/gxjakkap/soften-toktickit/pull/6)
+
+## Issue 2
+Name: Noppawit Tanmanee
+Student ID: 67070501082
+GitHub Username: [FakeKase](https://github.com/FakeKase)
+PR Link: [https://github.com/gxjakkap/soften-toktickit/pull/6](https://github.com/gxjakkap/soften-toktickit/pull/6)

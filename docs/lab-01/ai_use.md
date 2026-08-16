@@ -19,3 +19,8 @@
 | Prompt name | Prompt text | Reflection |
 |:----|:---:|:---:|
 | Initiate a category seeding task | seed a category for it ticket requests<br><br>** DO EXACTLY WHAT I TOLD AND NOTHING ELSE. IF SOMETHING IS NOT CLEAR, ASK. **<br><br>- create prisma model with this at a minimum<br><br>model Category {<br>id Int @id @default(autoincrement())<br>name String<br>@unique<br>createdAt DateTime @default(now())<br>}<br><br>then migrate the models to the dev database. then insert these category as a seed data: Account and Access, Hardware, Software, and Network. The seed should be safe to run multiple time.| Worked in one shot. |
+
+# Issue 4
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Initiate a category list implementation task | display the categories on the frontend<br><br>- GET route at /api/categories which returns all categories in the db queried through prisma. it should returns the data with the id and order by id ascending<br>- supertest test should be present to verify the response<br>- display all available categories on the frontend pulled from aforementioned route<br>- there should be loading and error state<br>- vitest test should be present to verify the ui of the category list<br><br>**Additional instructions**<br>- Do **not** add anything not instructed in this prompt.<br>- If any subagent is spawned by you, at the end of the loop, print out the prompts you've given to your subagents to me.| This one also worked in one shot. |

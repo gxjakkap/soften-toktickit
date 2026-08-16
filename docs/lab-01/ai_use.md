@@ -1,0 +1,27 @@
+# AI Usage for Lab 1
+
+## Issue 1
+
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Scaffold repository structure | Scaffold a full-stack application monorepo with these folders<br><br>- client: a Vite React app using Typescript and Bootstrap for styling<br>- server: an Express app using Typescript and Prisma as an ORM, with a subfolder called `prisma` for prisma model files<br><br>This project will use these tools:<br>- Node.js as runtime<br>- pnpm as package manager<br>- PostgreSQL as database (set up a docker-compose.yaml for dev environment)<br><br>We're **not** using any external monorepo tooling (e.g. turborepo, nx) so don't set it up<br>Add a .gitignore at root and .env.example where applicable (in this case it should be for both client and server folder since they both require different env values)<br><br>For testing, we're using Vitest for frontend and supertest for backend. also set these 2 up.<br><br>Add a set up instruction in README.md at the root of the repo<br><br>**Additional instructions**<br>- Do **not** add anything not instructed in this prompt.<br>- If any subagent is spawned by you, at the end of the loop, print out the prompts you've given to your subagents to me. | This prompt worked and satisfied 99% of the acceptance criteria. Only thing left out is Bootstrap being used on the frontend. The agent only installed Bootstrap but hadn't changed the frontend code from Vite's default example code. |
+| Fixing frontend to match acceptance criteria | check pr #6 approval status and fix maybe? | Works somehow. It uses `gh` to read PR status and comments and fix it by itself. |
+
+## Issue 2
+
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Initiate a health check implementation task | Create a health check function<br><br>- Create /api/health where the json response contains status = ok and service = TokTickIT API.<br>- A Supertest test verifies the endpoint.<br>- Client display status from /api/health<br>- Error message when client can’t reach backend<br><br>additionally<br>- set up pnpm workspace on the root and add both folders to pnpm-workspace<br>- set up vite proxy for the backend on dev<br><br>Additional instructions<br>- Do **not** add anything not instructed in this prompt.<br>- If any subagent is spawned by you, at the end of the loop, print out the prompts you've given to your subagents to me.| Worked but missed some styling issues on frontend. |
+| Fixing styling issue on frontend | looks kinda weird. maybe we ditch the vite boilerplate code and start clean. we only need the api status for now<br><br>[attached screenshot of the page] | Worked well. Removed the Vite boilerplate and the conflicting starter CSS, leaving just the API status display. |
+
+## Issue 3
+
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Initiate a category seeding task | seed a category for it ticket requests<br><br>** DO EXACTLY WHAT I TOLD AND NOTHING ELSE. IF SOMETHING IS NOT CLEAR, ASK. **<br><br>- create prisma model with this at a minimum<br><br>model Category {<br>id Int @id @default(autoincrement())<br>name String<br>@unique<br>createdAt DateTime @default(now())<br>}<br><br>then migrate the models to the dev database. then insert these category as a seed data: Account and Access, Hardware, Software, and Network. The seed should be safe to run multiple time.| Worked in one shot. |
+
+# Issue 4
+| Prompt name | Prompt text | Reflection |
+|:----|:---:|:---:|
+| Initiate a category list implementation task | display the categories on the frontend<br><br>- GET route at /api/categories which returns all categories in the db queried through prisma. it should returns the data with the id and order by id ascending<br>- supertest test should be present to verify the response<br>- display all available categories on the frontend pulled from aforementioned route<br>- there should be loading and error state<br>- vitest test should be present to verify the ui of the category list<br><br>**Additional instructions**<br>- Do **not** add anything not instructed in this prompt.<br>- If any subagent is spawned by you, at the end of the loop, print out the prompts you've given to your subagents to me.| Mostly worked, just that the flow on frontend is not exactly to spec. (The resulting version already queried the API without the button for user to click) |
+| Fix category flow to require button click | the category list and api status on frontend should be shown after clicking a button. heres the flow<br><br>  ┌──────────────────────────────────────────────┐<br>  │ TokTickIT IT Service Desk │<br>  │ │<br>  │ [ Check System ] │<br>  └──────────────────────────────────────────────┘<br>  Success Case after click [Check System]:<br>  ┌──────────────────────────────────────────────┐<br>  │ TokTickIT IT Service Desk │<br>  │ │<br>  │ [ Check System ] │<br>  │ │<br>  │ System Status: Online │<br>  │ │<br>  │ Supported Request Categories │<br>  │ 1. Account and Access │<br>  │ 2. Hardware │<br>  │ 3. Software │<br>  │ 4. Network │<br>  └──────────────────────────────────────────────┘<br>  Failure Case after click [Check System] (eg., when DB server not started):<br>  ┌──────────────────────────────────────────────┐<br>  │ TokTickIT IT Service Desk │<br>  │ │<br>  │ [ Check System ] │<br>  │ │<br>  │ System Status: Offline │<br>  │ Unable to connect to TokTickIT API │<br>  └──────────────────────────────────────────────┘ | Worked. Now we need to click the Check system first to make the request to the API. |

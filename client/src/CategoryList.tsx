@@ -29,13 +29,13 @@ function CategoryList() {
   }
 
   return (
-    <ul className="list-group">
+    <ol className="list-group list-group-numbered">
       {categories.map((category) => (
         <li key={category.id} className="list-group-item">
           {category.name}
         </li>
       ))}
-    </ul>
+    </ol>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import CategoryList from './CategoryList'
 
 type Health = { status: string; service: string }
 
@@ -32,6 +33,7 @@ function App() {
           <span className="text-muted">Checking backend...</span>
         )}
       </p>
+      <CategoryList />
     </div>
   )
 }

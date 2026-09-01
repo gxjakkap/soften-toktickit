@@ -119,7 +119,7 @@ auth will build on top of — not a one-off.
 | BR-28 | A removed Attachment remains visible in the Ticket Detail attachment list as metadata (name, size, removed date) but cannot be downloaded or previewed; any download attempt for it fails safely. |
 | BR-29 | Uploading, downloading, and removing an Attachment are ownership-checked against the current Requester exactly like Ticket access (BR-14, BR-15). |
 | BR-30 | My Tickets shows an **empty** state (distinct from **no-results**) when the current Requester has zero Tickets in total, regardless of filters. It shows a **no-results** state when the Requester owns at least one Ticket but the current search/filter combination matches none. |
-| BR-31 | The Development Requester Selection screen and its "for testing only" messaging exist solely for Lab 2. Lab 3 replaces the selector with real authenticated sessions; Ticket ownership migrates from the temporary `RequesterUser` selection to the authenticated user without changing the meaning of the Ticket–Requester relationship. |
+| BR-31 | The Development Requester Selection screen and its "for testing only" messaging exist solely for Lab 2. Lab 3 replaces the selector with real authenticated sessions; Ticket ownership migrates from the temporary `RequesterUser` selection to the authenticated user without changing the meaning of the Ticket–Requester relationship. The implementation must resolve "current requester" through a single backend helper and a single frontend API-client wrapper (not inlined per endpoint/call site) so this swap touches two seams, not every request — see §11-1. |
 
 ## 6. UI Specification Summary
 
@@ -289,7 +289,13 @@ model Attachment {
 - **Lab 3 evolution**: `RequesterUser` is a placeholder for a future
   authenticated `User`/`Account` model. `Ticket.requesterId` is expected to
   be re-pointed (via migration) at the authenticated user's id without
-  changing its semantics — see BR-31.
+  changing its semantics — see BR-31. Only the *identification* step
+  (how the backend learns the current requester id, and how the frontend
+  supplies it) changes in Lab 3; the *ownership-check* logic (BR-14/BR-15)
+  is written generically against a requester id argument and needs no
+  change. That property only holds if identification is centralized behind
+  one backend helper and one frontend API-client wrapper rather than
+  inlined at every call site — see §11-1.
 
 ### 7.4 Required Seed Data
 
@@ -408,6 +414,19 @@ after the coding agent starts.
    alongside BR-03's warning not to build anything resembling real
    authentication — a server session is closer to real auth than a client-
    remembered id is.
+   **Lab 3 migration requirement**: this only stays a clean, low-cost swap
+   if *identification* ("who is asking?") is implemented behind a single
+   seam on each side — one backend helper (e.g. `getCurrentRequesterId(req)`)
+   that every route handler calls instead of reading `req.query`/`req.body`
+   directly, and one frontend API-client wrapper that every screen calls
+   instead of attaching `requesterId` ad hoc per request. *Authorization*
+   ("do they own this?", BR-14/BR-15) already takes a requester id as a
+   plain argument and doesn't care where it came from, so it needs no
+   change at all. Lab 3 then only replaces the two identification seams
+   (session/JWT-derived id instead of a trusted client-supplied one)
+   instead of touching every endpoint and every call site. The coding
+   agent must build to this seam, not inline the lookup — see BR-31 and
+   §7.3.
 2. **(reversible) Attachment removal reason is optional**, not required and
    not omitted. The stakeholder request never mentions an audit reason;
    optional keeps removal fast while still allowing one when it matters.

@@ -1,0 +1,226 @@
+/* Zen Green design tokens — ui-spec.md §1. Layered over Bootstrap, not
+   replacing it. Only the rules the shipped screens need live here; later
+   screens add their own. */
+:root {
+  --zg-primary: #006b3c;
+  --zg-secondary: #0b7a46;
+  --zg-pale: #eaf6ef;
+  --zg-bg: #f5f7f6;
+  --zg-surface: #ffffff;
+  --zg-text: #1c2b24;
+  --zg-field-editable-bg: #ffffff;
+  --zg-field-editable-border: #c9d6d0;
+  --zg-field-readonly-bg: #edf3ef;
+  --zg-field-readonly-border: #d7e3dd;
+  --zg-error-text: #b3261e;
+  --zg-error-border: #b3261e;
+  --zg-warning-bg: #fceed1;
+  --zg-warning-text: #8a5a00;
+  --zg-success-bg: var(--zg-pale);
+  --zg-success-text: var(--zg-secondary);
+
+  --zg-space-1: 4px;
+  --zg-space-2: 8px;
+  --zg-space-3: 12px;
+  --zg-space-4: 16px;
+  --zg-space-5: 24px;
+  --zg-space-6: 32px;
+  --zg-max-width: 1140px;
+}
+
+body {
+  background: var(--zg-bg);
+  color: var(--zg-text);
+  font-size: 14px;
+}
+
+.zg-page {
+  max-width: var(--zg-max-width);
+  margin: 0 auto;
+  padding: var(--zg-space-5) var(--zg-space-4);
+}
+
+.zg-card {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(28 43 36 / 8%);
+  padding: var(--zg-space-5);
+}
+
+.zg-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--zg-text);
+}
+
+.zg-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: var(--zg-space-1);
+}
+
+.zg-required {
+  color: var(--zg-error-text);
+}
+
+.zg-helper {
+  font-size: 13px;
+}
+
+.zg-field {
+  width: 100%;
+  background: var(--zg-field-editable-bg);
+  border: 1px solid var(--zg-field-editable-border);
+  border-radius: 6px;
+  color: var(--zg-text);
+  padding: var(--zg-space-2) var(--zg-space-3);
+}
+
+/* Focus is never suppressed, including for keyboard-only users — ui-spec §3/§7. */
+.zg-field:focus-visible,
+.zg-btn:focus-visible,
+.zg-navlink:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+.zg-callout {
+  background: var(--zg-pale);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  color: var(--zg-text);
+  font-size: 13px;
+  padding: var(--zg-space-3);
+}
+
+.zg-error {
+  background: #fbe7e5;
+  border: 1px solid var(--zg-error-border);
+  border-radius: 6px;
+  color: var(--zg-error-text);
+  padding: var(--zg-space-3);
+}
+
+.zg-skeleton {
+  background: var(--zg-field-readonly-bg);
+  border-radius: 6px;
+  color: var(--zg-text);
+  padding: var(--zg-space-3);
+}
+
+/* Buttons — ui-spec §4. Every button keeps visible text. */
+.zg-btn {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 44px; /* touch target at mobile widths — ui-spec §8 */
+  padding: var(--zg-space-2) var(--zg-space-5);
+}
+
+.zg-btn-primary {
+  background: var(--zg-primary);
+  border-color: var(--zg-primary);
+  color: #fff;
+}
+
+.zg-btn-secondary {
+  background: #fff;
+  border-color: var(--zg-primary);
+  color: var(--zg-primary);
+}
+
+.zg-btn-tertiary {
+  background: none;
+  border: none;
+  color: var(--zg-secondary);
+  min-height: auto;
+  padding: var(--zg-space-1) var(--zg-space-2);
+}
+
+.zg-btn-tertiary:hover {
+  text-decoration: underline;
+}
+
+.zg-btn:disabled,
+.zg-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Application shell — ui-spec §10. */
+.zg-header {
+  background: var(--zg-primary);
+  color: #fff;
+}
+
+.zg-header-inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  margin: 0 auto;
+  max-width: var(--zg-max-width);
+  padding: var(--zg-space-3) var(--zg-space-4);
+}
+
+.zg-wordmark {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.zg-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-4);
+  flex: 1 1 auto;
+}
+
+.zg-navlink {
+  color: #fff;
+  padding: var(--zg-space-1) 0;
+  text-decoration: none;
+}
+
+/* Active page: weight change plus an underline, never colour alone (§10). */
+.zg-navlink.is-active {
+  border-bottom: 2px solid var(--zg-secondary);
+  font-weight: 700;
+}
+
+.zg-header-requester {
+  align-items: center;
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-header .zg-btn-tertiary {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.zg-select-screen {
+  margin: 0 auto;
+  max-width: 560px;
+}
+
+.zg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+}
+
+/* Mobile: everything stacks, nothing scrolls sideways — ui-spec §8. */
+@media (max-width: 767px) {
+  .zg-actions > .zg-btn {
+    flex: 1 1 100%;
+  }
+}

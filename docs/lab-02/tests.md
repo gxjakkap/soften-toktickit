@@ -32,6 +32,14 @@ is covered by at least one row (§3 matrix).
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
+| SCHEMA-01 | Integration | BR-01 | `Ticket.ticketNumber` unique constraint | A second insert with the same ticket number is rejected by the database | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-02 | Integration | BR-02, BR-04 | `Ticket` system-generated defaults | `currentStatus` defaults to `NEW`; `createdAt`/`updatedAt` are stamped without being supplied | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-03 | Integration | BR-07, BR-13 | `Ticket` foreign-key integrity | Insert with an unknown `requesterId`, `categoryId` or `relatedSystemId` is rejected | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-04 | Integration | specification.md §7.2 | Column nullability | Required Ticket/Attachment columns are `NOT NULL`; `removedAt`/`removedReason` are nullable | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-05 | Integration | BR-17, BR-18 | Search/filter/sort index coverage | Indexes exist on `requesterId`, `categoryId`, `relatedSystemId`, `currentStatus`, `createdAt` | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-06 | Integration | BR-27 | Attachment soft-removal defaults and ticket cascade | New attachments start `isRemoved: false` with null removal fields; deleting a Ticket removes its Attachment rows | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-07 | Integration | BR-07, BR-13 | Reference and requester rows in use | Deleting a Category, Related System or Requester still referenced by a Ticket is refused | `server/tests/lab-02/schema.integration.test.ts` | Pass |
+| SCHEMA-08 | Integration | specification.md §7.4 | Seed idempotency | Seeds the 4 Categories and 7 Related Systems as active; a second run yields identical rows and ids | `server/tests/lab-02/seed-idempotency.integration.test.ts` | Pass |
 | UNIT-01 | Unit | BR-06, AC-01 | Ticket Number generator | Returns `TKT-<year>-<6-digit>` from a given id/year | `server/tests/lab-02/ticket-number.unit.test.ts` | Planned |
 | UNIT-02 | Unit | BR-25 | Attachment filename/type validator | Accepts jpg/jpeg/png/webp/pdf, rejects everything else and path-unsafe names | `server/tests/lab-02/attachment-filename.unit.test.ts` | Planned |
 | UNIT-03 | Unit | BR-10, BR-12 | Requester-context resolver | Rejects a `requesterId` that is missing, unknown, or inactive | `server/tests/lab-02/requester-context.unit.test.ts` | Planned |

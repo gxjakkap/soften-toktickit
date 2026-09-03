@@ -1,9 +1,9 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from '../../src/App'
+import SystemCheck from '../../src/SystemCheck'
 
-describe('App', () => {
+describe('SystemCheck', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
@@ -18,7 +18,7 @@ describe('App', () => {
     const root = createRoot(container)
 
     act(() => {
-      root.render(<App />)
+      root.render(<SystemCheck />)
     })
 
     await act(async () => {

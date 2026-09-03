@@ -17,3 +17,13 @@ model Category {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+// Lab 2 temporary testing identity, not an authenticated user (BR-03).
+// Lab 3 replaces this with a real account model; see specification.md §7.3.
+model RequesterUser {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

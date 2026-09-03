@@ -42,6 +42,13 @@ Full-stack monorepo:
    pnpm prisma:migrate
    ```
 
+5. Seed reference data and the Lab 2 Development Requesters (safe to re-run):
+
+   ```bash
+   cd server
+   pnpm prisma:seed
+   ```
+
 ## Running the apps
 
 In separate terminals:
@@ -50,6 +57,11 @@ In separate terminals:
 cd server && pnpm dev   # http://localhost:3001
 cd client && pnpm dev   # http://localhost:5173
 ```
+
+The app opens on the Development Requester Selection screen
+(`/select-requester`). Pick a seeded Requester to reach the requester-scoped
+screens — this is a Lab 2 testing mechanism, not authentication. The Lab 1
+system check now lives at `/system-check`.
 
 ## Testing
 

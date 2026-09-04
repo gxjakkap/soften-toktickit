@@ -1,12 +1,37 @@
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express from 'express'
+import multer from 'multer'
 import { prisma } from './db.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
+import { MAX_ACTIVE_ATTACHMENTS, MAX_ATTACHMENT_BYTES, isAllowedAttachment } from './lib/attachment-validation.js'
 
 export const app = express()
 
 app.use(express.json())
+
+// specification.md §11-6: local disk, server-relative, gitignored, random
+// stored filename (collision/path-traversal-safe); original name kept only
+// as a display column.
+const UPLOADS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads')
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname)
+      cb(null, `${randomUUID()}${ext}`)
+    },
+  }),
+  limits: { fileSize: MAX_ATTACHMENT_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (!isAllowedAttachment(file.originalname, file.mimetype)) {
+      return cb(new UnsupportedFileTypeError())
+    }
+    cb(null, true)
+  },
+})
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'TokTickIT API' })
@@ -134,6 +159,83 @@ app.post('/api/tickets', async (req, res) => {
   })
 
   res.status(201).json(ticket)
+})
+
+class UnsupportedFileTypeError extends Error {}
+
+const uploadSingleFile = upload.single('file')
+
+function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  uploadSingleFile(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: { code: 'FILE_TOO_LARGE', message: 'File exceeds the 5 MB limit.' },
+      })
+    }
+    if (err instanceof UnsupportedFileTypeError) {
+      return res.status(415).json({
+        error: {
+          code: 'UNSUPPORTED_FILE_TYPE',
+          message: 'File type is not supported. Allowed: JPG, JPEG, PNG, WEBP, PDF.',
+        },
+      })
+    }
+    if (err) return next(err)
+    next()
+  })
+}
+
+async function cleanupUploadedFile(file: Express.Multer.File | undefined) {
+  if (!file) return
+  const { unlink } = await import('node:fs/promises')
+  await unlink(file.path).catch(() => {})
+}
+
+// api-spec.md §7 (FR-04, BR-24..26, BR-29).
+app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
+  const requester = await resolveActiveRequester(req)
+  if (!requester) {
+    await cleanupUploadedFile(req.file)
+    return res.status(400).json({
+      error: { code: 'INVALID_REQUESTER', message: 'Requester is missing, unknown, or inactive.' },
+    })
+  }
+
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId) ? await prisma.ticket.findUnique({ where: { id: ticketId } }) : null
+  if (!ticket || ticket.requesterId !== requester.id) {
+    await cleanupUploadedFile(req.file)
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+  }
+
+  if (!req.file) {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: 'A file is required.', field: 'file' },
+    })
+  }
+
+  const activeCount = await prisma.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
+  if (activeCount >= MAX_ACTIVE_ATTACHMENTS) {
+    await cleanupUploadedFile(req.file)
+    return res.status(409).json({
+      error: {
+        code: 'ATTACHMENT_LIMIT_REACHED',
+        message: `A Ticket may have at most ${MAX_ACTIVE_ATTACHMENTS} active Attachments.`,
+      },
+    })
+  }
+
+  const attachment = await prisma.attachment.create({
+    data: {
+      ticketId: ticket.id,
+      originalFileName: req.file.originalname,
+      storedFileName: req.file.filename,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+    },
+  })
+
+  res.status(201).json(attachment)
 })
 
 // Lab 2 testing identities, not authentication (BR-03). Only active rows,

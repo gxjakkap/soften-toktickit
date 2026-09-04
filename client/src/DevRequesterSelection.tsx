@@ -44,7 +44,8 @@ function DevRequesterSelection() {
 
       <div className="zg-card zg-select-screen" style={{ marginTop: 'var(--zg-space-5)' }}>
         <h2 className="zg-title">
-          <span aria-hidden="true">👤 </span>Select Development Requester
+          <i className="bi bi-person-circle" aria-hidden="true" style={{ marginRight: 'var(--zg-space-2)' }} />
+          Select Development Requester
         </h2>
 
         <p className="zg-helper" style={{ marginTop: 'var(--zg-space-2)' }}>
@@ -71,8 +72,8 @@ function DevRequesterSelection() {
 
         {state === 'ready' && requesters.length === 0 && (
           <p className="zg-callout" style={{ marginTop: 'var(--zg-space-5)' }}>
-            No active development requesters are configured. Please contact course staff — there is
-            nothing to select yet.
+            No active development requesters are configured. There is nothing to select yet. Please
+            contact course staff.
           </p>
         )}
 
@@ -99,12 +100,13 @@ function DevRequesterSelection() {
         )}
 
         <p className="zg-callout" style={{ marginTop: 'var(--zg-space-4)' }}>
-          <span aria-hidden="true">ℹ️ </span>Only active development requesters are shown.
+          Only active development requesters are shown.
         </p>
 
         <p className="zg-callout" style={{ marginTop: 'var(--zg-space-3)' }}>
-          <span aria-hidden="true">🛡️ </span>Authentication coming in Lab 3 — this selection is for
-          testing only and grants no access rights.
+          <i className="bi bi-shield-lock" aria-hidden="true" style={{ marginRight: 'var(--zg-space-2)' }} />
+          Authentication coming in Lab 3. This selection is for testing only and grants no access
+          rights.
         </p>
 
         <div className="zg-actions" style={{ marginTop: 'var(--zg-space-5)' }}>

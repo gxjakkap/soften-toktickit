@@ -540,3 +540,83 @@ textarea.zg-field {
 .zg-attachment-row.is-invalid {
   border-color: var(--zg-error-border);
 }
+
+.zg-attachment-row.is-removed {
+  color: var(--zg-secondary);
+  opacity: 0.75;
+}
+
+/* Badges — ui-spec §9. Color always pairs with visible label text. */
+.zg-badge {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px var(--zg-space-2);
+}
+
+.zg-badge-priority-low {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-priority-medium {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-priority-high {
+  background: #fbe7e5;
+  color: var(--zg-error-text);
+}
+
+.zg-badge-status-new {
+  background: #e7eef5;
+  color: #33475b;
+}
+
+.zg-badge-status-open {
+  background: #dcebfb;
+  color: #1b5fa8;
+}
+
+.zg-badge-status-in_progress,
+.zg-badge-status-pending {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-status-resolved {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-status-closed,
+.zg-badge-status-cancelled,
+.zg-badge-removed {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+/* Requester Ticket Detail info card — ui-spec §11.4. */
+.zg-detail-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 991px) {
+  .zg-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zg-detail-full {
+  grid-column: 1 / -1;
+}

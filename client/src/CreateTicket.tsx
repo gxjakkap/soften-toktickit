@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, createTicket, fetchCategories, fetchRelatedSystems, uploadAttachment } from './apiClient'
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, ensureFileName, isAllowedFile } from './lib/attachment-validation'
 import { useRequester } from './RequesterContext'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
 
@@ -17,15 +18,6 @@ const SUMMARY_MIN = 5
 const SUMMARY_MAX = 120
 const DESCRIPTION_MIN = 10
 const DESCRIPTION_MAX = 2000
-const MAX_ATTACHMENTS = 5
-const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
-const ALLOWED_EXTENSIONS: Record<string, string[]> = {
-  jpg: ['image/jpeg'],
-  jpeg: ['image/jpeg'],
-  png: ['image/png'],
-  webp: ['image/webp'],
-  pdf: ['application/pdf'],
-}
 
 type FieldName = 'categoryId' | 'relatedSystemId' | 'requestedPriority' | 'summary' | 'description'
 type Errors = Partial<Record<FieldName, string>>
@@ -38,29 +30,6 @@ type AttachmentItem = {
 }
 
 type RefState = 'loading' | 'ready' | 'error'
-
-function isAllowedFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.')
-  if (dot <= 0) return false
-  const extension = file.name.slice(dot + 1).toLowerCase()
-  const allowedMimeTypes = ALLOWED_EXTENSIONS[extension]
-  return allowedMimeTypes !== undefined && allowedMimeTypes.includes(file.type)
-}
-
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-}
-
-// Clipboard images often arrive with no filename/extension — synthesize one
-// from the MIME type so isAllowedFile (and the server) can recognize it.
-function ensureFileName(file: File): File {
-  if (file.name && file.name.lastIndexOf('.') > 0) return file
-  const extension = EXTENSION_BY_MIME_TYPE[file.type]
-  if (!extension) return file
-  return new File([file], `pasted-image-${Date.now()}.${extension}`, { type: file.type })
-}
 
 function validate(fields: {
   categoryId: string

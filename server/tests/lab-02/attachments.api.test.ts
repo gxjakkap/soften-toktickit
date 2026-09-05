@@ -151,3 +151,134 @@ describe('POST /api/tickets/:id/attachments', () => {
     expect(ticket?.summary).toBe('Attachment fixture ticket')
   })
 })
+
+async function uploadAttachment(localTicketId: number, filename = 'download-me.png') {
+  const res = await request(app)
+    .post(`/api/tickets/${localTicketId}/attachments`)
+    .field('requesterId', String(requesterId))
+    .attach('file', Buffer.from('file bytes for download tests'), { filename, contentType: 'image/png' })
+  return res.body as { id: number }
+}
+
+describe('GET /api/attachments/:id/download', () => {
+  it('API-19 (FR-11): streams an active attachment byte-identical to the upload with correct headers', async () => {
+    const localTicketId = await createTicket()
+    const content = Buffer.from('file bytes for download tests')
+    const uploadRes = await request(app)
+      .post(`/api/tickets/${localTicketId}/attachments`)
+      .field('requesterId', String(requesterId))
+      .attach('file', content, { filename: 'download-me.png', contentType: 'image/png' })
+
+    const res = await request(app)
+      .get(`/api/attachments/${uploadRes.body.id}/download`)
+      .query({ requesterId })
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = []
+        res.on('data', (chunk) => chunks.push(chunk))
+        res.on('end', () => callback(null, Buffer.concat(chunks)))
+      })
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toBe('image/png')
+    expect(res.headers['content-disposition']).toContain('download-me.png')
+    expect(Buffer.compare(res.body as Buffer, content)).toBe(0)
+  })
+
+  it('API-20 (AC-15): returns 410 ATTACHMENT_REMOVED for a removed attachment, no file returned', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+    await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+
+    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId })
+
+    expect(res.status).toBe(410)
+    expect(res.body.error.code).toBe('ATTACHMENT_REMOVED')
+  })
+
+  it('returns 404 NOT_FOUND when the attachment is not owned by the caller', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId: otherRequesterId })
+
+    expect(res.status).toBe(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  it('returns 400 INVALID_REQUESTER when requesterId is missing', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app).get(`/api/attachments/${attachment.id}/download`)
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('INVALID_REQUESTER')
+  })
+})
+
+describe('PATCH /api/attachments/:id/remove', () => {
+  it('API-21 (AC-14): soft-removes an owned attachment, setting isRemoved/removedAt and keeping the row', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .send({ requesterId, reason: 'Wrong file, re-uploading the correct one' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.isRemoved).toBe(true)
+    expect(res.body.removedAt).toBeTruthy()
+    expect(res.body.removedReason).toBe('Wrong file, re-uploading the correct one')
+
+    const stored = await prisma.attachment.findUnique({ where: { id: attachment.id } })
+    expect(stored?.isRemoved).toBe(true)
+  })
+
+  it('omits removedReason as null when no reason is given', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+
+    expect(res.status).toBe(200)
+    expect(res.body.removedReason).toBeNull()
+  })
+
+  it('is idempotent: removing an already-removed attachment returns 200 with the existing removed state', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+    await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId, reason: 'first' })
+
+    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+
+    expect(res.status).toBe(200)
+    expect(res.body.isRemoved).toBe(true)
+    expect(res.body.removedReason).toBe('first')
+  })
+
+  it('rejects removal of an attachment not owned by the caller with 404', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .send({ requesterId: otherRequesterId })
+
+    expect(res.status).toBe(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+
+    const stored = await prisma.attachment.findUnique({ where: { id: attachment.id } })
+    expect(stored?.isRemoved).toBe(false)
+  })
+
+  it('returns 400 INVALID_REQUESTER when requesterId is missing', async () => {
+    const localTicketId = await createTicket()
+    const attachment = await uploadAttachment(localTicketId)
+
+    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({})
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('INVALID_REQUESTER')
+  })
+})

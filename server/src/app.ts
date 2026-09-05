@@ -8,6 +8,7 @@ import { Prisma } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
 import { MAX_ACTIVE_ATTACHMENTS, MAX_ATTACHMENT_BYTES, isAllowedAttachment } from './lib/attachment-validation.js'
+import { withSerializableRetry } from './lib/serializable-retry.js'
 
 export const app = express()
 
@@ -316,6 +317,36 @@ async function cleanupUploadedFile(file: Express.Multer.File | undefined) {
   await unlink(file.path).catch(() => {})
 }
 
+// Shared by download/remove (api-spec.md §8/§9): BR-15's "not owned looks
+// like nonexistent" rule applies identically to both.
+async function findOwnedAttachment(id: number, requesterId: number) {
+  if (!Number.isInteger(id)) return null
+  const attachment = await prisma.attachment.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      ticketId: true,
+      originalFileName: true,
+      storedFileName: true,
+      mimeType: true,
+      sizeBytes: true,
+      uploadedAt: true,
+      isRemoved: true,
+      removedAt: true,
+      removedReason: true,
+      ticket: { select: { requesterId: true } },
+    },
+  })
+  if (!attachment || attachment.ticket.requesterId !== requesterId) return null
+  return attachment
+}
+
+// Strips control characters/quotes so a stored original filename can't break
+// out of the quoted Content-Disposition value.
+function contentDispositionFilename(name: string): string {
+  return `attachment; filename="${name.replace(/[\r\n"]/g, '')}"`
+}
+
 // api-spec.md §7 (FR-04, BR-24..26, BR-29).
 app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
   const requester = await resolveActiveRequester(req)
@@ -342,35 +373,34 @@ app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
   try {
     // Serializable so a concurrent upload against the same Ticket can't
     // both read "4 active" and both insert a 5th, blowing past the cap.
-    const attachment = await prisma.$transaction(
-      async (tx) => {
-        const activeCount = await tx.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
-        if (activeCount >= MAX_ACTIVE_ATTACHMENTS) throw new AttachmentLimitReachedError()
+    // Wrapped in withSerializableRetry because Postgres SSI can raise a
+    // spurious conflict even between transactions that never really raced.
+    const attachment = await withSerializableRetry(prisma, async (tx) => {
+      const activeCount = await tx.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
+      if (activeCount >= MAX_ACTIVE_ATTACHMENTS) throw new AttachmentLimitReachedError()
 
-        // api-spec.md §7's 201 shape never includes storedFileName (the
-        // on-disk name, no client use for it) or removedReason (BR-27
-        // metadata that only matters once an attachment is removed).
-        return tx.attachment.create({
-          data: {
-            ticketId: ticket.id,
-            originalFileName: req.file!.originalname,
-            storedFileName: req.file!.filename,
-            mimeType: req.file!.mimetype,
-            sizeBytes: req.file!.size,
-          },
-          select: {
-            id: true,
-            ticketId: true,
-            originalFileName: true,
-            mimeType: true,
-            sizeBytes: true,
-            uploadedAt: true,
-            isRemoved: true,
-          },
-        })
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    )
+      // api-spec.md §7's 201 shape never includes storedFileName (the
+      // on-disk name, no client use for it) or removedReason (BR-27
+      // metadata that only matters once an attachment is removed).
+      return tx.attachment.create({
+        data: {
+          ticketId: ticket.id,
+          originalFileName: req.file!.originalname,
+          storedFileName: req.file!.filename,
+          mimeType: req.file!.mimetype,
+          sizeBytes: req.file!.size,
+        },
+        select: {
+          id: true,
+          ticketId: true,
+          originalFileName: true,
+          mimeType: true,
+          sizeBytes: true,
+          uploadedAt: true,
+          isRemoved: true,
+        },
+      })
+    })
 
     res.status(201).json(attachment)
   } catch (err) {
@@ -385,6 +415,132 @@ app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
     }
     throw err
   }
+})
+
+// api-spec.md §6 (FR-10, BR-14, BR-15, AC-03, AC-24).
+app.get('/api/tickets/:id', async (req, res) => {
+  const requester = await resolveActiveRequester(req)
+  if (!requester) {
+    return res.status(400).json({
+      error: { code: 'INVALID_REQUESTER', message: 'Requester is missing, unknown, or inactive.' },
+    })
+  }
+
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: {
+          id: true,
+          ticketNumber: true,
+          requesterId: true,
+          requester: { select: { id: true, name: true } },
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requestedPriority: true,
+          summary: true,
+          description: true,
+          currentStatus: true,
+          createdAt: true,
+          updatedAt: true,
+          attachments: {
+            select: {
+              id: true,
+              originalFileName: true,
+              mimeType: true,
+              sizeBytes: true,
+              uploadedAt: true,
+              isRemoved: true,
+              removedAt: true,
+            },
+          },
+        },
+      })
+    : null
+
+  // BR-15: not-owned looks identical to nonexistent, so ID enumeration can't
+  // distinguish "someone else's ticket" from "no such ticket".
+  if (!ticket || ticket.requesterId !== requester.id) {
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+  }
+
+  // requesterId is only present for the ownership check above; the api-spec
+  // §6 response shape carries the nested `requester` object, not the raw FK.
+  const { requesterId: _requesterId, ...responseBody } = ticket
+  res.json(responseBody)
+})
+
+// api-spec.md §8 (FR-11, BR-28, BR-29, AC-15).
+app.get('/api/attachments/:id/download', async (req, res) => {
+  const requester = await resolveActiveRequester(req)
+  if (!requester) {
+    return res.status(400).json({
+      error: { code: 'INVALID_REQUESTER', message: 'Requester is missing, unknown, or inactive.' },
+    })
+  }
+
+  const attachment = await findOwnedAttachment(Number(req.params.id), requester.id)
+  if (!attachment) {
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Attachment not found.' } })
+  }
+  if (attachment.isRemoved) {
+    return res.status(410).json({
+      error: { code: 'ATTACHMENT_REMOVED', message: 'This attachment has been removed and can no longer be downloaded.' },
+    })
+  }
+
+  res.type(attachment.mimeType)
+  res.set('Content-Disposition', contentDispositionFilename(attachment.originalFileName))
+  res.sendFile(path.join(UPLOADS_DIR, attachment.storedFileName))
+})
+
+// api-spec.md §9 (FR-12, BR-27, BR-29, AC-14).
+app.patch('/api/attachments/:id/remove', async (req, res) => {
+  const requester = await resolveActiveRequester(req)
+  if (!requester) {
+    return res.status(400).json({
+      error: { code: 'INVALID_REQUESTER', message: 'Requester is missing, unknown, or inactive.' },
+    })
+  }
+
+  const attachment = await findOwnedAttachment(Number(req.params.id), requester.id)
+  if (!attachment) {
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Attachment not found.' } })
+  }
+
+  // Idempotent (api-spec.md §9): the caller's desired end state already
+  // holds, so a second call returns the existing removed state unchanged
+  // rather than overwriting removedReason with this call's (possibly empty).
+  const reason = typeof req.body.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null
+  const result = attachment.isRemoved
+    ? attachment
+    : await prisma.attachment.update({
+        where: { id: attachment.id },
+        data: { isRemoved: true, removedAt: new Date(), removedReason: reason },
+        select: {
+          id: true,
+          ticketId: true,
+          originalFileName: true,
+          mimeType: true,
+          sizeBytes: true,
+          uploadedAt: true,
+          isRemoved: true,
+          removedAt: true,
+          removedReason: true,
+        },
+      })
+
+  res.json({
+    id: result.id,
+    ticketId: result.ticketId,
+    originalFileName: result.originalFileName,
+    mimeType: result.mimeType,
+    sizeBytes: result.sizeBytes,
+    uploadedAt: result.uploadedAt,
+    isRemoved: result.isRemoved,
+    removedAt: result.removedAt,
+    removedReason: result.removedReason,
+  })
 })
 
 // Lab 2 testing identities, not authentication (BR-03). Only active rows,

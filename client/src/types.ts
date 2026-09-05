@@ -59,4 +59,20 @@ export type Attachment = {
   uploadedAt: string
   isRemoved: boolean
   removedAt?: string | null
+  removedReason?: string | null
+}
+
+export type TicketDetail = {
+  id: number
+  ticketNumber: string
+  requester: { id: number; name: string }
+  category: { id: number; name: string }
+  relatedSystem: { id: number; name: string }
+  requestedPriority: RequestedPriority
+  summary: string
+  description: string
+  currentStatus: TicketStatus
+  createdAt: string
+  updatedAt: string
+  attachments: Attachment[]
 }

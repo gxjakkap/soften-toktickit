@@ -55,15 +55,15 @@ is covered by at least one row (§3 matrix).
 | API-10 | API | BR-19 | `GET /api/tickets` out-of-range `page`/`pageSize` | Clamped to valid bounds, not rejected | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
 | API-11 | API | AC-20 | `GET /api/tickets` for a Requester with zero tickets | `data: []`, `hasAnyTickets: false` | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
 | API-12 | API | AC-19 | `GET /api/tickets` filters matching nothing | `data: []`, `hasAnyTickets: true`, `totalCount: 0` | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
-| API-13 | API | AC-24 | `GET /api/tickets/:id` owned | 200 with full detail + attachments | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
-| API-14 | API | AC-03 | `GET /api/tickets/:id` not owned | 404 `NOT_FOUND` (not 403) | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
+| API-13 | API | AC-24 | `GET /api/tickets/:id` owned | 200 with full detail + attachments | `server/tests/lab-02/ticket-detail.api.test.ts` | Pass |
+| API-14 | API | AC-03 | `GET /api/tickets/:id` not owned | 404 `NOT_FOUND` (not 403) | `server/tests/lab-02/ticket-detail.api.test.ts` | Pass |
 | API-15 | API | AC-09 | `POST /api/tickets/:id/attachments` valid 2MB jpg | 201; appears in active attachment list | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-16 | API | AC-10 | Upload at 5-active-attachment cap | 409 `ATTACHMENT_LIMIT_REACHED`; no 6th row | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-17 | API | AC-11 | Upload 6MB pdf | 413 `FILE_TOO_LARGE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-18 | API | AC-12 | Upload `.exe` | 415 `UNSUPPORTED_FILE_TYPE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Pass |
-| API-19 | API | FR-11 | `GET /api/attachments/:id/download` active | 200, correct `Content-Type`/`Content-Disposition`, byte-identical to upload | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-20 | API | AC-15 | Download a removed attachment | 410 `ATTACHMENT_REMOVED`; no file returned | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-21 | API | AC-14 | `PATCH /api/attachments/:id/remove` | 200; `isRemoved: true`, `removedAt` set, row retained | `server/tests/lab-02/attachments.api.test.ts` | Planned |
+| API-19 | API | FR-11 | `GET /api/attachments/:id/download` active | 200, correct `Content-Type`/`Content-Disposition`, byte-identical to upload | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-20 | API | AC-15 | Download a removed attachment | 410 `ATTACHMENT_REMOVED`; no file returned | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-21 | API | AC-14 | `PATCH /api/attachments/:id/remove` | 200; `isRemoved: true`, `removedAt` set, row retained | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-22 | API | BR-29 | Remove an attachment not owned by caller | 404 `NOT_FOUND` | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-23 | API | AC-13 | Attachment upload fails after Ticket creation succeeds | Ticket row still exists unmodified; only the attachment call fails | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-24 | API | AC-22 | `GET /api/dev-requesters` | Only `isActive: true` rows, ordered by name | `server/tests/lab-02/dev-requesters.api.test.ts` | Planned |
@@ -81,9 +81,9 @@ is covered by at least one row (§3 matrix).
 | UI-11 | UI | AC-19 | MyTickets no-results state | No-results copy + Clear Filters, distinct from empty state | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-12 | UI | AC-18 | MyTickets pagination controls | Page navigation updates the list and the "Showing X to Y of Z" text | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-13 | UI | AC-16 | MyTickets search input | List filters as the Requester types a search term | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
-| UI-14 | UI | AC-24 | RequesterTicketDetail read-only rendering | All Ticket fields read-only; no Comment/Status/IT Priority controls present | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
-| UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| UI-16 | UI | AC-10 | AttachmentSection at the 5-attachment cap | Upload control shows disabled state with limit explanation | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
+| UI-14 | UI | AC-24 | RequesterTicketDetail read-only rendering | All Ticket fields read-only; no Comment/Status/IT Priority controls present | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Pass |
+| UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
+| UI-16 | UI | AC-10 | AttachmentSection at the 5-attachment cap | Upload control shows disabled state with limit explanation | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
 | STYLE-01 | UI style | ui-spec.md §3–4 | CreateTicket field/button classes | Required CSS classes/tokens present for editable, read-only, invalid, disabled, busy states | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | STYLE-02 | Visual/Responsive | AC-25 | Create Ticket screenshots | Desktop/tablet/mobile screenshots match `ui-spec.md`, no clipping/overlap/scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/create-ticket/` | Planned |
 | STYLE-03 | Visual/Responsive | AC-25 | My Tickets screenshots | Desktop table vs. mobile card, no horizontal scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/my-tickets/` | Planned |
@@ -166,13 +166,14 @@ npx playwright test e2e/lab-02
 
 ## 6. Final Results
 
-Updated as of Issue 6 (My Tickets). The rows Issue 6 implements —
-API-06 through API-12, UI-10 through UI-13 — are marked `Pass` in §2,
-confirmed by:
+Updated as of Issue 7 (Requester Ticket Detail and Attachment Lifecycle),
+following Issue 6 (My Tickets). Issue 6 implements API-06 through API-12,
+UI-10 through UI-13; Issue 7 implements API-13, API-14, API-19, API-20,
+API-21, UI-14, UI-15, UI-16. All are marked `Pass` in §2, confirmed by:
 
 ```bash
-pnpm --filter server test   # 63/63 passing
-pnpm --filter client test   # 53/53 passing
+pnpm --filter server test   # 81/81 passing
+pnpm --filter client test   # 71/71 passing
 ```
 
 Also added by Issue 6, beyond the rows tests.md enumerated by name: an
@@ -181,10 +182,13 @@ Also added by Issue 6, beyond the rows tests.md enumerated by name: an
 table), and a `sortBy=summary` + default-sort-tie-break test (BR-18) — both
 in `my-tickets.api.test.ts` alongside the numbered API-06..12 rows.
 
-Rows owned by other issues (Ticket Detail, attachment download/removal,
-E2E) are still `Planned` and get updated as those issues land. STYLE-02
-through STYLE-04 and the E2E rows also stay `Planned`: they depend on
-Playwright, which isn't part of this workspace yet (§7).
+Rows owned by other issues (E2E) are still `Planned` and get updated as
+those issues land. STYLE-02 through STYLE-04 and the E2E rows also stay
+`Planned`: they depend on Playwright, which isn't part of this workspace
+yet (§7). Issue 7's own responsive check for Ticket Detail was done
+manually via live browser automation against a ticket created through the
+real API (desktop viewport confirmed directly; tablet/mobile resize was
+not available in that session — see §7).
 
 ## 7. Known Limitations or Deferred Tests
 
@@ -200,11 +204,14 @@ Playwright, which isn't part of this workspace yet (§7).
   magic-byte content sniffing.** Sufficient for the trust level of this lab
   (a Development Requester, not a hostile actor); magic-byte sniffing is a
   reasonable future hardening, not required by BR-25.
-- **5-active-attachment limit enforcement is check-then-insert**, not
-  wrapped in a serializable transaction. Acceptable at this lab's
-  concurrency level (a single Requester uploading from one browser tab); a
-  race would require the same Requester uploading two files to the same
-  ticket in the same instant.
+- **5-active-attachment limit enforcement is check-then-insert inside a
+  Postgres `SERIALIZABLE` transaction** (`withSerializableRetry`,
+  `server/src/lib/serializable-retry.ts`), not a plain read-then-write.
+  Postgres' SSI implementation can raise a spurious "could not serialize
+  access" conflict even between transactions that never really raced
+  (page-granular predicate locking); Postgres' own docs require retrying
+  on that error code, so the transaction is retried up to 3 times rather
+  than surfaced to the Requester as a failure.
 - **No automated accessibility (axe-core) scan is configured.** §7 of
   `ui-spec.md` is checked via the manual/visual checklist in §4 above, not
   an automated a11y test suite, for this lab.

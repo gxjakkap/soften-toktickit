@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import { formatTicketNumber } from "../src/lib/ticket-number.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -35,14 +36,14 @@ const PRIORITY_CYCLE = ["LOW", "MEDIUM", "HIGH"] as const;
 // enough for one Requester to exceed a page (pagination demo), one
 // Requester with zero Tickets (empty-state demo), and status/priority
 // variety (filter/sort/badge demo). Keyed on ticketNumber so reruns upsert
-// instead of duplicating; the "SEED" marker keeps these apart from any
-// TKT-<year>-<id> row the app itself generates.
+// instead of duplicating. Category/Related System are carried by name, not
+// array index, so the upsert loop below can't silently reassign them if
+// findMany ever returns those reference rows in a different order.
 function ticketSpecs(requesterEmail: string, count: number) {
   return Array.from({ length: count }, (_, i) => ({
-    ticketNumber: `TKT-SEED-${requesterEmail.split("@")[0]}-${String(i + 1).padStart(3, "0")}`,
     requesterEmail,
-    categoryIndex: i % categories.length,
-    relatedSystemIndex: i % relatedSystems.length,
+    categoryName: categories[i % categories.length],
+    relatedSystemName: relatedSystems[i % relatedSystems.length],
     requestedPriority: PRIORITY_CYCLE[i % PRIORITY_CYCLE.length],
     currentStatus: STATUS_CYCLE[i % STATUS_CYCLE.length],
     summary: `Sample issue #${i + 1} for seed demo purposes`,
@@ -51,12 +52,20 @@ function ticketSpecs(requesterEmail: string, count: number) {
   }));
 }
 
+// BR-06 requires TKT-<year>-<6-digit> even for seed rows (a My Tickets
+// screenshot has to show real-looking Ticket Numbers) — id can't be used
+// since the number has to exist before the row does (upsert key), so a
+// reserved high range (900001+) stands in for it: stable across reruns,
+// obviously synthetic, still spec-shaped.
 const ticketSeeds = [
   ...ticketSpecs("jennifer.anderson@example.com", 14), // exceeds page 1 at the default page size of 10
   ...ticketSpecs("michael.brown@example.com", 3),
   ...ticketSpecs("david.chen@example.com", 5),
   // siriporn.wattana@example.com deliberately gets zero Tickets (empty-state demo).
-];
+].map((spec, i) => ({
+  ...spec,
+  ticketNumber: formatTicketNumber(900001 + i, spec.createdAt.getFullYear()),
+}));
 
 async function main() {
   // Re-runnable and convergent: isActive is re-applied so a row deactivated
@@ -87,24 +96,33 @@ async function main() {
     });
   }
 
-  const categoryRows = await prisma.category.findMany({ where: { name: { in: categories } } });
-  const relatedSystemRows = await prisma.relatedSystem.findMany({ where: { name: { in: relatedSystems } } });
+  const categoryRows = await prisma.category.findMany({
+    where: { name: { in: categories } },
+    orderBy: { name: "asc" },
+  });
+  const relatedSystemRows = await prisma.relatedSystem.findMany({
+    where: { name: { in: relatedSystems } },
+    orderBy: { name: "asc" },
+  });
   const requesterRows = await prisma.requesterUser.findMany({
     where: { email: { in: ticketSeeds.map((t) => t.requesterEmail) } },
   });
 
+  const categoryIdByName = new Map(categoryRows.map((c) => [c.name, c.id]));
+  const relatedSystemIdByName = new Map(relatedSystemRows.map((s) => [s.name, s.id]));
+
   for (const spec of ticketSeeds) {
     const requester = requesterRows.find((r) => r.email === spec.requesterEmail);
-    const category = categoryRows[spec.categoryIndex];
-    const relatedSystem = relatedSystemRows[spec.relatedSystemIndex];
-    if (!requester || !category || !relatedSystem) continue;
+    const categoryId = categoryIdByName.get(spec.categoryName);
+    const relatedSystemId = relatedSystemIdByName.get(spec.relatedSystemName);
+    if (!requester || categoryId === undefined || relatedSystemId === undefined) continue;
 
     await prisma.ticket.upsert({
       where: { ticketNumber: spec.ticketNumber },
       update: {
         requesterId: requester.id,
-        categoryId: category.id,
-        relatedSystemId: relatedSystem.id,
+        categoryId,
+        relatedSystemId,
         requestedPriority: spec.requestedPriority,
         currentStatus: spec.currentStatus,
         summary: spec.summary,
@@ -113,8 +131,8 @@ async function main() {
       create: {
         ticketNumber: spec.ticketNumber,
         requesterId: requester.id,
-        categoryId: category.id,
-        relatedSystemId: relatedSystem.id,
+        categoryId,
+        relatedSystemId,
         requestedPriority: spec.requestedPriority,
         currentStatus: spec.currentStatus,
         summary: spec.summary,

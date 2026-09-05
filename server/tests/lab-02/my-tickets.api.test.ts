@@ -222,18 +222,26 @@ describe('GET /api/tickets', () => {
     expect(t12Index).toBeLessThan(t11Index)
   })
 
-  it('rejects an unrecognized requestedPriority/status/sortBy/sortDir/non-numeric categoryId with 400 INVALID_FILTER', async () => {
+  it('rejects an unrecognized requestedPriority/status/sortBy/sortDir/non-numeric or unknown categoryId with 400 INVALID_FILTER', async () => {
     const cases = [
       { requestedPriority: 'URGENT' },
       { status: 'DELETED' },
       { sortBy: 'notAField' },
       { sortDir: 'sideways' },
       { categoryId: 'abc' },
+      { categoryId: -999 },
     ]
     for (const invalid of cases) {
       const res = await request(app).get('/api/tickets').query({ requesterId: requesterAId, ...invalid })
       expect(res.status).toBe(400)
       expect(res.body.error.code).toBe('INVALID_FILTER')
     }
+  })
+
+  it('treats an empty categoryId as no filter rather than category 0', async () => {
+    const res = await request(app).get('/api/tickets').query({ requesterId: requesterAId, categoryId: '', pageSize: 50 })
+
+    expect(res.status).toBe(200)
+    expect(res.body.totalCount).toBe(12)
   })
 })

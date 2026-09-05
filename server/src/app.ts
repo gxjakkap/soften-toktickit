@@ -192,11 +192,12 @@ app.get('/api/tickets', async (req, res) => {
 
   const where: Prisma.TicketWhereInput = { requesterId: requester.id }
 
-  if (req.query.categoryId !== undefined) {
+  if (typeof req.query.categoryId === 'string' && req.query.categoryId.trim() !== '') {
     const categoryId = Number(req.query.categoryId)
-    if (!Number.isInteger(categoryId)) {
+    const category = Number.isInteger(categoryId) ? await prisma.category.findUnique({ where: { id: categoryId } }) : null
+    if (!category) {
       return res.status(400).json({
-        error: { code: 'INVALID_FILTER', message: 'categoryId must be an integer.', field: 'categoryId' },
+        error: { code: 'INVALID_FILTER', message: 'categoryId does not reference a known Category.', field: 'categoryId' },
       })
     }
     where.categoryId = categoryId

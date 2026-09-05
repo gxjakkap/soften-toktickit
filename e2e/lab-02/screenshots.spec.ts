@@ -288,18 +288,24 @@ test.describe('STYLE-02/03/04 (AC-25): responsive screenshots', () => {
       })
       await loginViaStorage(page, jennifer)
 
+      const assertNoHorizontalScroll = async () => {
+        const bodyWidth = await page.evaluate(() => document.body.scrollWidth)
+        expect(bodyWidth).toBeLessThanOrEqual(viewport.width + 1)
+      }
+
       await page.goto('/tickets/new')
       await waitForCreateTicketReady(page)
-      const bodyWidth = await page.evaluate(() => document.body.scrollWidth)
-      expect(bodyWidth).toBeLessThanOrEqual(viewport.width + 1)
+      await assertNoHorizontalScroll()
       await page.screenshot({ path: shot('create-ticket', `${viewportName}.png`), fullPage: true })
 
       await page.goto('/tickets')
       await expect(page.getByRole('heading', { name: 'My Tickets' })).toBeVisible()
+      await assertNoHorizontalScroll()
       await page.screenshot({ path: shot('my-tickets', `${viewportName}.png`), fullPage: true })
 
       await page.goto(`/tickets/${ticket.id}`)
       await expect(page.getByText(ticket.ticketNumber)).toBeVisible()
+      await assertNoHorizontalScroll()
       await page.screenshot({ path: shot('ticket-detail', `${viewportName}.png`), fullPage: true })
     })
   }

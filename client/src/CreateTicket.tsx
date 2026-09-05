@@ -9,7 +9,8 @@ import {
   type SubmitEvent,
 } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ApiError, createTicket, fetchCategories, fetchRelatedSystems, uploadAttachment } from './apiClient'
+import AttachmentSection from './AttachmentSection'
+import { ApiError, createTicket, fetchCategories, fetchRelatedSystems } from './apiClient'
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, ensureFileName, isAllowedFile } from './lib/attachment-validation'
 import { useRequester } from './RequesterContext'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
@@ -22,10 +23,12 @@ const DESCRIPTION_MAX = 2000
 type FieldName = 'categoryId' | 'relatedSystemId' | 'requestedPriority' | 'summary' | 'description'
 type Errors = Partial<Record<FieldName, string>>
 
+// Staged pre-submit only — no Ticket exists yet to upload to. Once the
+// Ticket is created, AttachmentSection takes over (upload, Download, Remove).
 type AttachmentItem = {
   localId: string
   file: File
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'rejected'
+  status: 'pending' | 'rejected'
   message?: string
 }
 
@@ -221,26 +224,6 @@ function CreateTicket() {
     }
   }
 
-  async function uploadOne(ticketId: number, item: AttachmentItem) {
-    setAttachments((prev) =>
-      prev.map((a) => (a.localId === item.localId ? { ...a, status: 'uploading', message: undefined } : a)),
-    )
-    try {
-      await uploadAttachment(requester!.id, ticketId, item.file)
-      setAttachments((prev) => prev.map((a) => (a.localId === item.localId ? { ...a, status: 'success' } : a)))
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Upload failed. Please retry.'
-      setAttachments((prev) => prev.map((a) => (a.localId === item.localId ? { ...a, status: 'error', message } : a)))
-    }
-  }
-
-  function retryAttachment(localId: string) {
-    if (!createdTicket) return
-    const item = attachments.find((a) => a.localId === localId)
-    if (!item) return
-    void uploadOne(createdTicket.id, item)
-  }
-
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
     if (submittingRef.current) return
@@ -268,11 +251,6 @@ function CreateTicket() {
         description: form.description.trim(),
       })
       setCreatedTicket(ticket)
-
-      const pending = attachments.filter((a) => a.status === 'pending')
-      for (const item of pending) {
-        await uploadOne(ticket.id, item)
-      }
     } catch (err) {
       if (err instanceof ApiError && err.field && err.field in form) {
         const field = err.field as FieldName
@@ -340,7 +318,7 @@ function CreateTicket() {
           </div>
         </div>
 
-        <h2 className="zg-helper" style={{ marginTop: 'var(--zg-space-5)', fontWeight: 600, fontSize: '16px' }}>
+        <h2 className="zg-section-heading" style={{ marginTop: 'var(--zg-space-5)' }}>
           Classification
         </h2>
         {refState === 'loading' && (
@@ -459,7 +437,7 @@ function CreateTicket() {
           {fieldError('summary') && <p className="zg-error-message">{fieldError('summary')}</p>}
         </div>
 
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
+        <div style={{ marginTop: 'var(--zg-space-5)' }}>
           <label className="zg-label" htmlFor="description">
             Description <span className="zg-required">*</span>
           </label>
@@ -483,88 +461,82 @@ function CreateTicket() {
           {fieldError('description') && <p className="zg-error-message">{fieldError('description')}</p>}
         </div>
 
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
-          <h2 className="zg-helper" style={{ fontWeight: 600, fontSize: '16px' }}>
-            Attachments
-          </h2>
-          <label className="zg-label" htmlFor="attachments">
-            Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
-          </label>
-          <div
-            className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
-            data-testid="attachment-dropzone"
-            role="button"
-            tabIndex={disabled ? -1 : 0}
-            aria-disabled={disabled}
-            aria-label="Attach files: click to browse, drag and drop, or paste an image"
-            onClick={openFileBrowser}
-            onKeyDown={handleDropzoneKeyDown}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              id="attachments"
-              ref={fileInputRef}
-              type="file"
-              className="zg-visually-hidden"
-              tabIndex={-1}
-              accept=".jpg,.jpeg,.png,.webp,.pdf"
-              multiple
-              disabled={disabled}
-              onChange={handleFilesSelected}
+        <div style={{ marginTop: 'var(--zg-space-5)' }}>
+          {createdTicket ? (
+            <AttachmentSection
+              bare
+              requesterId={requester!.id}
+              ticketId={createdTicket.id}
+              initialAttachments={[]}
+              initialFiles={attachments.filter((a) => a.status === 'pending').map((a) => a.file)}
             />
-            <p className="zg-helper zg-dropzone-text">
-              Drag and drop files here, click to browse, or paste an image (Ctrl+V / Cmd+V).
-            </p>
-          </div>
-          {attachments.filter((a) => a.status !== 'rejected').length >= MAX_ATTACHMENTS && (
-            <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
-              5-attachment limit reached. Remove a file to attach another.
-            </p>
-          )}
+          ) : (
+            <>
+              <h2 className="zg-section-heading">Attachments</h2>
+              <label className="zg-label" htmlFor="attachments" style={{ marginTop: 'var(--zg-space-4)' }}>
+                Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
+              </label>
+              <div
+                className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
+                data-testid="attachment-dropzone"
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                aria-disabled={disabled}
+                aria-label="Attach files: click to browse, drag and drop, or paste an image"
+                onClick={openFileBrowser}
+                onKeyDown={handleDropzoneKeyDown}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  id="attachments"
+                  ref={fileInputRef}
+                  type="file"
+                  className="zg-visually-hidden"
+                  tabIndex={-1}
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  multiple
+                  disabled={disabled}
+                  onChange={handleFilesSelected}
+                />
+                <p className="zg-helper zg-dropzone-text">
+                  Drag and drop files here, click to browse, or paste an image (Ctrl+V / Cmd+V).
+                </p>
+              </div>
+              {attachments.filter((a) => a.status !== 'rejected').length >= MAX_ATTACHMENTS && (
+                <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
+                  5-attachment limit reached. Remove a file to attach another.
+                </p>
+              )}
 
-          {attachments.length > 0 && (
-            <ul
-              data-testid="attachment-list"
-              style={{ listStyle: 'none', padding: 0, marginTop: 'var(--zg-space-3)' }}
-            >
-              {attachments.map((item) => (
-                <li
-                  key={item.localId}
-                  className={`zg-attachment-row${item.status === 'error' || item.status === 'rejected' ? ' is-invalid' : ''}`}
-                  style={{ marginBottom: 'var(--zg-space-2)' }}
+              {attachments.length > 0 && (
+                <ul
+                  data-testid="attachment-list"
+                  style={{ listStyle: 'none', padding: 0, marginTop: 'var(--zg-space-3)' }}
                 >
-                  <span>
-                    {item.file.name} ({Math.ceil(item.file.size / 1024)} KB)
-                    {item.status === 'uploading' && ', uploading…'}
-                    {item.status === 'success' && ', uploaded'}
-                  </span>
-                  {(item.status === 'error' || item.status === 'rejected') && (
-                    <span className="zg-error-message">{item.message}</span>
-                  )}
-                  {item.status === 'rejected' && (
-                    <button type="button" className="zg-btn zg-btn-tertiary" onClick={() => dismissAttachment(item.localId)}>
-                      Dismiss
-                    </button>
-                  )}
-                  {item.status === 'pending' && (
-                    <button type="button" className="zg-btn zg-btn-tertiary" onClick={() => dismissAttachment(item.localId)}>
-                      Remove
-                    </button>
-                  )}
-                  {item.status === 'error' && (
-                    <button
-                      type="button"
-                      className="zg-btn zg-btn-tertiary"
-                      onClick={() => retryAttachment(item.localId)}
+                  {attachments.map((item) => (
+                    <li
+                      key={item.localId}
+                      className={`zg-attachment-row${item.status === 'rejected' ? ' is-invalid' : ''}`}
+                      style={{ marginBottom: 'var(--zg-space-2)' }}
                     >
-                      Retry
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
+                      <span>
+                        {item.file.name} ({Math.ceil(item.file.size / 1024)} KB)
+                      </span>
+                      {item.status === 'rejected' && <span className="zg-error-message">{item.message}</span>}
+                      <button
+                        type="button"
+                        className="zg-btn zg-btn-tertiary"
+                        onClick={() => dismissAttachment(item.localId)}
+                      >
+                        {item.status === 'rejected' ? 'Dismiss' : 'Remove'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
 

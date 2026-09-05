@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchCategories, fetchTickets } from './apiClient'
+import { PriorityBadge, StatusBadge } from './badges'
 import { useRequester } from './RequesterContext'
 import type { Category, SortDirection, TicketListResponse, TicketSortField, TicketStatus } from './types'
 
@@ -21,31 +22,6 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   CANCELLED: 'Cancelled',
 }
 
-// ui-spec.md §9: Pending/In Progress and Cancelled/Closed share a badge
-// colour, so each pair also carries a distinct icon (never colour alone).
-const STATUS_ICON: Partial<Record<TicketStatus, string>> = {
-  PENDING: 'bi-hourglass-split',
-  IN_PROGRESS: 'bi-arrow-repeat',
-  CANCELLED: 'bi-x-circle',
-  CLOSED: 'bi-check2-circle',
-}
-
-const STATUS_BADGE_CLASS: Record<TicketStatus, string> = {
-  NEW: 'zg-badge-status-new',
-  OPEN: 'zg-badge-status-open',
-  IN_PROGRESS: 'zg-badge-status-in-progress',
-  PENDING: 'zg-badge-status-pending',
-  RESOLVED: 'zg-badge-status-resolved',
-  CLOSED: 'zg-badge-status-closed',
-  CANCELLED: 'zg-badge-status-cancelled',
-}
-
-const PRIORITY_BADGE_CLASS = {
-  LOW: 'zg-badge-priority-low',
-  MEDIUM: 'zg-badge-priority-medium',
-  HIGH: 'zg-badge-priority-high',
-} as const
-
 // ui-spec.md §11.3: only these columns are sortable (BR-18); Category and
 // Last Updated are display-only.
 const SORTABLE_COLUMNS: { field: TicketSortField; label: string }[] = [
@@ -55,21 +31,6 @@ const SORTABLE_COLUMNS: { field: TicketSortField; label: string }[] = [
   { field: 'requestedPriority', label: 'Requested Priority' },
   { field: 'currentStatus', label: 'Current Status' },
 ]
-
-function StatusBadge({ status }: { status: TicketStatus }) {
-  const icon = STATUS_ICON[status]
-  return (
-    <span className={`zg-badge ${STATUS_BADGE_CLASS[status]}`}>
-      {icon && <i className={`bi ${icon}`} aria-hidden="true" />}
-      {STATUS_LABEL[status]}
-    </span>
-  )
-}
-
-function PriorityBadge({ priority }: { priority: keyof typeof PRIORITY_BADGE_CLASS }) {
-  const label = priority.charAt(0) + priority.slice(1).toLowerCase()
-  return <span className={`zg-badge ${PRIORITY_BADGE_CLASS[priority]}`}>{label}</span>
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString()

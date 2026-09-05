@@ -2,31 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchTicket } from './apiClient'
+import { PriorityBadge, StatusBadge } from './badges'
 import { useRequester } from './RequesterContext'
 import type { TicketDetail } from './types'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
-
-const PRIORITY_LABEL: Record<string, string> = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High' }
-const PRIORITY_CLASS: Record<string, string> = {
-  LOW: 'zg-badge-priority-low',
-  MEDIUM: 'zg-badge-priority-medium',
-  HIGH: 'zg-badge-priority-high',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  NEW: 'New',
-  OPEN: 'Open',
-  IN_PROGRESS: 'In Progress',
-  PENDING: 'Pending',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-  CANCELLED: 'Cancelled',
-}
-
-function statusClass(status: string): string {
-  return `zg-badge-status-${status.toLowerCase()}`
-}
 
 function RequesterTicketDetail() {
   const { id } = useParams<{ id: string }>()
@@ -120,20 +100,13 @@ function RequesterTicketDetail() {
               <div>
                 <span className="zg-label">Requested Priority</span>
                 <p>
-                  <span
-                    data-testid="priority-badge"
-                    className={`zg-badge ${PRIORITY_CLASS[ticket.requestedPriority]}`}
-                  >
-                    {PRIORITY_LABEL[ticket.requestedPriority]}
-                  </span>
+                  <PriorityBadge priority={ticket.requestedPriority} testId="priority-badge" />
                 </p>
               </div>
               <div>
                 <span className="zg-label">Current Status</span>
                 <p>
-                  <span data-testid="status-badge" className={`zg-badge ${statusClass(ticket.currentStatus)}`}>
-                    {STATUS_LABEL[ticket.currentStatus]}
-                  </span>
+                  <StatusBadge status={ticket.currentStatus} testId="status-badge" />
                 </p>
               </div>
               <div className="zg-detail-full">

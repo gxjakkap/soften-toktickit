@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react'
 import { ApiError, attachmentDownloadUrl, removeAttachment, uploadAttachment } from './apiClient'
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, ensureFileName, isAllowedFile } from './lib/attachment-validation'
 import type { Attachment } from './types'
@@ -18,10 +18,19 @@ function AttachmentSection({
   requesterId,
   ticketId,
   initialAttachments,
+  initialFiles,
+  bare,
 }: {
   requesterId: number
   ticketId: number
   initialAttachments: Attachment[]
+  /** Files already picked/validated before the Ticket existed (Create Ticket's
+   *  pre-submit dropzone) — uploaded once on mount instead of re-picked. */
+  initialFiles?: File[]
+  /** Create Ticket's layout is one single card (ui-spec §11.2) — skip the
+   *  outer card chrome Ticket Detail needs to keep this visually distinct
+   *  (ui-spec §11.4). */
+  bare?: boolean
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>(initialAttachments)
   const [pending, setPending] = useState<PendingUpload[]>([])
@@ -31,6 +40,7 @@ function AttachmentSection({
   const [removing, setRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const startedInitialUpload = useRef(false)
 
   const activeCount = attachments.filter((a) => !a.isRemoved).length
   const atCap = activeCount >= MAX_ATTACHMENTS
@@ -77,6 +87,13 @@ function AttachmentSection({
       void uploadOne(item)
     }
   }
+
+  useEffect(() => {
+    if (startedInitialUpload.current || !initialFiles || initialFiles.length === 0) return
+    startedInitialUpload.current = true
+    addFiles(initialFiles)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the files Create Ticket staged pre-submit
+  }, [])
 
   function handleFilesSelected(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -145,11 +162,9 @@ function AttachmentSection({
     }
   }
 
-  return (
-    <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
-      <h2 className="zg-title" style={{ fontSize: '18px' }}>
-        Attachments
-      </h2>
+  const content = (
+    <>
+      <h2 className="zg-section-heading">Attachments</h2>
 
       <div style={{ marginTop: 'var(--zg-space-4)' }}>
         <label className="zg-label" htmlFor="attachments">
@@ -204,7 +219,7 @@ function AttachmentSection({
                 {attachment.originalFileName} ({formatSize(attachment.sizeBytes)})
                 {attachment.isRemoved && (
                   <>
-                    {' — '}
+                    {' '}
                     <span className="zg-badge zg-badge-removed">Removed</span>
                     {attachment.removedAt && ` on ${new Date(attachment.removedAt).toLocaleDateString()}`}
                   </>
@@ -220,7 +235,7 @@ function AttachmentSection({
                   </a>
                   <button
                     type="button"
-                    className="zg-btn zg-btn-tertiary"
+                    className="zg-btn zg-btn-destructive"
                     onClick={() => openRemoveDialog(attachment)}
                   >
                     Remove
@@ -265,12 +280,18 @@ function AttachmentSection({
             aria-labelledby="remove-attachment-title"
           >
             <div className="modal-dialog">
-              <div className="modal-content">
+              <div className="modal-content zg-modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title" id="remove-attachment-title">
+                  <h5 className="zg-modal-title" id="remove-attachment-title">
                     Remove Attachment
                   </h5>
-                  <button type="button" className="btn-close" aria-label="Close" onClick={closeRemoveDialog} />
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    title="Close"
+                    onClick={closeRemoveDialog}
+                  />
                 </div>
                 <div className="modal-body">
                   <p>
@@ -299,7 +320,7 @@ function AttachmentSection({
                   </button>
                   <button
                     type="button"
-                    className="zg-btn zg-btn-primary"
+                    className="zg-btn zg-btn-destructive"
                     disabled={removing}
                     aria-disabled={removing}
                     onClick={confirmRemove}
@@ -313,6 +334,14 @@ function AttachmentSection({
           <div className="modal-backdrop show" />
         </>
       )}
+    </>
+  )
+
+  if (bare) return content
+
+  return (
+    <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
+      {content}
     </div>
   )
 }

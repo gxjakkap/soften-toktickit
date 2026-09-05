@@ -2,21 +2,10 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import AppShell from './AppShell'
 import CreateTicket from './CreateTicket'
 import DevRequesterSelection from './DevRequesterSelection'
+import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
 import { RequesterProvider, useRequester } from './RequesterContext'
 import SystemCheck from './SystemCheck'
-
-// ponytail: placeholder until the Create Ticket / My Tickets / Ticket Detail
-// issues land. The routes exist now only so the BR-12 guard has something to
-// guard; replace the element, not the routing.
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div className="zg-card">
-      <h1 className="zg-title">{title}</h1>
-      <p className="zg-helper">This screen arrives in a later Lab 2 issue.</p>
-    </div>
-  )
-}
 
 /** BR-12: no selected Requester means every Requester-scoped screen bounces to
  *  the selection screen, whether reached by nav or by a pasted URL. */
@@ -42,7 +31,7 @@ export function AppRoutes() {
       <Route path="/system-check" element={<SystemCheck />} />
 
       <Route element={<RequireRequester />}>
-        <Route path="/tickets" element={<ComingSoon title="My Tickets" />} />
+        <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
       </Route>

@@ -48,13 +48,13 @@ is covered by at least one row (§3 matrix).
 | API-03 | API | AC-05 | `POST /api/tickets` description < 10 chars | 400 `VALIDATION_ERROR` field `description`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-04 | API | AC-06 | `POST /api/tickets` missing `requestedPriority` | 400 `VALIDATION_ERROR` field `requestedPriority` | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-05 | API | BR-12 | `POST /api/tickets` inactive/unknown `requesterId` | 400 `INVALID_REQUESTER`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-06 | API | AC-03 | `GET /api/tickets` cross-Requester scope | Requester B's list never includes Requester A's tickets | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-07 | API | AC-16 | `GET /api/tickets?search=vpn` | Case-insensitive partial match on `ticketNumber`/`summary` only | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-08 | API | AC-17 | `GET /api/tickets?categoryId=&status=` | AND-combined filters return only matching rows | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-09 | API | AC-18 | `GET /api/tickets` pagination metadata | Correct `page`/`pageSize`/`totalCount`/`totalPages` | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-10 | API | BR-19 | `GET /api/tickets` out-of-range `page`/`pageSize` | Clamped to valid bounds, not rejected | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-11 | API | AC-20 | `GET /api/tickets` for a Requester with zero tickets | `data: []`, `hasAnyTickets: false` | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-12 | API | AC-19 | `GET /api/tickets` filters matching nothing | `data: []`, `hasAnyTickets: true`, `totalCount: 0` | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
+| API-06 | API | AC-03 | `GET /api/tickets` cross-Requester scope | Requester B's list never includes Requester A's tickets | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-07 | API | AC-16 | `GET /api/tickets?search=vpn` | Case-insensitive partial match on `ticketNumber`/`summary` only | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-08 | API | AC-17 | `GET /api/tickets?categoryId=&status=` | AND-combined filters return only matching rows | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-09 | API | AC-18 | `GET /api/tickets` pagination metadata | Correct `page`/`pageSize`/`totalCount`/`totalPages` | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-10 | API | BR-19 | `GET /api/tickets` out-of-range `page`/`pageSize` | Clamped to valid bounds, not rejected | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-11 | API | AC-20 | `GET /api/tickets` for a Requester with zero tickets | `data: []`, `hasAnyTickets: false` | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| API-12 | API | AC-19 | `GET /api/tickets` filters matching nothing | `data: []`, `hasAnyTickets: true`, `totalCount: 0` | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
 | API-13 | API | AC-24 | `GET /api/tickets/:id` owned | 200 with full detail + attachments | `server/tests/lab-02/ticket-detail.api.test.ts` | Pass |
 | API-14 | API | AC-03 | `GET /api/tickets/:id` not owned | 404 `NOT_FOUND` (not 403) | `server/tests/lab-02/ticket-detail.api.test.ts` | Pass |
 | API-15 | API | AC-09 | `POST /api/tickets/:id/attachments` valid 2MB jpg | 201; appears in active attachment list | `server/tests/lab-02/attachments.api.test.ts` | Pass |
@@ -77,10 +77,10 @@ is covered by at least one row (§3 matrix).
 | UI-07 | UI | AC-08 | CreateTicket server failure | Entered values preserved; safe error banner shown | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-08 | UI | AC-01 | CreateTicket success | Generated Ticket Number shown in success state | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-09 | UI | AC-11 | CreateTicket oversized file, client-side | Per-file error shown before any upload request fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
-| UI-10 | UI | AC-20 | MyTickets empty state | Empty-account copy + Create Ticket CTA, no filter UI implying data exists | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
-| UI-11 | UI | AC-19 | MyTickets no-results state | No-results copy + Clear Filters, distinct from empty state | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
-| UI-12 | UI | AC-18 | MyTickets pagination controls | Page navigation updates the list and the "Showing X to Y of Z" text | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
-| UI-13 | UI | AC-16 | MyTickets search input | List filters as the Requester types a search term | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
+| UI-10 | UI | AC-20 | MyTickets empty state | Empty-account copy + Create Ticket CTA, no filter UI implying data exists | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
+| UI-11 | UI | AC-19 | MyTickets no-results state | No-results copy + Clear Filters, distinct from empty state | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
+| UI-12 | UI | AC-18 | MyTickets pagination controls | Page navigation updates the list and the "Showing X to Y of Z" text | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
+| UI-13 | UI | AC-16 | MyTickets search input | List filters as the Requester types a search term | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-14 | UI | AC-24 | RequesterTicketDetail read-only rendering | All Ticket fields read-only; no Comment/Status/IT Priority controls present | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Pass |
 | UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
 | UI-16 | UI | AC-10 | AttachmentSection at the 5-attachment cap | Upload control shows disabled state with limit explanation | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
@@ -166,22 +166,29 @@ npx playwright test e2e/lab-02
 
 ## 6. Final Results
 
-Updated as of Issue 7 (Requester Ticket Detail and Attachment Lifecycle).
-The rows Issue 7 implements — API-13, API-14, API-19, API-20, API-21,
-UI-14, UI-15, UI-16 — are marked `Pass` in §2, confirmed by:
+Updated as of Issue 7 (Requester Ticket Detail and Attachment Lifecycle),
+following Issue 6 (My Tickets). Issue 6 implements API-06 through API-12,
+UI-10 through UI-13; Issue 7 implements API-13, API-14, API-19, API-20,
+API-21, UI-14, UI-15, UI-16. All are marked `Pass` in §2, confirmed by:
 
 ```bash
-pnpm --filter server test   # 68/68 passing
-pnpm --filter client test   # 67/67 passing
+pnpm --filter server test   # 81/81 passing
+pnpm --filter client test   # 71/71 passing
 ```
 
-Rows owned by other issues (My Tickets, E2E) are still `Planned` and get
-updated as those issues land. STYLE-02 through STYLE-04 and the E2E rows
-also stay `Planned`: they depend on Playwright, which isn't part of this
-workspace yet (§7). Issue 7's own responsive check for Ticket Detail was
-done manually via live browser automation against a ticket created
-through the real API (desktop viewport confirmed directly; tablet/mobile
-resize was not available in that session — see §7).
+Also added by Issue 6, beyond the rows tests.md enumerated by name: an
+`INVALID_FILTER` 400 test for an unrecognized `requestedPriority`/`status`/
+`sortBy`/`sortDir` or non-numeric `categoryId` (api-spec.md §5's failure
+table), and a `sortBy=summary` + default-sort-tie-break test (BR-18) — both
+in `my-tickets.api.test.ts` alongside the numbered API-06..12 rows.
+
+Rows owned by other issues (E2E) are still `Planned` and get updated as
+those issues land. STYLE-02 through STYLE-04 and the E2E rows also stay
+`Planned`: they depend on Playwright, which isn't part of this workspace
+yet (§7). Issue 7's own responsive check for Ticket Detail was done
+manually via live browser automation against a ticket created through the
+real API (desktop viewport confirmed directly; tablet/mobile resize was
+not available in that session — see §7).
 
 ## 7. Known Limitations or Deferred Tests
 

@@ -112,13 +112,18 @@ body {
 
 /* Buttons — ui-spec §4. Every button keeps visible text. */
 .zg-btn {
+  align-items: center;
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
+  display: inline-flex;
   font-size: 14px;
   font-weight: 500;
+  gap: var(--zg-space-2);
+  justify-content: center;
   min-height: 44px; /* touch target at mobile widths — ui-spec §8 */
   padding: var(--zg-space-2) var(--zg-space-5);
+  text-decoration: none; /* a Link styled as a button is not a plain anchor */
 }
 
 .zg-btn-primary {
@@ -149,6 +154,23 @@ body {
 .zg-btn[aria-disabled='true'] {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* Compact variant for toolbar/header actions (e.g. My Tickets' top-right
+   Create Ticket) — the full 44px tap target only matters at mobile widths
+   (ui-spec §8), so it's restored there and nowhere else. */
+.zg-btn-sm {
+  font-size: 13px;
+  min-height: 36px;
+  padding: var(--zg-space-1) var(--zg-space-4);
+}
+
+@media (max-width: 767px) {
+  .zg-btn-sm {
+    font-size: 14px;
+    min-height: 44px;
+    padding: var(--zg-space-2) var(--zg-space-5);
+  }
 }
 
 /* Application shell — ui-spec §10. */
@@ -293,6 +315,166 @@ textarea.zg-field {
   .zg-grid-3 {
     grid-template-columns: 1fr;
   }
+}
+
+/* My Tickets — ui-spec.md §11.3. */
+.zg-filter-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+}
+
+.zg-filter-field {
+  display: flex;
+  flex: 1 1 160px;
+  flex-direction: column;
+  min-width: 160px;
+}
+
+/* Badges — ui-spec §9. Colour is reinforcement only; label text (and an
+   icon for the two same-colour pairs) is always present alongside it. */
+.zg-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: var(--zg-space-1);
+  padding: 2px var(--zg-space-3);
+  white-space: nowrap;
+}
+
+.zg-badge-priority-low {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-priority-medium {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-priority-high {
+  background: #fbe7e5;
+  color: var(--zg-error-text);
+}
+
+.zg-badge-status-new {
+  background: #e7eef5;
+  color: #33475b;
+}
+
+.zg-badge-status-open {
+  background: #dcebfb;
+  color: #1b5fa8;
+}
+
+.zg-badge-status-in-progress {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-status-pending {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-status-resolved {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-status-closed {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+.zg-badge-status-cancelled {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+/* Desktop/tablet table (ui-spec §11.3, §8). */
+.zg-table-wrap {
+  display: block;
+  overflow-x: auto;
+}
+
+.zg-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.zg-table th,
+.zg-table td {
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  padding: var(--zg-space-3);
+  text-align: left;
+}
+
+.zg-table th {
+  font-weight: 600;
+}
+
+.zg-table tbody tr {
+  cursor: pointer;
+}
+
+.zg-table tbody tr:hover {
+  background: var(--zg-pale);
+}
+
+.zg-sort-btn {
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: var(--zg-space-1);
+  padding: 0;
+}
+
+/* Mobile card list, hidden on desktop/tablet — the table/card swap is CSS-
+   only, never a horizontal scroll substitute (ui-spec §8, §11.3). */
+.zg-ticket-cards {
+  display: none;
+}
+
+.zg-ticket-card {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  color: inherit;
+  display: block;
+  margin-bottom: var(--zg-space-3);
+  padding: var(--zg-space-4);
+  text-decoration: none;
+}
+
+.zg-ticket-card:hover {
+  border-color: var(--zg-secondary);
+}
+
+@media (max-width: 767px) {
+  .zg-table-wrap {
+    display: none;
+  }
+
+  .zg-ticket-cards {
+    display: block;
+  }
+}
+
+.zg-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: center;
+  margin-top: var(--zg-space-4);
 }
 
 .zg-success-banner {

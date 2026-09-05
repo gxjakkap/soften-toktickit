@@ -54,6 +54,14 @@ body {
   color: var(--zg-text);
 }
 
+/* Section heading (e.g. "Classification", "Attachments") — ui-spec §2. */
+.zg-section-heading {
+  color: var(--zg-text);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
 .zg-label {
   display: block;
   font-size: 14px;
@@ -81,7 +89,8 @@ body {
 /* Focus is never suppressed, including for keyboard-only users — ui-spec §3/§7. */
 .zg-field:focus-visible,
 .zg-btn:focus-visible,
-.zg-navlink:focus-visible {
+.zg-navlink:focus-visible,
+.zg-menu-toggle:focus-visible {
   outline: 2px solid var(--zg-secondary);
   outline-offset: 2px;
 }
@@ -150,6 +159,14 @@ body {
   text-decoration: underline;
 }
 
+/* Destructive — ui-spec §4 (e.g. Remove Attachment), confirmed via a
+   dialog before the action fires; never the same style as Cancel. */
+.zg-btn-destructive {
+  background: #fff;
+  border-color: var(--zg-error-border);
+  color: var(--zg-error-text);
+}
+
 .zg-btn:disabled,
 .zg-btn[aria-disabled='true'] {
   cursor: not-allowed;
@@ -196,11 +213,20 @@ body {
   text-decoration: none;
 }
 
+/* Desktop/tablet: nav + Requester info share the header row (ui-spec §10). */
+.zg-header-collapsible {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--zg-space-4);
+  justify-content: space-between;
+}
+
 .zg-nav {
   display: flex;
   flex-wrap: wrap;
   gap: var(--zg-space-4);
-  flex: 1 1 auto;
 }
 
 .zg-navlink {
@@ -226,6 +252,48 @@ body {
 .zg-header .zg-btn-tertiary {
   color: #fff;
   text-decoration: underline;
+}
+
+/* Mobile: nav + Requester info collapse behind a menu control instead of
+   wrapping the header onto extra lines (ui-spec §10). */
+.zg-menu-toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: none;
+  font-size: 22px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .zg-menu-toggle {
+    display: block;
+  }
+
+  .zg-header-collapsible {
+    display: none;
+  }
+
+  .zg-header-collapsible.is-open {
+    align-items: stretch;
+    display: flex;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: var(--zg-space-3);
+  }
+
+  .zg-header-collapsible.is-open .zg-nav {
+    flex-direction: column;
+    gap: var(--zg-space-2);
+  }
+
+  .zg-header-collapsible.is-open .zg-header-requester {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .zg-select-screen {
@@ -513,6 +581,21 @@ textarea.zg-field {
   margin: 0;
 }
 
+/* Remove Attachment confirmation dialog — same tokens as the rest of the
+   app instead of raw Bootstrap defaults (ui-spec §1). */
+.zg-modal-content {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  color: var(--zg-text);
+}
+
+.zg-modal-title {
+  color: var(--zg-text);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
 .zg-visually-hidden {
   border: 0;
   clip: rect(0, 0, 0, 0);
@@ -541,58 +624,13 @@ textarea.zg-field {
   border-color: var(--zg-error-border);
 }
 
+/* Removed is a muted/inactive state, not a link or success state — never
+   the brand green (ui-spec §6). */
 .zg-attachment-row.is-removed {
-  color: var(--zg-secondary);
-  opacity: 0.75;
+  color: #5a5a5a;
+  opacity: 0.85;
 }
 
-/* Badges — ui-spec §9. Color always pairs with visible label text. */
-.zg-badge {
-  border-radius: 999px;
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px var(--zg-space-2);
-}
-
-.zg-badge-priority-low {
-  background: var(--zg-pale);
-  color: var(--zg-secondary);
-}
-
-.zg-badge-priority-medium {
-  background: var(--zg-warning-bg);
-  color: var(--zg-warning-text);
-}
-
-.zg-badge-priority-high {
-  background: #fbe7e5;
-  color: var(--zg-error-text);
-}
-
-.zg-badge-status-new {
-  background: #e7eef5;
-  color: #33475b;
-}
-
-.zg-badge-status-open {
-  background: #dcebfb;
-  color: #1b5fa8;
-}
-
-.zg-badge-status-in_progress,
-.zg-badge-status-pending {
-  background: var(--zg-warning-bg);
-  color: var(--zg-warning-text);
-}
-
-.zg-badge-status-resolved {
-  background: var(--zg-pale);
-  color: var(--zg-secondary);
-}
-
-.zg-badge-status-closed,
-.zg-badge-status-cancelled,
 .zg-badge-removed {
   background: #eaeaea;
   color: #5a5a5a;

@@ -134,18 +134,26 @@ handout's list is a stated minimum, not a ceiling.
 Mirrors `ui-spec.md` §12 — completed with screenshot evidence during
 implementation:
 
-- [ ] No clipped labels at any viewport (desktop ≥992px, tablet 768–991px,
+- [x] No clipped labels at any viewport (desktop ≥992px, tablet 768–991px,
       mobile <768px)
-- [ ] No overlapping messages (validation, badges, toasts)
-- [ ] No unintended horizontal scrolling at any viewport
-- [ ] Consistent field styling (editable/read-only/invalid/disabled) across
+- [x] No overlapping messages (validation, badges, toasts)
+- [x] No unintended horizontal scrolling at any viewport
+- [x] Consistent field styling (editable/read-only/invalid/disabled) across
       Create Ticket and Ticket Detail
-- [ ] Badge colors/labels consistent for the same Priority/Status value
-      across My Tickets and Ticket Detail
-- [ ] Filters, pagination, and attachment controls remain usable at all
+- [x] Badge colors/labels consistent for the same Priority/Status value
+      across My Tickets and Ticket Detail (`badges.tsx` is now the single
+      source for both screens — Issue 8 found and fixed a class-name/icon
+      drift between them)
+- [x] Filters, pagination, and attachment controls remain usable at all
       three viewports
-- [ ] Desktop table ↔ mobile card transformation on My Tickets preserves
+- [x] Desktop table ↔ mobile card transformation on My Tickets preserves
       all information
+
+Verified 2026-09-05 (Issue 8, Zen Green styling/responsive polish pass) via
+live browser automation against the real app at desktop (1280px), tablet
+(850px), and mobile (500px, this session's floor below 768px) widths —
+screenshots below. Playwright still isn't part of this workspace (§7), so
+this is manual verification, not an automated visual-regression suite.
 
 ## 5. Test Commands
 
@@ -189,6 +197,28 @@ yet (§7). Issue 7's own responsive check for Ticket Detail was done
 manually via live browser automation against a ticket created through the
 real API (desktop viewport confirmed directly; tablet/mobile resize was
 not available in that session — see §7).
+
+**Issue 8 (Zen Green styling and responsive polish)**: audited all four
+screens against `ui-spec.md` and fixed real deviations — a duplicate/
+conflicting `.zg-badge` CSS rule that silently dropped the icon+label gap,
+a My-Tickets/Ticket-Detail badge class-name mismatch (`in-progress` vs.
+`in_progress`) papered over by that same duplication, Ticket Detail's
+status/priority badges missing the required distinguishing icon, no
+Destructive button style anywhere (Remove Attachment used the tertiary/
+link style), the removed-attachment row using the brand green instead of a
+muted tone, the Remove Attachment dialog left in raw unthemed Bootstrap
+styling, inconsistent 16/24px section spacing on Create Ticket, the
+mobile header nav wrapping instead of collapsing behind a menu control (now
+fixed — see `AppShell.tsx`), and Create Ticket's own post-submit attachment
+list never exposing Download/Remove (now reuses `AttachmentSection` via a
+new `bare`/`initialFiles` mode instead of a second, incomplete
+implementation). Re-ran `pnpm --filter client test` after each fix
+(65/65 passing throughout, `tsc --noEmit` clean).
+
+Screenshots captured 2026-09-05 via live browser automation (`resize_window`
+was unreliable for exact device widths in this session; desktop landed at
+1280px, tablet at 850px, mobile at 500px — all within `ui-spec.md` §8's
+bands) rather than Playwright, for the same reason as Issue 7 (§7).
 
 ## 7. Known Limitations or Deferred Tests
 

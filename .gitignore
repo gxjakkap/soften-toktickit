@@ -19,6 +19,12 @@ server/uploads/*
 npm-debug.log*
 pnpm-debug.log*
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # editor / OS
 .vscode/*
 !.vscode/extensions.json

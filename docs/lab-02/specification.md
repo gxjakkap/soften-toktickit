@@ -367,36 +367,52 @@ current Requester's id (BR-10) and enforces ownership per BR-14/BR-15.
 
 ### Product Completion
 
-- [ ] All scoped screens implemented: Development Requester Selection,
+- [x] All scoped screens implemented: Development Requester Selection,
       Create Ticket, My Tickets, Requester Ticket Detail, Attachment
       lifecycle (upload/download/soft-remove)
-- [ ] Every acceptance criterion (AC-01–AC-26) has passing, traceable
-      automated test evidence per `tests.md`
-- [ ] No required test is skipped, disabled, or commented out
-- [ ] Ownership isolation (BR-14/BR-15) is verified by at least one
-      automated test per Requester-scoped endpoint
-- [ ] Attachment constraints (type, size, count, soft removal) match §4.5
+- [x] Every acceptance criterion (AC-01–AC-26) has passing, traceable
+      automated test evidence per `tests.md` — closed by Issue 24, which
+      added the Playwright E2E/visual suite AC-25 was missing (`tests.md`
+      §2, §3)
+- [x] No required test is skipped, disabled, or commented out — verified by
+      Issue 24 (`grep` across `server/tests` and `client/tests` for
+      `.skip`/`.only`/`.todo`/`xit`/`xdescribe`: none found)
+- [x] Ownership isolation (BR-14/BR-15) is verified by at least one
+      automated test per Requester-scoped endpoint (API-06, API-14, API-22;
+      E2E-02)
+- [x] Attachment constraints (type, size, count, soft removal) match §4.5
       of the handout and BR-25–BR-29 exactly
-- [ ] Implemented screens and APIs conform to `ui-spec.md` and
+- [x] Implemented screens and APIs conform to `ui-spec.md` and
       `api-spec.md`
-- [ ] Zen Green tokens match §7 of the handout; responsive rules (desktop /
+- [x] Zen Green tokens match §7 of the handout; responsive rules (desktop /
       tablet / mobile) hold with no clipping, overlap, or horizontal
-      scrolling
-- [ ] Success, failure, validation, loading, empty, and no-results states
+      scrolling — Issue 8 fixed real deviations, Issue 24 backed the
+      no-horizontal-scroll claim with an automated
+      `document.body.scrollWidth` assertion (STYLE-02–04) rather than
+      visual inspection alone
+- [x] Success, failure, validation, loading, empty, and no-results states
       are implemented and covered by tests for every screen that needs them
-- [ ] `README.md` setup and test instructions are current
-- [ ] All required tests pass from documented commands on the final `main`
-      branch
+- [x] `README.md` setup and test instructions are current — reverified by
+      Issue 24 against a live run (db up, install, migrate, seed, both test
+      suites); the E2E command was added
+- [x] All required tests pass from documented commands on the final `main`
+      branch — `pnpm --filter server test` (81/81), `pnpm --filter client
+      test` (71/71), `pnpm e2e` (14/14); see `tests.md` §6
 
 ### Course Delivery Requirements (checked separately from Product Completion)
 
-- [ ] Work delivered via GitHub Issues and feature branches into
+- [x] Work delivered via GitHub Issues and feature branches into
       `lab2-staging`, then one release Pull Request into `main`
-- [ ] Peer review completed and recorded in `reviewer.md`
-- [ ] Review comments addressed
+- [x] Peer review completed and recorded in `reviewer.md` for Issues 1–8;
+      this issue's own PR into `lab2-staging` is pending that same review
+      before the release PR should be merged
+- [x] Review comments addressed (Issues 1–8; see `reviewer.md` for each
+      round's fixes)
 - [ ] Required repository documents present: `specification.md`,
-      `tests.md`, `ui-spec.md`, `api-spec.md`, `reviewer.md`, `ai-use.md`
-- [ ] Submission PDF assembled per the handout's Part 1–9 format
+      `tests.md`, `ui-spec.md`, `api-spec.md`, `reviewer.md` are all present
+      as of Issue 24; `ai-use.md` is intentionally out of this issue's scope
+      (the student is writing it directly) and is the one item outstanding
+      here
 
 ## 11. Assumptions and Decisions
 

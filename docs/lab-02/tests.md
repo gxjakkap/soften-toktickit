@@ -40,14 +40,15 @@ is covered by at least one row (§3 matrix).
 | SCHEMA-06 | Integration | BR-27 | Attachment soft-removal defaults and ticket cascade | New attachments start `isRemoved: false` with null removal fields; deleting a Ticket removes its Attachment rows | `server/tests/lab-02/schema.integration.test.ts` | Pass |
 | SCHEMA-07 | Integration | BR-07, BR-13 | Reference and requester rows in use | Deleting a Category, Related System or Requester still referenced by a Ticket is refused | `server/tests/lab-02/schema.integration.test.ts` | Pass |
 | SCHEMA-08 | Integration | specification.md §7.4 | Seed idempotency | Seeds the 4 Categories and 7 Related Systems as active; a second run yields identical rows and ids | `server/tests/lab-02/seed-idempotency.integration.test.ts` | Pass |
-| UNIT-01 | Unit | BR-06, AC-01 | Ticket Number generator | Returns `TKT-<year>-<6-digit>` from a given id/year | `server/tests/lab-02/ticket-number.unit.test.ts` | Planned |
+| UNIT-01 | Unit | BR-06, AC-01 | Ticket Number generator | Returns `TKT-<year>-<6-digit>` from a given id/year | `server/tests/lab-02/ticket-number.unit.test.ts` | Pass |
 | UNIT-02 | Unit | BR-25 | Attachment filename/type validator | Accepts jpg/jpeg/png/webp/pdf, rejects everything else and path-unsafe names | `server/tests/lab-02/attachment-filename.unit.test.ts` | Pass |
-| UNIT-03 | Unit | BR-10, BR-12 | Requester-context resolver | Rejects a `requesterId` that is missing, unknown, or inactive | `server/tests/lab-02/requester-context.unit.test.ts` | Planned |
-| API-01 | API | AC-01 | `POST /api/tickets` valid body | 201; one row saved; response includes `ticketNumber` | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-02 | API | AC-04 | `POST /api/tickets` missing summary | 400 `VALIDATION_ERROR` field `summary`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-03 | API | AC-05 | `POST /api/tickets` description < 10 chars | 400 `VALIDATION_ERROR` field `description`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-04 | API | AC-06 | `POST /api/tickets` missing `requestedPriority` | 400 `VALIDATION_ERROR` field `requestedPriority` | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-05 | API | BR-12 | `POST /api/tickets` inactive/unknown `requesterId` | 400 `INVALID_REQUESTER`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
+| UNIT-03 | Unit | BR-10, BR-12 | Requester-context resolver | Rejects a `requesterId` that is missing, unknown, or inactive | `server/tests/lab-02/requester-context.unit.test.ts` | Pass |
+| UNIT-04 | Unit | BR-26 | SERIALIZABLE-retry helper (5-attachment cap concurrency, §7 below) | Retries a Postgres serialization failure (P2034) up to 3 times and returns the eventual result; gives up and rethrows after exhausting retries; rethrows immediately for a non-serialization error | `server/tests/lab-02/serializable-retry.unit.test.ts` | Pass |
+| API-01 | API | AC-01 | `POST /api/tickets` valid body | 201; one row saved; response includes `ticketNumber` | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
+| API-02 | API | AC-04 | `POST /api/tickets` missing summary | 400 `VALIDATION_ERROR` field `summary`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
+| API-03 | API | AC-05 | `POST /api/tickets` description < 10 chars | 400 `VALIDATION_ERROR` field `description`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
+| API-04 | API | AC-06 | `POST /api/tickets` missing `requestedPriority` | 400 `VALIDATION_ERROR` field `requestedPriority` | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
+| API-05 | API | BR-12 | `POST /api/tickets` inactive/unknown `requesterId` | 400 `INVALID_REQUESTER`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
 | API-06 | API | AC-03 | `GET /api/tickets` cross-Requester scope | Requester B's list never includes Requester A's tickets | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
 | API-07 | API | AC-16 | `GET /api/tickets?search=vpn` | Case-insensitive partial match on `ticketNumber`/`summary` only | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
 | API-08 | API | AC-17 | `GET /api/tickets?categoryId=&status=` | AND-combined filters return only matching rows | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
@@ -66,12 +67,12 @@ is covered by at least one row (§3 matrix).
 | API-21 | API | AC-14 | `PATCH /api/attachments/:id/remove` | 200; `isRemoved: true`, `removedAt` set, row retained | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-22 | API | BR-29 | Remove an attachment not owned by caller | 404 `NOT_FOUND` | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-23 | API | AC-13 | Attachment upload fails after Ticket creation succeeds | Ticket row still exists unmodified; only the attachment call fails | `server/tests/lab-02/attachments.api.test.ts` | Pass |
-| API-24 | API | AC-22 | `GET /api/dev-requesters` | Only `isActive: true` rows, ordered by name | `server/tests/lab-02/dev-requesters.api.test.ts` | Planned |
-| API-25 | API | FR-02 (ref data) | `GET /api/categories`, `GET /api/related-systems` | Only active rows returned | `server/tests/lab-02/dev-requesters.api.test.ts` | Planned |
-| UI-01 | UI | AC-22 | DevRequesterSelection active-list rendering | Inactive seeded Requester never appears; Continue disabled until chosen | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
-| UI-02 | UI | AC-21 | DevRequesterSelection API failure | Safe error state shown, no crash, no dropdown left in a broken state | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
-| UI-03 | UI | AC-02 | Opening My Tickets/Create Ticket/Ticket Detail with no stored Requester | Redirects to Development Requester Selection | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
-| UI-04 | UI | AC-23 | Change Requester flow | Previous Requester's ticket data is gone after switching | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
+| API-24 | API | AC-22 | `GET /api/dev-requesters` | Only `isActive: true` rows, ordered by name | `server/tests/lab-02/dev-requesters.api.test.ts` | Pass |
+| API-25 | API | FR-02 (ref data) | `GET /api/categories`, `GET /api/related-systems` | Only active rows returned | `server/tests/lab-02/dev-requesters.api.test.ts` | Pass |
+| UI-01 | UI | AC-22 | DevRequesterSelection active-list rendering | Inactive seeded Requester never appears; Continue disabled until chosen | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
+| UI-02 | UI | AC-21 | DevRequesterSelection API failure | Safe error state shown, no crash, no dropdown left in a broken state | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
+| UI-03 | UI | AC-02 | Opening My Tickets/Create Ticket/Ticket Detail with no stored Requester | Redirects to Development Requester Selection | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
+| UI-04 | UI | AC-23 | Change Requester flow | Previous Requester's ticket data is gone after switching | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
 | UI-05 | UI | AC-04, AC-26 | CreateTicket blank Summary | Field-level error directly under Summary; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-06 | UI | AC-07 | CreateTicket double-submit | Submit shows Busy/disabled state; only one API call fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-07 | UI | AC-08 | CreateTicket server failure | Entered values preserved; safe error banner shown | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
@@ -85,12 +86,12 @@ is covered by at least one row (§3 matrix).
 | UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
 | UI-16 | UI | AC-10 | AttachmentSection at the 5-attachment cap | Upload control shows disabled state with limit explanation | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
 | STYLE-01 | UI style | ui-spec.md §3–4 | CreateTicket field/button classes | Required CSS classes/tokens present for editable, read-only, invalid, disabled, busy states | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
-| STYLE-02 | Visual/Responsive | AC-25 | Create Ticket screenshots | Desktop/tablet/mobile screenshots match `ui-spec.md`, no clipping/overlap/scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/create-ticket/` | Planned |
-| STYLE-03 | Visual/Responsive | AC-25 | My Tickets screenshots | Desktop table vs. mobile card, no horizontal scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/my-tickets/` | Planned |
-| STYLE-04 | Visual/Responsive | AC-25 | Ticket Detail screenshots | All three viewports legible, no clipping/overlap | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/ticket-detail/` | Planned |
-| E2E-01 | E2E | AC-01, AC-09, AC-16, AC-24 | Full create → find → open flow | Select Requester, create ticket w/ attachment, find via search in My Tickets, open Ticket Detail and confirm data + attachment | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| E2E-02 | E2E | AC-03, AC-23 | Cross-Requester isolation | Requester A's ticket invisible to Requester B in list and direct navigation | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| E2E-03 | E2E | AC-14, AC-15 | Attachment lifecycle | Upload → download succeeds → soft-remove → download now fails safely | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
+| STYLE-02 | Visual/Responsive | AC-25 | Create Ticket screenshots | Desktop/tablet/mobile screenshots match `ui-spec.md`, no clipping/overlap/scroll; `document.body.scrollWidth` asserted ≤ viewport width | `e2e/lab-02/screenshots.spec.ts` → `artifacts/lab-02/screenshots/create-ticket/{desktop,tablet,mobile}.png` | Pass |
+| STYLE-03 | Visual/Responsive | AC-25 | My Tickets screenshots | Desktop table vs. mobile card, no horizontal scroll | `e2e/lab-02/screenshots.spec.ts` → `artifacts/lab-02/screenshots/my-tickets/{desktop,tablet,mobile}.png` | Pass |
+| STYLE-04 | Visual/Responsive | AC-25 | Ticket Detail screenshots | All three viewports legible, no clipping/overlap | `e2e/lab-02/screenshots.spec.ts` → `artifacts/lab-02/screenshots/ticket-detail/{desktop,tablet,mobile}.png` | Pass |
+| E2E-01 | E2E | AC-01, AC-09, AC-16, AC-24 | Full create → find → open flow | Select Requester, create ticket w/ attachment, find via search in My Tickets, open Ticket Detail and confirm data + attachment; no Public Comments/Internal Notes rendered | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
+| E2E-02 | E2E | AC-03, AC-23 | Cross-Requester isolation | Requester A's ticket invisible to Requester B in list and direct navigation; switching back to A restores A's data | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
+| E2E-03 | E2E | AC-14, AC-15 | Attachment lifecycle | Upload → download succeeds → soft-remove → download now fails safely (410, direct request) | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
 
 ## 3. Acceptance-Criterion Traceability Matrix
 
@@ -123,21 +124,31 @@ is covered by at least one row (§3 matrix).
 | AC-25 | STYLE-02, STYLE-03, STYLE-04 |
 | AC-26 | UI-05 |
 
-Every AC-01–AC-26 has at least one row; every planned test names a real
-file path under the required minimum Lab 2 structure (handout §12),
-extended with `dev-requesters.api.test.ts` and
-`DevRequesterSelection.test.tsx`/`AttachmentSection.test.tsx` since the
-handout's list is a stated minimum, not a ceiling.
+Every AC-01–AC-26 has at least one row; every test names a real file path
+under the required minimum Lab 2 structure (handout §12), extended with
+`dev-requesters.api.test.ts`, `DevRequesterSelection.test.tsx`/
+`AttachmentSection.test.tsx`, and (Issue 24) `serializable-retry.unit.test.ts`
+and the two `e2e/lab-02/*.spec.ts` files, since the handout's list is a
+stated minimum, not a ceiling.
 
-## 4. Responsive / Visual Checklist
+UNIT-04 traces to BR-26 rather than an AC because it tests an
+implementation-level concurrency safeguard (the SERIALIZABLE-retry wrapper
+around the 5-active-attachment check, §7 below), not directly observable
+Requester-facing behavior.
 
-Mirrors `ui-spec.md` §12 — completed with screenshot evidence during
-implementation:
+## 4. Responsive and Visual Checklist
+
+### 4.1 ui-spec.md §12 checklist
+
+Mirrors `ui-spec.md` §12:
 
 - [x] No clipped labels at any viewport (desktop ≥992px, tablet 768–991px,
       mobile <768px)
 - [x] No overlapping messages (validation, badges, toasts)
-- [x] No unintended horizontal scrolling at any viewport
+- [x] No unintended horizontal scrolling at any viewport — automated as of
+      Issue 24 via `document.body.scrollWidth <= viewport width` assertions
+      in `e2e/lab-02/screenshots.spec.ts` (STYLE-02/03/04), not just visual
+      inspection
 - [x] Consistent field styling (editable/read-only/invalid/disabled) across
       Create Ticket and Ticket Detail
 - [x] Badge colors/labels consistent for the same Priority/Status value
@@ -149,16 +160,77 @@ implementation:
 - [x] Desktop table ↔ mobile card transformation on My Tickets preserves
       all information
 
-Verified 2026-09-05 (Issue 8, Zen Green styling/responsive polish pass) via
-live browser automation against the real app at desktop (1280px), tablet
-(850px), and mobile (500px, this session's floor below 768px) widths —
-screenshots below. Playwright still isn't part of this workspace (§7), so
-this is manual verification, not an automated visual-regression suite.
+Originally verified 2026-09-05 (Issue 8) via live browser automation
+(manual, since Playwright wasn't installed yet — see the superseded note in
+§7). Re-verified and re-captured 2026-09-05 (Issue 24) with the real
+Playwright suite added by this issue; the Issue 8 screenshots below were
+overwritten in place at the same `ui-spec.md` §13 paths.
+
+### 4.2 Section 14 submission screenshot checklist
+
+Every screenshot the handout's Section 14 submission table requires,
+captured by `e2e/lab-02/screenshots.spec.ts` (responsive triads also
+covered by STYLE-02/03/04 above) or `e2e/lab-02/requester-ticket-flow.spec.ts`
+(E2E-01/02/03), against a running app + seeded dev database. Run
+`pnpm e2e` to regenerate all of them from a clean clone (§5).
+
+**Create Ticket**
+
+- [x] Initial — `artifacts/lab-02/screenshots/create-ticket/initial.png`
+- [x] Validation failure — `artifacts/lab-02/screenshots/create-ticket/validation-failure.png`
+- [x] Submitting (busy) — `artifacts/lab-02/screenshots/create-ticket/submitting.png`
+- [x] Success — `artifacts/lab-02/screenshots/create-ticket/success.png`
+- [x] API failure — `artifacts/lab-02/screenshots/create-ticket/api-failure.png`
+- [x] Invalid-attachment state — `artifacts/lab-02/screenshots/create-ticket/invalid-attachment.png`
+
+**Development Requester Selection**
+
+- [x] Selection screen — `artifacts/lab-02/screenshots/dev-requester-selection/screen.png`
+- [x] Active-user dropdown — `artifacts/lab-02/screenshots/dev-requester-selection/active-dropdown.png`
+- [x] Selected-user display — `artifacts/lab-02/screenshots/dev-requester-selection/selected-user-display.png`
+- [x] Change Requester action — `artifacts/lab-02/screenshots/dev-requester-selection/change-requester-action.png`
+- [x] Loading state — `artifacts/lab-02/screenshots/dev-requester-selection/loading.png`
+- [x] Failure state — `artifacts/lab-02/screenshots/dev-requester-selection/failure.png`
+
+**My Tickets**
+
+- [x] Requester A's list — `artifacts/lab-02/screenshots/my-tickets/requester-a-list.png`
+- [x] Requester B's list (A's tickets gone) — `artifacts/lab-02/screenshots/my-tickets/requester-b-list.png`
+- [x] Search — `artifacts/lab-02/screenshots/my-tickets/search.png`
+- [x] Filters — `artifacts/lab-02/screenshots/my-tickets/filters.png`
+- [x] Sorting — `artifacts/lab-02/screenshots/my-tickets/sorting.png`
+- [x] Pagination — `artifacts/lab-02/screenshots/my-tickets/pagination.png`
+- [x] Empty state — `artifacts/lab-02/screenshots/my-tickets/empty-state.png`
+- [x] No-results state — `artifacts/lab-02/screenshots/my-tickets/no-results.png`
+
+**Ticket Detail + Attachments**
+
+- [x] Owned Ticket Detail — `artifacts/lab-02/screenshots/ticket-detail/owned-detail.png`
+- [x] Add attachment — `artifacts/lab-02/screenshots/ticket-detail/add-attachment.png`
+- [x] Download active attachment — `artifacts/lab-02/screenshots/ticket-detail/download-active.png`
+- [x] Soft removal with reason — `artifacts/lab-02/screenshots/ticket-detail/remove-with-reason.png`
+- [x] Retained metadata after removal — `artifacts/lab-02/screenshots/ticket-detail/retained-metadata.png`
+- [x] Blocked removed-download attempt — `artifacts/lab-02/screenshots/ticket-detail/blocked-removed-download.png`
+- [x] Unauthorized ticket-access rejection — `artifacts/lab-02/screenshots/ticket-detail/unauthorized-access.png`
+
+**Responsive (desktop/tablet/mobile, ui-spec.md §8/§13)**
+
+- [x] Create Ticket — `artifacts/lab-02/screenshots/create-ticket/{desktop,tablet,mobile}.png`
+- [x] My Tickets — `artifacts/lab-02/screenshots/my-tickets/{desktop,tablet,mobile}.png`
+- [x] Ticket Detail — `artifacts/lab-02/screenshots/ticket-detail/{desktop,tablet,mobile}.png`
+
+36 files total; none missing. "Blocked removed-download attempt" and
+"unauthorized ticket-access rejection" are screenshotted at the UI layer
+(the only user-visible surface — both fail safely with no distinguishing
+information per BR-15/BR-28) with the actual `404`/`410` backing the claim
+asserted directly against the API in the same test.
 
 ## 5. Test Commands
 
-To be run once implementation exists (not yet — this is a pre-code spec
-deliverable):
+Run from a clean clone, after `README.md`'s Setup steps (db up, install,
+migrate, seed) and with `server`/`client` dev servers running (`pnpm e2e`
+starts them itself via Playwright's `webServer` config if they aren't
+already up):
 
 ```bash
 # Server: unit + API/integration tests (Vitest + Supertest)
@@ -167,9 +239,8 @@ pnpm --filter server test
 # Client: UI component + style tests (Vitest + Testing Library)
 pnpm --filter client test
 
-# E2E + visual/responsive screenshots (Playwright)
-# NOTE: Playwright is not yet part of this workspace — see Known Limitations.
-npx playwright test e2e/lab-02
+# E2E + visual/responsive screenshots (Playwright) — added by Issue 24
+pnpm e2e
 ```
 
 ## 6. Final Results
@@ -190,13 +261,10 @@ Also added by Issue 6, beyond the rows tests.md enumerated by name: an
 table), and a `sortBy=summary` + default-sort-tie-break test (BR-18) — both
 in `my-tickets.api.test.ts` alongside the numbered API-06..12 rows.
 
-Rows owned by other issues (E2E) are still `Planned` and get updated as
-those issues land. STYLE-02 through STYLE-04 and the E2E rows also stay
-`Planned`: they depend on Playwright, which isn't part of this workspace
-yet (§7). Issue 7's own responsive check for Ticket Detail was done
-manually via live browser automation against a ticket created through the
-real API (desktop viewport confirmed directly; tablet/mobile resize was
-not available in that session — see §7).
+Issue 7's own responsive check for Ticket Detail was done manually via live
+browser automation against a ticket created through the real API (desktop
+viewport confirmed directly; tablet/mobile resize was not available in that
+session).
 
 **Issue 8 (Zen Green styling and responsive polish)**: audited all four
 screens against `ui-spec.md` and fixed real deviations — a duplicate/
@@ -218,7 +286,44 @@ implementation). Re-ran `pnpm --filter client test` after each fix
 Screenshots captured 2026-09-05 via live browser automation (`resize_window`
 was unreliable for exact device widths in this session; desktop landed at
 1280px, tablet at 850px, mobile at 500px — all within `ui-spec.md` §8's
-bands) rather than Playwright, for the same reason as Issue 7 (§7).
+bands) rather than Playwright — no Playwright dependency existed yet (§7 at
+the time).
+
+**Issue 24 (Test Suite Consolidation, Traceability, and Release
+Integration)**: closed every gap left open above.
+
+- Corrected every stale `Planned` status in §2 to `Pass` — those tests
+  (UNIT-01, UNIT-03, API-01–05, API-24, API-25, UI-01–04) were actually
+  implemented and passing since Issues 2–8; tests.md had simply never been
+  updated after the fact. No new test-writing was needed for these.
+- Added `@playwright/test` (root devDependency), `playwright.config.ts`, and
+  `e2e/lab-02/{helpers,requester-ticket-flow,screenshots}.spec.ts`, closing
+  the "Playwright not installed" limitation for good.
+- `requester-ticket-flow.spec.ts` implements E2E-01–03 against the real
+  running app (server + client dev servers, real Postgres) — all three now
+  `Pass`.
+- `screenshots.spec.ts` implements STYLE-02–04 (now `Pass`, with a real
+  `document.body.scrollWidth` assertion backing the "no horizontal scroll"
+  claim instead of only a visual check) and captures the full Section 14
+  screenshot set audited in §4.2 — 27 previously-missing screenshots
+  (validation/API-failure/loading/empty/no-results/isolation/attachment-
+  lifecycle/unauthorized-access states) plus a re-capture of the 9
+  responsive screenshots Issue 8 had taken manually, now at the same
+  `ui-spec.md` §13 paths but Playwright-produced and reproducible.
+- One genuine test-timing issue was found and fixed in the test suite
+  itself (not the app): scripting a `selectOption` on Create Ticket's
+  Category/Related System selects immediately after they mount can land in
+  the gap between React committing the DOM and wiring the change handler,
+  silently no-opping the selection. `waitForCreateTicketReady()` in
+  `e2e/lab-02/helpers.ts` waits for a real populated `<option>` before
+  selecting; a human clicking is never fast enough to hit this window, so
+  it isn't a product bug. Confirmed non-flaky over 4 consecutive full runs.
+
+```bash
+pnpm --filter server test   # 81/81 passing
+pnpm --filter client test   # 71/71 passing
+pnpm e2e                    # 14/14 passing (3 E2E scenarios + 11 screenshot-audit specs)
+```
 
 ## 7. Known Limitations or Deferred Tests
 
@@ -245,8 +350,11 @@ bands) rather than Playwright, for the same reason as Issue 7 (§7).
 - **No automated accessibility (axe-core) scan is configured.** §7 of
   `ui-spec.md` is checked via the manual/visual checklist in §4 above, not
   an automated a11y test suite, for this lab.
-- **Playwright is not yet an installed dependency** in this workspace
-  (confirmed via `client/package.json` / `server/package.json` /
-  `pnpm-workspace.yaml` — no `e2e` package exists yet). Adding it, plus an
-  `e2e` workspace package or root devDependency, is implementation work for
-  the "E2E testing" GitHub Issue, not part of this specification task.
+- **The Playwright suite creates real fixture Tickets/Attachments in
+  whatever database it runs against**, rather than an isolated/rolled-back
+  transaction per test. Acceptable for Lab 2's local dev Postgres instance
+  (fixture rows are clearly named `... fixture <timestamp>` and harmless
+  alongside seed data — a Requester's page count grows slightly each run,
+  which is expected, not a bug); a CI environment for a later lab should
+  point `pnpm e2e` at a disposable database or truncate fixture rows
+  between runs.

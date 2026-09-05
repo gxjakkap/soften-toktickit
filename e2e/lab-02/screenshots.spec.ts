@@ -86,12 +86,16 @@ test.describe('Screenshot audit: Create Ticket', () => {
     await expect(page.getByText('Summary is required.')).toBeVisible()
     await page.screenshot({ path: shot('create-ticket', 'validation-failure.png'), fullPage: true })
 
-    // Invalid attachment (AC-11/AC-12, client-side): an unsupported file type.
+    // Invalid attachment (AC-11/AC-12, client-side): one valid file alongside
+    // one unsupported file type, so the accept/reject contrast is visible in
+    // a single screenshot (Section 14: "one valid and one invalid attachment").
     await page.getByTestId('attachment-dropzone').click()
-    await page.locator('#attachments').setInputFiles(UNSUPPORTED_FIXTURE)
+    await page.locator('#attachments').setInputFiles([PHOTO_FIXTURE, UNSUPPORTED_FIXTURE])
     await expect(page.getByText(/unsupported file type/i)).toBeVisible()
+    await expect(page.getByText('valid-photo.png')).toBeVisible()
     await page.screenshot({ path: shot('create-ticket', 'invalid-attachment.png'), fullPage: true })
     await page.getByRole('button', { name: 'Dismiss' }).click()
+    await page.getByRole('button', { name: 'Remove' }).click()
 
     // Fill a valid form for the submitting/success/API-failure states below.
     await waitForCreateTicketReady(page)

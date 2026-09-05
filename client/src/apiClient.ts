@@ -1,4 +1,14 @@
-import type { Attachment, Category, RelatedSystem, RequestedPriority, Ticket } from './types'
+import type {
+  Attachment,
+  Category,
+  RelatedSystem,
+  RequestedPriority,
+  SortDirection,
+  Ticket,
+  TicketListResponse,
+  TicketSortField,
+  TicketStatus,
+} from './types'
 
 /** specification.md §11-1 (BR-31): the single frontend seam that attaches the
  *  current Requester's id to a request. Lab 3 only has to change this file
@@ -42,6 +52,32 @@ export function createTicket(requesterId: number, input: CreateTicketInput): Pro
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ requesterId, ...input }),
   }).then((res) => parseJsonOrThrow<Ticket>(res))
+}
+
+export type TicketListParams = {
+  search?: string
+  categoryId?: number
+  requestedPriority?: RequestedPriority
+  status?: TicketStatus
+  sortBy?: TicketSortField
+  sortDir?: SortDirection
+  page?: number
+  pageSize?: number
+}
+
+// api-spec.md §5: requesterId is the only required param; everything else is
+// omitted from the query string when unset rather than sent as an empty value.
+export function fetchTickets(requesterId: number, params: TicketListParams = {}): Promise<TicketListResponse> {
+  const query = new URLSearchParams({ requesterId: String(requesterId) })
+  if (params.search) query.set('search', params.search)
+  if (params.categoryId !== undefined) query.set('categoryId', String(params.categoryId))
+  if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
+  if (params.status) query.set('status', params.status)
+  if (params.sortBy) query.set('sortBy', params.sortBy)
+  if (params.sortDir) query.set('sortDir', params.sortDir)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  return fetch(`/api/tickets?${query.toString()}`).then((res) => parseJsonOrThrow<TicketListResponse>(res))
 }
 
 export function uploadAttachment(requesterId: number, ticketId: number, file: File): Promise<Attachment> {

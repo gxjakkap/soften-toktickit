@@ -16,10 +16,27 @@ const inactiveRequester = {
   email: 'patricia.reyes@example.com',
 }
 
+// Other tests in this file only exercise the Selection screen and the app
+// shell, but Continue navigates into My Tickets, which fetches its own
+// data — give those calls a harmless empty response so they don't crash.
 function mockRequesters(body: unknown, status = 200) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status }))),
+    vi.fn((url: string) => {
+      if (url === '/api/dev-requesters') return Promise.resolve(new Response(JSON.stringify(body), { status }))
+      if (url === '/api/categories' || url === '/api/related-systems') {
+        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))
+      }
+      if (url.startsWith('/api/tickets?')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ data: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, hasAnyTickets: false }),
+            { status: 200 },
+          ),
+        )
+      }
+      return Promise.reject(new Error(`unexpected fetch: ${url}`))
+    }),
   )
 }
 

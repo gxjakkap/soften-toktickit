@@ -162,6 +162,129 @@ app.post('/api/tickets', async (req, res) => {
   res.status(201).json(ticket)
 })
 
+const SORTABLE_FIELDS = ['createdAt', 'ticketNumber', 'summary', 'requestedPriority', 'currentStatus'] as const
+const STATUSES = ['NEW', 'OPEN', 'IN_PROGRESS', 'PENDING', 'RESOLVED', 'CLOSED', 'CANCELLED']
+const DEFAULT_PAGE_SIZE = 10
+const MAX_PAGE_SIZE = 50
+
+function clampPage(raw: unknown): number {
+  const n = Number(raw)
+  return Number.isInteger(n) && n > 0 ? n : 1
+}
+
+function clampPageSize(raw: unknown): number {
+  if (raw === undefined) return DEFAULT_PAGE_SIZE
+  const n = Number(raw)
+  if (!Number.isInteger(n)) return DEFAULT_PAGE_SIZE
+  return Math.min(Math.max(n, 1), MAX_PAGE_SIZE)
+}
+
+// api-spec.md §5 (FR-05..09, BR-14, BR-16..19). Ownership (BR-14) scopes
+// every query; filters combine with AND (BR-17); page/pageSize are clamped
+// rather than rejected (BR-19), everything else invalid is a 400.
+app.get('/api/tickets', async (req, res) => {
+  const requester = await resolveActiveRequester(req)
+  if (!requester) {
+    return res.status(400).json({
+      error: { code: 'INVALID_REQUESTER', message: 'Requester is missing, unknown, or inactive.' },
+    })
+  }
+
+  const where: Prisma.TicketWhereInput = { requesterId: requester.id }
+
+  if (typeof req.query.categoryId === 'string' && req.query.categoryId.trim() !== '') {
+    const categoryId = Number(req.query.categoryId)
+    const category = Number.isInteger(categoryId) ? await prisma.category.findUnique({ where: { id: categoryId } }) : null
+    if (!category) {
+      return res.status(400).json({
+        error: { code: 'INVALID_FILTER', message: 'categoryId does not reference a known Category.', field: 'categoryId' },
+      })
+    }
+    where.categoryId = categoryId
+  }
+
+  if (req.query.requestedPriority !== undefined) {
+    if (!PRIORITIES.includes(req.query.requestedPriority as string)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'requestedPriority must be LOW, MEDIUM, or HIGH.',
+          field: 'requestedPriority',
+        },
+      })
+    }
+    where.requestedPriority = req.query.requestedPriority as Prisma.TicketWhereInput['requestedPriority']
+  }
+
+  if (req.query.status !== undefined) {
+    if (!STATUSES.includes(req.query.status as string)) {
+      return res.status(400).json({
+        error: { code: 'INVALID_FILTER', message: 'status is not a recognized Current Status.', field: 'status' },
+      })
+    }
+    where.currentStatus = req.query.status as Prisma.TicketWhereInput['currentStatus']
+  }
+
+  if (typeof req.query.search === 'string' && req.query.search.trim() !== '') {
+    const search = req.query.search.trim()
+    where.OR = [
+      { ticketNumber: { contains: search, mode: 'insensitive' } },
+      { summary: { contains: search, mode: 'insensitive' } },
+    ]
+  }
+
+  const sortBy = req.query.sortBy === undefined ? 'createdAt' : (req.query.sortBy as string)
+  if (!(SORTABLE_FIELDS as readonly string[]).includes(sortBy)) {
+    return res.status(400).json({
+      error: { code: 'INVALID_FILTER', message: 'sortBy is not a recognized column.', field: 'sortBy' },
+    })
+  }
+
+  const sortDir = req.query.sortDir === undefined ? 'desc' : (req.query.sortDir as string)
+  if (sortDir !== 'asc' && sortDir !== 'desc') {
+    return res.status(400).json({
+      error: { code: 'INVALID_FILTER', message: 'sortDir must be asc or desc.', field: 'sortDir' },
+    })
+  }
+
+  const page = clampPage(req.query.page)
+  const pageSize = clampPageSize(req.query.pageSize)
+
+  const [totalCount, hasAnyTickets, data] = await Promise.all([
+    prisma.ticket.count({ where }),
+    prisma.ticket.count({ where: { requesterId: requester.id }, take: 1 }).then((c) => c > 0),
+    prisma.ticket.findMany({
+      where,
+      // A single sort key is not enough to make pagination deterministic
+      // when rows tie on it (api-spec.md §5 doesn't name a tie-break); id
+      // in the same direction gives every page a stable, repeatable order.
+      orderBy: [{ [sortBy]: sortDir }, { id: sortDir }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { category: { select: { name: true } } },
+    }),
+  ])
+
+  res.json({
+    data: data.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      categoryId: t.categoryId,
+      categoryName: t.category.name,
+      requestedPriority: t.requestedPriority,
+      currentStatus: t.currentStatus,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    })),
+    page,
+    pageSize,
+    totalCount,
+    totalPages: Math.ceil(totalCount / pageSize),
+    hasAnyTickets,
+  })
+})
+
 class UnsupportedFileTypeError extends Error {}
 class AttachmentLimitReachedError extends Error {}
 

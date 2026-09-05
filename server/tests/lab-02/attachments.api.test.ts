@@ -62,6 +62,11 @@ describe('POST /api/tickets/:id/attachments', () => {
     expect(res.status).toBe(201)
     expect(res.body.originalFileName).toBe('receipt.jpg')
     expect(res.body.isRemoved).toBe(false)
+    // api-spec.md §7's 201 shape never includes storedFileName (on-disk name)
+    // or removedReason (only meaningful once removed).
+    expect(Object.keys(res.body).sort()).toEqual(
+      ['id', 'isRemoved', 'mimeType', 'originalFileName', 'sizeBytes', 'ticketId', 'uploadedAt'].sort(),
+    )
 
     const stored = await prisma.attachment.findUnique({ where: { id: res.body.id } })
     expect(stored?.isRemoved).toBe(false)

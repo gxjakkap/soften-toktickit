@@ -343,8 +343,6 @@ function CreateTicket() {
             <input
               id="ticket-number"
               className="zg-field zg-field-readonly"
-              disabled
-              aria-disabled="true"
               readOnly
               value={createdTicket?.ticketNumber ?? 'Generated after submission'}
             />
@@ -356,8 +354,6 @@ function CreateTicket() {
             <input
               id="ticket-date"
               className="zg-field zg-field-readonly"
-              disabled
-              aria-disabled="true"
               readOnly
               value={createdTicket ? new Date(createdTicket.createdAt).toLocaleString() : 'Generated after submission'}
             />
@@ -369,8 +365,6 @@ function CreateTicket() {
             <input
               id="requester"
               className="zg-field zg-field-readonly"
-              disabled
-              aria-disabled="true"
               readOnly
               value={requester?.name ?? ''}
             />

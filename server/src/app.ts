@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import multer from 'multer'
 import { prisma } from './db.js'
+import { Prisma } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
 import { MAX_ACTIVE_ATTACHMENTS, MAX_ATTACHMENT_BYTES, isAllowedAttachment } from './lib/attachment-validation.js'
@@ -162,6 +163,7 @@ app.post('/api/tickets', async (req, res) => {
 })
 
 class UnsupportedFileTypeError extends Error {}
+class AttachmentLimitReachedError extends Error {}
 
 const uploadSingleFile = upload.single('file')
 
@@ -214,28 +216,52 @@ app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
     })
   }
 
-  const activeCount = await prisma.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
-  if (activeCount >= MAX_ACTIVE_ATTACHMENTS) {
-    await cleanupUploadedFile(req.file)
-    return res.status(409).json({
-      error: {
-        code: 'ATTACHMENT_LIMIT_REACHED',
-        message: `A Ticket may have at most ${MAX_ACTIVE_ATTACHMENTS} active Attachments.`,
+  try {
+    // Serializable so a concurrent upload against the same Ticket can't
+    // both read "4 active" and both insert a 5th, blowing past the cap.
+    const attachment = await prisma.$transaction(
+      async (tx) => {
+        const activeCount = await tx.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
+        if (activeCount >= MAX_ACTIVE_ATTACHMENTS) throw new AttachmentLimitReachedError()
+
+        // api-spec.md §7's 201 shape never includes storedFileName (the
+        // on-disk name, no client use for it) or removedReason (BR-27
+        // metadata that only matters once an attachment is removed).
+        return tx.attachment.create({
+          data: {
+            ticketId: ticket.id,
+            originalFileName: req.file!.originalname,
+            storedFileName: req.file!.filename,
+            mimeType: req.file!.mimetype,
+            sizeBytes: req.file!.size,
+          },
+          select: {
+            id: true,
+            ticketId: true,
+            originalFileName: true,
+            mimeType: true,
+            sizeBytes: true,
+            uploadedAt: true,
+            isRemoved: true,
+          },
+        })
       },
-    })
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    )
+
+    res.status(201).json(attachment)
+  } catch (err) {
+    await cleanupUploadedFile(req.file)
+    if (err instanceof AttachmentLimitReachedError) {
+      return res.status(409).json({
+        error: {
+          code: 'ATTACHMENT_LIMIT_REACHED',
+          message: `A Ticket may have at most ${MAX_ACTIVE_ATTACHMENTS} active Attachments.`,
+        },
+      })
+    }
+    throw err
   }
-
-  const attachment = await prisma.attachment.create({
-    data: {
-      ticketId: ticket.id,
-      originalFileName: req.file.originalname,
-      storedFileName: req.file.filename,
-      mimeType: req.file.mimetype,
-      sizeBytes: req.file.size,
-    },
-  })
-
-  res.status(201).json(attachment)
 })
 
 // Lab 2 testing identities, not authentication (BR-03). Only active rows,

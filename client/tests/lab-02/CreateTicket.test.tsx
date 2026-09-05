@@ -113,10 +113,15 @@ describe('Create Ticket initial state', () => {
     expect(ticketNumber.value).toMatch(/generated after submission/i)
     expect(ticketDate.value).toMatch(/generated after submission/i)
     expect(requesterField.value).toBe(requester.name)
-    expect(ticketNumber.disabled).toBe(true)
-    expect(ticketDate.disabled).toBe(true)
-    expect(requesterField.disabled).toBe(true)
+    expect(ticketNumber.readOnly).toBe(true)
+    expect(ticketDate.readOnly).toBe(true)
+    expect(requesterField.readOnly).toBe(true)
     expect(ticketNumber.className).toMatch(/zg-field-readonly/)
+    // Read-only is a distinct state from Disabled (ui-spec.md §3) — these
+    // fields must not also carry the disabled look.
+    expect(ticketNumber.disabled).toBe(false)
+    expect(ticketDate.disabled).toBe(false)
+    expect(requesterField.disabled).toBe(false)
   })
 
   it('populates Category and Related System from the reference-data APIs', async () => {
@@ -563,8 +568,9 @@ describe('STYLE-01: field state CSS classes', () => {
     mockApi()
     renderCreateTicket()
 
-    const ticketNumber = await screen.findByLabelText(/ticket number/i)
+    const ticketNumber = (await screen.findByLabelText(/ticket number/i)) as HTMLInputElement
     expect(ticketNumber.className).toMatch(/zg-field-readonly/)
+    expect(ticketNumber.disabled).toBe(false)
 
     const summary = screen.getByLabelText(/^summary/i)
     expect(summary.className).toMatch(/zg-field/)

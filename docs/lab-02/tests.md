@@ -41,7 +41,7 @@ is covered by at least one row (§3 matrix).
 | SCHEMA-07 | Integration | BR-07, BR-13 | Reference and requester rows in use | Deleting a Category, Related System or Requester still referenced by a Ticket is refused | `server/tests/lab-02/schema.integration.test.ts` | Pass |
 | SCHEMA-08 | Integration | specification.md §7.4 | Seed idempotency | Seeds the 4 Categories and 7 Related Systems as active; a second run yields identical rows and ids | `server/tests/lab-02/seed-idempotency.integration.test.ts` | Pass |
 | UNIT-01 | Unit | BR-06, AC-01 | Ticket Number generator | Returns `TKT-<year>-<6-digit>` from a given id/year | `server/tests/lab-02/ticket-number.unit.test.ts` | Planned |
-| UNIT-02 | Unit | BR-25 | Attachment filename/type validator | Accepts jpg/jpeg/png/webp/pdf, rejects everything else and path-unsafe names | `server/tests/lab-02/attachment-filename.unit.test.ts` | Planned |
+| UNIT-02 | Unit | BR-25 | Attachment filename/type validator | Accepts jpg/jpeg/png/webp/pdf, rejects everything else and path-unsafe names | `server/tests/lab-02/attachment-filename.unit.test.ts` | Pass |
 | UNIT-03 | Unit | BR-10, BR-12 | Requester-context resolver | Rejects a `requesterId` that is missing, unknown, or inactive | `server/tests/lab-02/requester-context.unit.test.ts` | Planned |
 | API-01 | API | AC-01 | `POST /api/tickets` valid body | 201; one row saved; response includes `ticketNumber` | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-02 | API | AC-04 | `POST /api/tickets` missing summary | 400 `VALIDATION_ERROR` field `summary`; no row inserted | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
@@ -57,26 +57,26 @@ is covered by at least one row (§3 matrix).
 | API-12 | API | AC-19 | `GET /api/tickets` filters matching nothing | `data: []`, `hasAnyTickets: true`, `totalCount: 0` | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | API-13 | API | AC-24 | `GET /api/tickets/:id` owned | 200 with full detail + attachments | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
 | API-14 | API | AC-03 | `GET /api/tickets/:id` not owned | 404 `NOT_FOUND` (not 403) | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
-| API-15 | API | AC-09 | `POST /api/tickets/:id/attachments` valid 2MB jpg | 201; appears in active attachment list | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-16 | API | AC-10 | Upload at 5-active-attachment cap | 409 `ATTACHMENT_LIMIT_REACHED`; no 6th row | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-17 | API | AC-11 | Upload 6MB pdf | 413 `FILE_TOO_LARGE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-18 | API | AC-12 | Upload `.exe` | 415 `UNSUPPORTED_FILE_TYPE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Planned |
+| API-15 | API | AC-09 | `POST /api/tickets/:id/attachments` valid 2MB jpg | 201; appears in active attachment list | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-16 | API | AC-10 | Upload at 5-active-attachment cap | 409 `ATTACHMENT_LIMIT_REACHED`; no 6th row | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-17 | API | AC-11 | Upload 6MB pdf | 413 `FILE_TOO_LARGE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-18 | API | AC-12 | Upload `.exe` | 415 `UNSUPPORTED_FILE_TYPE`; no row created | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-19 | API | FR-11 | `GET /api/attachments/:id/download` active | 200, correct `Content-Type`/`Content-Disposition`, byte-identical to upload | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-20 | API | AC-15 | Download a removed attachment | 410 `ATTACHMENT_REMOVED`; no file returned | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-21 | API | AC-14 | `PATCH /api/attachments/:id/remove` | 200; `isRemoved: true`, `removedAt` set, row retained | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-22 | API | BR-29 | Remove an attachment not owned by caller | 404 `NOT_FOUND` | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-23 | API | AC-13 | Attachment upload fails after Ticket creation succeeds | Ticket row still exists unmodified; only the attachment call fails | `server/tests/lab-02/attachments.api.test.ts` | Planned |
+| API-22 | API | BR-29 | Remove an attachment not owned by caller | 404 `NOT_FOUND` | `server/tests/lab-02/attachments.api.test.ts` | Pass |
+| API-23 | API | AC-13 | Attachment upload fails after Ticket creation succeeds | Ticket row still exists unmodified; only the attachment call fails | `server/tests/lab-02/attachments.api.test.ts` | Pass |
 | API-24 | API | AC-22 | `GET /api/dev-requesters` | Only `isActive: true` rows, ordered by name | `server/tests/lab-02/dev-requesters.api.test.ts` | Planned |
 | API-25 | API | FR-02 (ref data) | `GET /api/categories`, `GET /api/related-systems` | Only active rows returned | `server/tests/lab-02/dev-requesters.api.test.ts` | Planned |
 | UI-01 | UI | AC-22 | DevRequesterSelection active-list rendering | Inactive seeded Requester never appears; Continue disabled until chosen | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
 | UI-02 | UI | AC-21 | DevRequesterSelection API failure | Safe error state shown, no crash, no dropdown left in a broken state | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
 | UI-03 | UI | AC-02 | Opening My Tickets/Create Ticket/Ticket Detail with no stored Requester | Redirects to Development Requester Selection | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
 | UI-04 | UI | AC-23 | Change Requester flow | Previous Requester's ticket data is gone after switching | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Planned |
-| UI-05 | UI | AC-04, AC-26 | CreateTicket blank Summary | Field-level error directly under Summary; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| UI-06 | UI | AC-07 | CreateTicket double-submit | Submit shows Busy/disabled state; only one API call fires | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| UI-07 | UI | AC-08 | CreateTicket server failure | Entered values preserved; safe error banner shown | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| UI-08 | UI | AC-01 | CreateTicket success | Generated Ticket Number shown in success state | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| UI-09 | UI | AC-11 | CreateTicket oversized file, client-side | Per-file error shown before any upload request fires | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| UI-05 | UI | AC-04, AC-26 | CreateTicket blank Summary | Field-level error directly under Summary; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| UI-06 | UI | AC-07 | CreateTicket double-submit | Submit shows Busy/disabled state; only one API call fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| UI-07 | UI | AC-08 | CreateTicket server failure | Entered values preserved; safe error banner shown | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| UI-08 | UI | AC-01 | CreateTicket success | Generated Ticket Number shown in success state | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| UI-09 | UI | AC-11 | CreateTicket oversized file, client-side | Per-file error shown before any upload request fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-10 | UI | AC-20 | MyTickets empty state | Empty-account copy + Create Ticket CTA, no filter UI implying data exists | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | UI-11 | UI | AC-19 | MyTickets no-results state | No-results copy + Clear Filters, distinct from empty state | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | UI-12 | UI | AC-18 | MyTickets pagination controls | Page navigation updates the list and the "Showing X to Y of Z" text | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
@@ -84,7 +84,7 @@ is covered by at least one row (§3 matrix).
 | UI-14 | UI | AC-24 | RequesterTicketDetail read-only rendering | All Ticket fields read-only; no Comment/Status/IT Priority controls present | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | UI-16 | UI | AC-10 | AttachmentSection at the 5-attachment cap | Upload control shows disabled state with limit explanation | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| STYLE-01 | UI style | ui-spec.md §3–4 | CreateTicket field/button classes | Required CSS classes/tokens present for editable, read-only, invalid, disabled, busy states | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| STYLE-01 | UI style | ui-spec.md §3–4 | CreateTicket field/button classes | Required CSS classes/tokens present for editable, read-only, invalid, disabled, busy states | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | STYLE-02 | Visual/Responsive | AC-25 | Create Ticket screenshots | Desktop/tablet/mobile screenshots match `ui-spec.md`, no clipping/overlap/scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/create-ticket/` | Planned |
 | STYLE-03 | Visual/Responsive | AC-25 | My Tickets screenshots | Desktop table vs. mobile card, no horizontal scroll | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/my-tickets/` | Planned |
 | STYLE-04 | Visual/Responsive | AC-25 | Ticket Detail screenshots | All three viewports legible, no clipping/overlap | `e2e/lab-02/requester-ticket-flow.spec.ts` → `artifacts/lab-02/screenshots/ticket-detail/` | Planned |
@@ -166,13 +166,20 @@ npx playwright test e2e/lab-02
 
 ## 6. Final Results
 
-Not yet run. Implementation has not started under this task, per the
-Spec-Driven Development scope of this session — this file records the
-*plan* the coding agent must satisfy, not evidence of a working system.
-Once each GitHub Issue is implemented, this section must be updated with
-actual pass/fail status and command output from the final `main` branch,
-replacing every `Planned` in §2 with `Pass`/`Fail`, per the handout's Test
-DD requirement (§9).
+Updated as of Issue 5 (Create Ticket UI). The rows Issue 5 implements —
+UNIT-02, API-15, API-16, API-17, API-18, API-22, API-23, UI-05, UI-06,
+UI-07, UI-08, UI-09, STYLE-01 — are marked `Pass` in §2, confirmed by:
+
+```bash
+pnpm --filter server test   # 51/51 passing
+pnpm --filter client test   # 49/49 passing
+```
+
+Rows owned by other issues (My Tickets, Ticket Detail, attachment
+download/removal, E2E) are still `Planned` and get updated as those
+issues land. STYLE-02 through STYLE-04 and the E2E rows also stay
+`Planned`: they depend on Playwright, which isn't part of this workspace
+yet (§7).
 
 ## 7. Known Limitations or Deferred Tests
 

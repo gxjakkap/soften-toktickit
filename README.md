@@ -69,3 +69,20 @@ system check now lives at `/system-check`.
 cd client && pnpm test  # Vitest
 cd server && pnpm test  # Vitest + Supertest
 ```
+
+### End-to-end and visual/responsive tests (Playwright)
+
+Requires the seeded database (`pnpm prisma:seed`, above) — the E2E suite
+logs in as the seeded Development Requesters by name/email. From the repo
+root, with the server and client already running (`pnpm exec playwright
+install chromium` once, first time only):
+
+```bash
+pnpm e2e
+```
+
+This runs the full user-flow suite (`e2e/lab-02/requester-ticket-flow.spec.ts`)
+and the Section 14 screenshot/visual-regression suite
+(`e2e/lab-02/screenshots.spec.ts`), which writes to
+`artifacts/lab-02/screenshots/`. If the server/client aren't already
+running, Playwright starts them itself (see `playwright.config.ts`).

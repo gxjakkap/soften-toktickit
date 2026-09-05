@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import AppShell from './AppShell'
+import CreateTicket from './CreateTicket'
 import DevRequesterSelection from './DevRequesterSelection'
 import { RequesterProvider, useRequester } from './RequesterContext'
 import SystemCheck from './SystemCheck'
@@ -41,7 +42,7 @@ export function AppRoutes() {
 
       <Route element={<RequireRequester />}>
         <Route path="/tickets" element={<ComingSoon title="My Tickets" />} />
-        <Route path="/tickets/new" element={<ComingSoon title="Create Ticket" />} />
+        <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<ComingSoon title="Ticket Detail" />} />
       </Route>
 

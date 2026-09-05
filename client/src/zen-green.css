@@ -224,3 +224,137 @@ body {
     flex: 1 1 100%;
   }
 }
+
+/* Additional field states — ui-spec §3. */
+.zg-field-readonly {
+  background: var(--zg-field-readonly-bg);
+  border-color: var(--zg-field-readonly-border);
+}
+
+.zg-field-invalid {
+  border-color: var(--zg-error-border);
+}
+
+.zg-field:disabled,
+.zg-field[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+textarea.zg-field {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.zg-error-message {
+  color: var(--zg-error-text);
+  font-size: 13px;
+  margin: var(--zg-space-1) 0 0;
+}
+
+.zg-char-count {
+  margin: var(--zg-space-1) 0 0;
+  text-align: right;
+}
+
+/* Busy Submit button — ui-spec §4. */
+.zg-spinner {
+  animation: zg-spin 0.6s linear infinite;
+  border: 2px solid rgb(255 255 255 / 40%);
+  border-radius: 50%;
+  border-top-color: #fff;
+  display: inline-block;
+  height: 14px;
+  margin-right: var(--zg-space-2);
+  vertical-align: middle;
+  width: 14px;
+}
+
+@keyframes zg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Create Ticket classification group — ui-spec §11.2/§8. */
+.zg-grid-3 {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 991px) {
+  .zg-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zg-success-banner {
+  background: var(--zg-success-bg);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 8px;
+  color: var(--zg-success-text);
+  padding: var(--zg-space-4);
+}
+
+/* Attachments dropzone — extends ui-spec §6 with drag/drop + paste. */
+.zg-dropzone {
+  align-items: center;
+  background: var(--zg-field-editable-bg);
+  border: 2px dashed var(--zg-field-editable-border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 88px;
+  padding: var(--zg-space-4);
+  text-align: center;
+}
+
+.zg-dropzone.is-dragover {
+  background: var(--zg-pale);
+  border-color: var(--zg-secondary);
+}
+
+.zg-dropzone[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.zg-dropzone-text {
+  margin: 0;
+}
+
+.zg-visually-hidden {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Attachments — ui-spec §6. */
+.zg-attachment-row {
+  align-items: center;
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  padding: var(--zg-space-2) var(--zg-space-3);
+}
+
+.zg-attachment-row.is-invalid {
+  border-color: var(--zg-error-border);
+}

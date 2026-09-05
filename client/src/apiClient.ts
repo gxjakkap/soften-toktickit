@@ -1,4 +1,4 @@
-import type { Attachment, Category, RelatedSystem, RequestedPriority, Ticket } from './types'
+import type { Attachment, Category, RelatedSystem, RequestedPriority, Ticket, TicketDetail } from './types'
 
 /** specification.md §11-1 (BR-31): the single frontend seam that attaches the
  *  current Requester's id to a request. Lab 3 only has to change this file
@@ -6,16 +6,22 @@ import type { Attachment, Category, RelatedSystem, RequestedPriority, Ticket } f
  *  call site. */
 export class ApiError extends Error {
   field?: string
-  constructor(message: string, field?: string) {
+  code?: string
+  constructor(message: string, field?: string, code?: string) {
     super(message)
     this.field = field
+    this.code = code
   }
 }
 
 async function parseJsonOrThrow<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => null)
   if (!res.ok) {
-    throw new ApiError(body?.error?.message ?? 'Something went wrong. Please try again.', body?.error?.field)
+    throw new ApiError(
+      body?.error?.message ?? 'Something went wrong. Please try again.',
+      body?.error?.field,
+      body?.error?.code,
+    )
   }
   return body as T
 }
@@ -51,4 +57,24 @@ export function uploadAttachment(requesterId: number, ticketId: number, file: Fi
   return fetch(`/api/tickets/${ticketId}/attachments`, { method: 'POST', body: formData }).then((res) =>
     parseJsonOrThrow<Attachment>(res),
   )
+}
+
+export function fetchTicket(requesterId: number, ticketId: number): Promise<TicketDetail> {
+  return fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`).then((res) =>
+    parseJsonOrThrow<TicketDetail>(res),
+  )
+}
+
+// api-spec.md §8: the server sets Content-Disposition: attachment, so a plain
+// link handles the download — no fetch/blob JS needed.
+export function attachmentDownloadUrl(requesterId: number, attachmentId: number): string {
+  return `/api/attachments/${attachmentId}/download?requesterId=${requesterId}`
+}
+
+export function removeAttachment(requesterId: number, attachmentId: number, reason?: string): Promise<Attachment> {
+  return fetch(`/api/attachments/${attachmentId}/remove`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requesterId, reason }),
+  }).then((res) => parseJsonOrThrow<Attachment>(res))
 }

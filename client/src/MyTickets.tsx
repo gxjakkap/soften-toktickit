@@ -325,6 +325,20 @@ function MyTickets() {
             >
               Previous
             </button>
+            {/* ui-spec.md §11.3: Previous/Next plus page numbers, not Previous/Next alone. */}
+            <nav className="zg-pagination-pages" aria-label="Pagination">
+              {Array.from({ length: response.totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`zg-btn zg-btn-sm ${p === response.page ? 'zg-btn-primary' : 'zg-btn-secondary'}`}
+                  aria-current={p === response.page ? 'page' : undefined}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </nav>
             <span className="zg-helper">
               Showing {rangeStart} to {rangeEnd} of {response.totalCount} tickets
             </span>

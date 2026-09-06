@@ -198,6 +198,29 @@ describe('UI-03 (AC-02, BR-12): requester-scoped screens redirect when nothing i
       expect(await screen.findByRole('heading', { name: /select development requester/i })).toBeTruthy()
     },
   )
+
+  it('redirects to the selection screen when the stored requester has since been deactivated', async () => {
+    localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(activeRequesters[1]))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.startsWith('/api/tickets?')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ error: { code: 'INVALID_REQUESTER', message: 'Requester is not active.' } }),
+              { status: 400 },
+            ),
+          )
+        }
+        return Promise.reject(new Error(`unexpected fetch: ${url}`))
+      }),
+    )
+
+    renderApp('/tickets')
+
+    expect(await screen.findByRole('heading', { name: /select development requester/i })).toBeTruthy()
+    expect(localStorage.getItem(REQUESTER_STORAGE_KEY)).toBeNull()
+  })
 })
 
 describe('UI-04 (AC-23, BR-11): change requester', () => {

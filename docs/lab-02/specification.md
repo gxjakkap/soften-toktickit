@@ -365,6 +365,15 @@ current Requester's id (BR-10) and enforces ownership per BR-14/BR-15.
 
 ## 10. Definition of Done
 
+*Numbering note: this document and `tests.md` refer to past work by its
+GitHub issue number (e.g. "Issue 24"). `reviewer.md`, branch names, and PR
+titles instead use Lab 2's own local sequence for the same work — GitHub
+Issue 24 is local Issue 9 there. Both numberings are real; they just come
+from different counters. The fixes below are from a separate, later
+read-only audit of the merged Issue 9/24 release work, tracked as Lab 2's
+local Issue 10 (branch `fix/10-audit-findings`) and referred to as
+"Issue 10" below; it has no GitHub issue number of its own yet.*
+
 ### Product Completion
 
 - [x] All scoped screens implemented: Development Requester Selection,
@@ -379,11 +388,19 @@ current Requester's id (BR-10) and enforces ownership per BR-14/BR-15.
       `.skip`/`.only`/`.todo`/`xit`/`xdescribe`: none found)
 - [x] Ownership isolation (BR-14/BR-15) is verified by at least one
       automated test per Requester-scoped endpoint (API-06, API-14, API-22;
-      E2E-02)
+      E2E-02) — re-verified live against a running instance by Issue 10 (not
+      just read from test files): cross-Requester ticket read, attachment
+      download, and attachment remove all returned an identical `404` body
+      to a genuinely nonexistent id
 - [x] Attachment constraints (type, size, count, soft removal) match §4.5
       of the handout and BR-25–BR-29 exactly
 - [x] Implemented screens and APIs conform to `ui-spec.md` and
-      `api-spec.md`
+      `api-spec.md` — Issue 10's audit found and fixed two real deviations:
+      My Tickets' pagination was missing the page-number buttons `ui-spec.md`
+      §11.3 requires (only Previous/Next existed), and BR-12's third redirect
+      trigger (a Requester deactivated after being selected) was never
+      implemented, silently leaving a stale session on a generic error banner
+      instead of returning to Selection
 - [x] Zen Green tokens match §7 of the handout; responsive rules (desktop /
       tablet / mobile) hold with no clipping, overlap, or horizontal
       scrolling — Issue 8 fixed real deviations, Issue 24 backed the
@@ -392,27 +409,42 @@ current Requester's id (BR-10) and enforces ownership per BR-14/BR-15.
       visual inspection alone
 - [x] Success, failure, validation, loading, empty, and no-results states
       are implemented and covered by tests for every screen that needs them
-- [x] `README.md` setup and test instructions are current — reverified by
-      Issue 24 against a live run (db up, install, migrate, seed, both test
-      suites); the E2E command was added
+- [x] `README.md` setup and test instructions are current — Issue 10's audit
+      found this claim did not hold from an actually fresh clone: on current
+      pnpm, Prisma's install-time build script is skipped by default, so
+      `prisma migrate dev` never generates the Prisma Client and the very
+      next documented command (`prisma:seed`) crashed with
+      `Cannot find module '.../generated/prisma/client.js'`. Fixed by adding
+      an explicit `pnpm prisma:generate` step to `README.md`'s Setup section
+      and reverified against two separate fresh clones (install → migrate →
+      generate → seed → `pnpm test`, both packages, cleanly)
 - [x] All required tests pass from documented commands on the final `main`
-      branch — `pnpm --filter server test` (81/81), `pnpm --filter client
-      test` (71/71), `pnpm e2e` (14/14); see `tests.md` §6
+      branch — see `tests.md` §6 for current counts
 
 ### Course Delivery Requirements (checked separately from Product Completion)
 
 - [x] Work delivered via GitHub Issues and feature branches into
       `lab2-staging`, then one release Pull Request into `main`
 - [x] Peer review completed and recorded in `reviewer.md` for Issues 1–8;
-      this issue's own PR into `lab2-staging` is pending that same review
+      Issue 9's own PR into `lab2-staging` (#32) was reviewed and merged
+      before the release PR. `reviewer.md` does not cover Issue 10 (this
+      audit/fix work) — out of scope, since Issue 10 does not edit
+      `reviewer.md` — so Issue 10's PR still needs its own review round
       before the release PR should be merged
 - [x] Review comments addressed (Issues 1–8; see `reviewer.md` for each
       round's fixes)
 - [ ] Required repository documents present: `specification.md`,
-      `tests.md`, `ui-spec.md`, `api-spec.md`, `reviewer.md` are all present
-      as of Issue 24; `ai-use.md` is intentionally out of this issue's scope
-      (the student is writing it directly) and is the one item outstanding
-      here
+      `tests.md`, `ui-spec.md`, `api-spec.md`, `reviewer.md`, and `ai_use.md`
+      are all present as of Issue 10. This line stays unchecked because
+      `ai_use.md` itself carries two open items that are the student's to
+      resolve directly in that file (out of Issue 10's scope, which does not
+      edit `ai_use.md` or `reviewer.md`): (1) the handout's required tree
+      names it `ai-use.md` (hyphen); the actual file is `ai_use.md`
+      (underscore) — a `git mv` either settles it or the student may keep the
+      underscore deliberately, but the two docs currently disagree; (2) the
+      file ends on the last per-issue reflection with no overall "My
+      Reflection" paragraph, which the handout's Part 4 asks for separately
+      from the per-issue ones.
 
 ## 11. Assumptions and Decisions
 

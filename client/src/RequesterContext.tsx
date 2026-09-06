@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { requesterInvalidated } from './apiClient'
 
 /** Lab 2 stores the selected Requester client-side only (BR-10). It is not a
  *  session and grants no trust — every future API call still sends the id. */
@@ -43,6 +44,15 @@ export function RequesterProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(REQUESTER_STORAGE_KEY)
     setRequester(null)
   }, [])
+
+  // BR-12: the stored Requester was deactivated (or no longer exists) since
+  // it was selected — every scoped screen already redirects on `requester ===
+  // null` (App.tsx's RequireRequester), so clearing it here is enough.
+  useEffect(() => {
+    const handleInvalidated = () => clearRequester()
+    requesterInvalidated.addEventListener('invalidated', handleInvalidated)
+    return () => requesterInvalidated.removeEventListener('invalidated', handleInvalidated)
+  }, [clearRequester])
 
   const value = useMemo(
     () => ({ requester, selectRequester, clearRequester }),

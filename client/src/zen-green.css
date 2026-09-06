@@ -1,0 +1,666 @@
+/* Zen Green design tokens — ui-spec.md §1. Layered over Bootstrap, not
+   replacing it. Only the rules the shipped screens need live here; later
+   screens add their own. */
+:root {
+  --zg-primary: #006b3c;
+  --zg-secondary: #0b7a46;
+  --zg-pale: #eaf6ef;
+  --zg-bg: #f5f7f6;
+  --zg-surface: #ffffff;
+  --zg-text: #1c2b24;
+  --zg-field-editable-bg: #ffffff;
+  --zg-field-editable-border: #c9d6d0;
+  --zg-field-readonly-bg: #edf3ef;
+  --zg-field-readonly-border: #d7e3dd;
+  --zg-error-text: #b3261e;
+  --zg-error-border: #b3261e;
+  --zg-warning-bg: #fceed1;
+  --zg-warning-text: #8a5a00;
+  --zg-success-bg: var(--zg-pale);
+  --zg-success-text: var(--zg-secondary);
+
+  --zg-space-1: 4px;
+  --zg-space-2: 8px;
+  --zg-space-3: 12px;
+  --zg-space-4: 16px;
+  --zg-space-5: 24px;
+  --zg-space-6: 32px;
+  --zg-max-width: 1140px;
+}
+
+body {
+  background: var(--zg-bg);
+  color: var(--zg-text);
+  font-size: 14px;
+}
+
+.zg-page {
+  max-width: var(--zg-max-width);
+  margin: 0 auto;
+  padding: var(--zg-space-5) var(--zg-space-4);
+}
+
+.zg-card {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(28 43 36 / 8%);
+  padding: var(--zg-space-5);
+}
+
+.zg-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--zg-text);
+}
+
+/* Section heading (e.g. "Classification", "Attachments") — ui-spec §2. */
+.zg-section-heading {
+  color: var(--zg-text);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.zg-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: var(--zg-space-1);
+}
+
+.zg-required {
+  color: var(--zg-error-text);
+}
+
+.zg-helper {
+  font-size: 13px;
+}
+
+.zg-field {
+  width: 100%;
+  background: var(--zg-field-editable-bg);
+  border: 1px solid var(--zg-field-editable-border);
+  border-radius: 6px;
+  color: var(--zg-text);
+  padding: var(--zg-space-2) var(--zg-space-3);
+}
+
+/* Focus is never suppressed, including for keyboard-only users — ui-spec §3/§7. */
+.zg-field:focus-visible,
+.zg-btn:focus-visible,
+.zg-navlink:focus-visible,
+.zg-menu-toggle:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+.zg-callout {
+  background: var(--zg-pale);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  color: var(--zg-text);
+  font-size: 13px;
+  padding: var(--zg-space-3);
+}
+
+.zg-error {
+  background: #fbe7e5;
+  border: 1px solid var(--zg-error-border);
+  border-radius: 6px;
+  color: var(--zg-error-text);
+  padding: var(--zg-space-3);
+}
+
+.zg-skeleton {
+  background: var(--zg-field-readonly-bg);
+  border-radius: 6px;
+  color: var(--zg-text);
+  padding: var(--zg-space-3);
+}
+
+/* Buttons — ui-spec §4. Every button keeps visible text. */
+.zg-btn {
+  align-items: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 500;
+  gap: var(--zg-space-2);
+  justify-content: center;
+  min-height: 44px; /* touch target at mobile widths — ui-spec §8 */
+  padding: var(--zg-space-2) var(--zg-space-5);
+  text-decoration: none; /* a Link styled as a button is not a plain anchor */
+}
+
+.zg-btn-primary {
+  background: var(--zg-primary);
+  border-color: var(--zg-primary);
+  color: #fff;
+}
+
+.zg-btn-secondary {
+  background: #fff;
+  border-color: var(--zg-primary);
+  color: var(--zg-primary);
+}
+
+.zg-btn-tertiary {
+  background: none;
+  border: none;
+  color: var(--zg-secondary);
+  min-height: auto;
+  padding: var(--zg-space-1) var(--zg-space-2);
+}
+
+.zg-btn-tertiary:hover {
+  text-decoration: underline;
+}
+
+/* Destructive — ui-spec §4 (e.g. Remove Attachment), confirmed via a
+   dialog before the action fires; never the same style as Cancel. */
+.zg-btn-destructive {
+  background: #fff;
+  border-color: var(--zg-error-border);
+  color: var(--zg-error-text);
+}
+
+.zg-btn:disabled,
+.zg-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Compact variant for toolbar/header actions (e.g. My Tickets' top-right
+   Create Ticket) — the full 44px tap target only matters at mobile widths
+   (ui-spec §8), so it's restored there and nowhere else. */
+.zg-btn-sm {
+  font-size: 13px;
+  min-height: 36px;
+  padding: var(--zg-space-1) var(--zg-space-4);
+}
+
+@media (max-width: 767px) {
+  .zg-btn-sm {
+    font-size: 14px;
+    min-height: 44px;
+    padding: var(--zg-space-2) var(--zg-space-5);
+  }
+}
+
+/* Application shell — ui-spec §10. */
+.zg-header {
+  background: var(--zg-primary);
+  color: #fff;
+}
+
+.zg-header-inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  margin: 0 auto;
+  max-width: var(--zg-max-width);
+  padding: var(--zg-space-3) var(--zg-space-4);
+}
+
+.zg-wordmark {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Desktop/tablet: nav + Requester info share the header row (ui-spec §10). */
+.zg-header-collapsible {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--zg-space-4);
+  justify-content: space-between;
+}
+
+.zg-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-4);
+}
+
+.zg-navlink {
+  color: #fff;
+  padding: var(--zg-space-1) 0;
+  text-decoration: none;
+}
+
+/* Active page: weight change plus an underline, never colour alone (§10). */
+.zg-navlink.is-active {
+  border-bottom: 2px solid var(--zg-secondary);
+  font-weight: 700;
+}
+
+.zg-header-requester {
+  align-items: center;
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-header .zg-btn-tertiary {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Mobile: nav + Requester info collapse behind a menu control instead of
+   wrapping the header onto extra lines (ui-spec §10). */
+.zg-menu-toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: none;
+  font-size: 22px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .zg-menu-toggle {
+    display: block;
+  }
+
+  .zg-header-collapsible {
+    display: none;
+  }
+
+  .zg-header-collapsible.is-open {
+    align-items: stretch;
+    display: flex;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: var(--zg-space-3);
+  }
+
+  .zg-header-collapsible.is-open .zg-nav {
+    flex-direction: column;
+    gap: var(--zg-space-2);
+  }
+
+  .zg-header-collapsible.is-open .zg-header-requester {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.zg-select-screen {
+  margin: 0 auto;
+  max-width: 560px;
+}
+
+.zg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+}
+
+/* Mobile: everything stacks, nothing scrolls sideways — ui-spec §8. */
+@media (max-width: 767px) {
+  .zg-actions > .zg-btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* Additional field states — ui-spec §3. */
+.zg-field-readonly {
+  background: var(--zg-field-readonly-bg);
+  border-color: var(--zg-field-readonly-border);
+}
+
+.zg-field-invalid {
+  border-color: var(--zg-error-border);
+}
+
+.zg-field:disabled,
+.zg-field[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+textarea.zg-field {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.zg-error-message {
+  color: var(--zg-error-text);
+  font-size: 13px;
+  margin: var(--zg-space-1) 0 0;
+}
+
+.zg-char-count {
+  margin: var(--zg-space-1) 0 0;
+  text-align: right;
+}
+
+/* Busy Submit button — ui-spec §4. */
+.zg-spinner {
+  animation: zg-spin 0.6s linear infinite;
+  border: 2px solid rgb(255 255 255 / 40%);
+  border-radius: 50%;
+  border-top-color: #fff;
+  display: inline-block;
+  height: 14px;
+  margin-right: var(--zg-space-2);
+  vertical-align: middle;
+  width: 14px;
+}
+
+@keyframes zg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Create Ticket classification group — ui-spec §11.2/§8. */
+.zg-grid-3 {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 991px) {
+  .zg-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* My Tickets — ui-spec.md §11.3. */
+.zg-filter-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+}
+
+.zg-filter-field {
+  display: flex;
+  flex: 1 1 160px;
+  flex-direction: column;
+  min-width: 160px;
+}
+
+/* Badges — ui-spec §9. Colour is reinforcement only; label text (and an
+   icon for the two same-colour pairs) is always present alongside it. */
+.zg-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: var(--zg-space-1);
+  padding: 2px var(--zg-space-3);
+  white-space: nowrap;
+}
+
+.zg-badge-priority-low {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-priority-medium {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-priority-high {
+  background: #fbe7e5;
+  color: var(--zg-error-text);
+}
+
+.zg-badge-status-new {
+  background: #e7eef5;
+  color: #33475b;
+}
+
+.zg-badge-status-open {
+  background: #dcebfb;
+  color: #1b5fa8;
+}
+
+.zg-badge-status-in-progress {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-status-pending {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+.zg-badge-status-resolved {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-status-closed {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+.zg-badge-status-cancelled {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+/* Desktop/tablet table (ui-spec §11.3, §8). */
+.zg-table-wrap {
+  display: block;
+  overflow-x: auto;
+}
+
+.zg-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.zg-table th,
+.zg-table td {
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  padding: var(--zg-space-3);
+  text-align: left;
+}
+
+.zg-table th {
+  font-weight: 600;
+}
+
+.zg-table tbody tr {
+  cursor: pointer;
+}
+
+.zg-table tbody tr:hover {
+  background: var(--zg-pale);
+}
+
+.zg-sort-btn {
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: var(--zg-space-1);
+  padding: 0;
+}
+
+/* Mobile card list, hidden on desktop/tablet — the table/card swap is CSS-
+   only, never a horizontal scroll substitute (ui-spec §8, §11.3). */
+.zg-ticket-cards {
+  display: none;
+}
+
+.zg-ticket-card {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  color: inherit;
+  display: block;
+  margin-bottom: var(--zg-space-3);
+  padding: var(--zg-space-4);
+  text-decoration: none;
+}
+
+.zg-ticket-card:hover {
+  border-color: var(--zg-secondary);
+}
+
+@media (max-width: 767px) {
+  .zg-table-wrap {
+    display: none;
+  }
+
+  .zg-ticket-cards {
+    display: block;
+  }
+}
+
+.zg-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: center;
+  margin-top: var(--zg-space-4);
+}
+
+.zg-pagination-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}
+
+.zg-success-banner {
+  background: var(--zg-success-bg);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 8px;
+  color: var(--zg-success-text);
+  padding: var(--zg-space-4);
+}
+
+/* Attachments dropzone — extends ui-spec §6 with drag/drop + paste. */
+.zg-dropzone {
+  align-items: center;
+  background: var(--zg-field-editable-bg);
+  border: 2px dashed var(--zg-field-editable-border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 88px;
+  padding: var(--zg-space-4);
+  text-align: center;
+}
+
+.zg-dropzone.is-dragover {
+  background: var(--zg-pale);
+  border-color: var(--zg-secondary);
+}
+
+.zg-dropzone[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.zg-dropzone-text {
+  margin: 0;
+}
+
+/* Remove Attachment confirmation dialog — same tokens as the rest of the
+   app instead of raw Bootstrap defaults (ui-spec §1). */
+.zg-modal-content {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  color: var(--zg-text);
+}
+
+.zg-modal-title {
+  color: var(--zg-text);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.zg-visually-hidden {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Attachments — ui-spec §6. */
+.zg-attachment-row {
+  align-items: center;
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  padding: var(--zg-space-2) var(--zg-space-3);
+}
+
+.zg-attachment-row.is-invalid {
+  border-color: var(--zg-error-border);
+}
+
+/* Removed is a muted/inactive state, not a link or success state — never
+   the brand green (ui-spec §6). */
+.zg-attachment-row.is-removed {
+  color: #5a5a5a;
+  opacity: 0.85;
+}
+
+.zg-badge-removed {
+  background: #eaeaea;
+  color: #5a5a5a;
+}
+
+/* Requester Ticket Detail info card — ui-spec §11.4. */
+.zg-detail-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 991px) {
+  .zg-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zg-detail-full {
+  grid-column: 1 / -1;
+}

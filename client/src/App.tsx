@@ -1,50 +1,53 @@
-import { useState } from 'react'
-import CategoryList from './CategoryList'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import AppShell from './AppShell'
+import CreateTicket from './CreateTicket'
+import DevRequesterSelection from './DevRequesterSelection'
+import MyTickets from './MyTickets'
+import RequesterTicketDetail from './RequesterTicketDetail'
+import { RequesterProvider, useRequester } from './RequesterContext'
+import SystemCheck from './SystemCheck'
 
-type CheckState = 'idle' | 'checking' | 'online' | 'offline'
-
-function App() {
-  const [state, setState] = useState<CheckState>('idle')
-
-  const checkSystem = () => {
-    setState('checking')
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Backend responded with ${res.status}`)
-        return res.json()
-      })
-      .then(() => setState('online'))
-      .catch(() => setState('offline'))
-  }
+/** BR-12: no selected Requester means every Requester-scoped screen bounces to
+ *  the selection screen, whether reached by nav or by a pasted URL. */
+function RequireRequester() {
+  const { requester } = useRequester()
+  if (!requester) return <Navigate to="/select-requester" replace />
 
   return (
-    <div className="container py-5 text-center">
-      <h1>TokTickIT IT Service Desk</h1>
+    <AppShell>
+      {/* FR-13: keying on the requester id remounts every Requester-scoped
+          screen on a switch, so their data reloads instead of going stale. */}
+      <div key={requester.id} data-testid="requester-scope" data-requester-id={requester.id}>
+        <Outlet />
+      </div>
+    </AppShell>
+  )
+}
 
-      <button
-        type="button"
-        className="btn btn-primary my-3"
-        onClick={checkSystem}
-        disabled={state === 'checking'}
-      >
-        Check System
-      </button>
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/select-requester" element={<DevRequesterSelection />} />
+      <Route path="/system-check" element={<SystemCheck />} />
 
-      {state === 'online' && (
-        <>
-          <p className="lead text-success">System Status: Online</p>
-          <h2 className="h5">Supported Request Categories</h2>
-          <CategoryList />
-        </>
-      )}
+      <Route element={<RequireRequester />}>
+        <Route path="/tickets" element={<MyTickets />} />
+        <Route path="/tickets/new" element={<CreateTicket />} />
+        <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
+      </Route>
 
-      {state === 'offline' && (
-        <>
-          <p className="lead text-danger mb-0">System Status: Offline</p>
-          <p className="text-danger">Unable to connect to TokTickIT API</p>
-        </>
-      )}
-    </div>
+      <Route path="*" element={<Navigate to="/tickets" replace />} />
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <RequesterProvider>
+        <AppRoutes />
+      </RequesterProvider>
+    </BrowserRouter>
   )
 }
 

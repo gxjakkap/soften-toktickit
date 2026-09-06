@@ -3,6 +3,12 @@
   "private": true,
   "scripts": {
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
   }
 }

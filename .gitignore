@@ -10,10 +10,20 @@ dist/
 dist-ssr/
 server/src/generated/
 
+# uploaded attachments (specification.md §11-6: local disk, gitignored)
+server/uploads/*
+!server/uploads/.gitkeep
+
 # logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # editor / OS
 .vscode/*

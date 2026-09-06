@@ -35,12 +35,22 @@ Full-stack monorepo:
 
    Adjust values if you changed the default Postgres credentials/ports in `docker-compose.yaml`.
 
-4. Apply the Prisma schema to the database (run from `server/`):
+4. Apply the Prisma schema to the database and generate the Prisma Client
+   (run from `server/`):
 
    ```bash
    cd server
    pnpm prisma:migrate
+   pnpm prisma:generate
    ```
+
+   `prisma:generate` is required on a fresh clone even though `prisma:migrate`
+   normally runs it too — pnpm blocks Prisma's install-time build scripts by
+   default (you'll see an "Ignored build scripts" notice during `pnpm
+   install`), so the client under `server/src/generated/` never gets written
+   without this explicit step. Skipping it fails `prisma:seed` and every
+   server command after it with a `Cannot find module
+   '.../generated/prisma/client.js'` error.
 
 5. Seed reference data and the Lab 2 Development Requesters (safe to re-run):
 

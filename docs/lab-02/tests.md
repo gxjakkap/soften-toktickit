@@ -71,7 +71,7 @@ is covered by at least one row (§3 matrix).
 | API-25 | API | FR-02 (ref data) | `GET /api/categories`, `GET /api/related-systems` | Only active rows returned | `server/tests/lab-02/dev-requesters.api.test.ts` | Pass |
 | UI-01 | UI | AC-22 | DevRequesterSelection active-list rendering | Inactive seeded Requester never appears; Continue disabled until chosen | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
 | UI-02 | UI | AC-21 | DevRequesterSelection API failure | Safe error state shown, no crash, no dropdown left in a broken state | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
-| UI-03 | UI | AC-02 | Opening My Tickets/Create Ticket/Ticket Detail with no stored Requester | Redirects to Development Requester Selection | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
+| UI-03 | UI | AC-02, BR-12 | Opening My Tickets/Create Ticket/Ticket Detail with no stored Requester, or with a stored Requester the server now rejects as `INVALID_REQUESTER` (deactivated since selection) | Redirects to Development Requester Selection in both cases; storage is cleared | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
 | UI-04 | UI | AC-23 | Change Requester flow | Previous Requester's ticket data is gone after switching | `client/tests/lab-02/DevRequesterSelection.test.tsx` | Pass |
 | UI-05 | UI | AC-04, AC-26 | CreateTicket blank Summary | Field-level error directly under Summary; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-06 | UI | AC-07 | CreateTicket double-submit | Submit shows Busy/disabled state; only one API call fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
@@ -80,7 +80,7 @@ is covered by at least one row (§3 matrix).
 | UI-09 | UI | AC-11 | CreateTicket oversized file, client-side | Per-file error shown before any upload request fires | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | UI-10 | UI | AC-20 | MyTickets empty state | Empty-account copy + Create Ticket CTA, no filter UI implying data exists | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-11 | UI | AC-19 | MyTickets no-results state | No-results copy + Clear Filters, distinct from empty state | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
-| UI-12 | UI | AC-18 | MyTickets pagination controls | Page navigation updates the list and the "Showing X to Y of Z" text | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
+| UI-12 | UI | AC-18 | MyTickets pagination controls | Previous/Next, page-number buttons (ui-spec.md §11.3), and the "Showing X to Y of Z" text all update the list and reflect the current page | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-13 | UI | AC-16 | MyTickets search input | List filters as the Requester types a search term | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
 | UI-14 | UI | AC-24 | RequesterTicketDetail read-only rendering | All Ticket fields read-only; no Comment/Status/IT Priority controls present | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Pass |
 | UI-15 | UI | AC-14, AC-15 | AttachmentSection active vs removed | Active shows Download; removed shows metadata only, no Download action | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
@@ -225,6 +225,22 @@ covered by STYLE-02/03/04 above) or `e2e/lab-02/requester-ticket-flow.spec.ts`
 information per BR-15/BR-28) with the actual `404`/`410` backing the claim
 asserted directly against the API in the same test.
 
+**Known duplicate pairs** (Issue 10 audit): two pairs of the 36 files are
+byte-identical, both for the same reason — nothing on the page changes
+between the two captures, so this is expected, not a missing screenshot:
+
+- `ticket-detail/retained-metadata.png` and
+  `ticket-detail/blocked-removed-download.png` — the "blocked" request
+  between them is `context.request.get(...)` against the API directly, never
+  touching `page`, so the rendered DOM is identical before and after; the
+  `410` itself is asserted in the same test (`screenshots.spec.ts` lines
+  246–259), independent of the screenshot.
+- `create-ticket/initial.png` and `create-ticket/desktop.png` — both capture
+  the same blank Create Ticket form at the same effective width (Playwright's
+  default project viewport is 1280px wide, matching `VIEWPORTS.desktop`), and
+  `fullPage: true` screenshots normalize away the height difference between
+  the two viewport configs.
+
 ## 5. Test Commands
 
 Run from a clean clone, after `README.md`'s Setup steps (db up, install,
@@ -325,8 +341,56 @@ pnpm --filter client test   # 71/71 passing
 pnpm e2e                    # 14/14 passing (3 E2E scenarios + 11 screenshot-audit specs)
 ```
 
+**Issue 10 (post-release audit findings)**: a read-only audit against
+`specification.md`'s Definition of Done found two real, untested product
+gaps and one real setup gap; fixed all three plus the documentation issues
+that didn't require touching `ai_use.md`/`reviewer.md`.
+
+- BR-12's third redirect trigger (a Requester deactivated after being
+  selected) was never implemented or tested. Added a single event fired from
+  `apiClient.ts`'s one response-parsing seam whenever the server reports
+  `INVALID_REQUESTER`, consumed by `RequesterProvider` to clear the stored
+  Requester — every screen already redirects on `requester === null`
+  (`App.tsx`), so no per-screen change was needed. New test: UI-03 in
+  `DevRequesterSelection.test.tsx`.
+- `ui-spec.md` §11.3 requires page-number pagination controls on My Tickets;
+  only Previous/Next existed. Added them (`MyTickets.tsx`, `zen-green.css`);
+  verified they wrap correctly with no horizontal scroll up to 14 pages at
+  mobile width. UI-12 in `MyTickets.test.tsx` updated to assert the new
+  controls.
+- `README.md`'s Setup steps crash on a genuinely fresh clone: pnpm skips
+  Prisma's install-time build script by default, so `prisma migrate dev`
+  never generates the Prisma Client, and the next documented command
+  (`prisma:seed`) fails. Added an explicit `pnpm prisma:generate` step;
+  reverified against two separate fresh clones.
+- Added an explicit assertion that "Ticket Owner" never renders on Ticket
+  Detail (`RequesterTicketDetail.test.tsx`, alongside the existing
+  Comment/Status/IT Priority checks).
+- Documented (did not fabricate a fix for) two byte-identical screenshot
+  pairs — `create-ticket/initial.png` vs. `desktop.png`, and
+  `ticket-detail/retained-metadata.png` vs. `blocked-removed-download.png` —
+  both inherent to what those states actually look like on screen, not
+  missing coverage; see §4.2 above.
+- Investigated one `socket hang up` seen during the audit's own concurrent
+  test runs; 5/5 clean in isolation, see §7 below — not a code change.
+- Did not touch `ai_use.md` or `reviewer.md` (explicitly out of scope); see
+  `specification.md` §10 for the two items still open there.
+
+```bash
+pnpm --filter server test   # 81/81 passing
+pnpm --filter client test   # 72/72 passing (+1: BR-12 reactivation redirect)
+pnpm e2e                    # 14/14 passing
+```
+
 ## 7. Known Limitations or Deferred Tests
 
+- **A `socket hang up` was observed once in `attachments.api.test.ts`
+  (Issue 10 audit)**, during a session running the server suite from four
+  concurrent processes against the same shared dev Postgres instance at
+  once. Re-ran `pnpm --filter server test` five times in isolation
+  immediately after (no concurrent load): 81/81 every time. Treated as
+  audit-induced resource contention, not a product flake — no code change
+  made. Re-check if it recurs under normal (single-runner) conditions.
 - **Search has no dedicated index.** `search` uses a case-insensitive
   `ILIKE` scan against `ticketNumber`/`summary`. Fine at Lab 2 seed-data
   scale; add a trigram/full-text index if ticket volume grows in a later

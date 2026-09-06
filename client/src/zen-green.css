@@ -545,6 +545,12 @@ textarea.zg-field {
   margin-top: var(--zg-space-4);
 }
 
+.zg-pagination-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}
+
 .zg-success-banner {
   background: var(--zg-success-bg);
   border: 1px solid var(--zg-secondary);

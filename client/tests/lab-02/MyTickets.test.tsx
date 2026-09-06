@@ -114,11 +114,18 @@ describe('My Tickets states', () => {
     const previousButton = screen.getByRole('button', { name: /^previous$/i }) as HTMLButtonElement
     expect(previousButton.disabled).toBe(true)
 
+    // ui-spec.md §11.3: pagination shows page numbers, not just Previous/Next.
+    const pageNav = screen.getByRole('navigation', { name: /pagination/i })
+    const pageOneButton = within(pageNav).getByRole('button', { name: '1' })
+    expect(pageOneButton.getAttribute('aria-current')).toBe('page')
+    const pageTwoButton = within(pageNav).getByRole('button', { name: '2' })
+
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /^next$/i }))
+    await user.click(pageTwoButton)
 
     expect(await screen.findByText(/showing 11 to 11 of 11 tickets/i)).toBeTruthy()
     expect(within(screen.getByTestId('tickets-table')).getByText('Second page ticket')).toBeTruthy()
+    expect(within(screen.getByRole('navigation', { name: /pagination/i })).getByRole('button', { name: '2' }).getAttribute('aria-current')).toBe('page')
     const calls = fetchMock.mock.calls
     const lastCall = calls[calls.length - 1][0] as string
     expect(new URL(lastCall, 'http://localhost').searchParams.get('page')).toBe('2')

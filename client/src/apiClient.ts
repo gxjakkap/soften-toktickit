@@ -25,9 +25,19 @@ export class ApiError extends Error {
   }
 }
 
+/** BR-12: the third redirect trigger — a Requester selected earlier in the
+ *  session was since deactivated (or deleted). The server is the only thing
+ *  that can know this, so it reports INVALID_REQUESTER and every screen
+ *  reacts here, in the one seam every request already goes through, rather
+ *  than each screen checking `error.code` itself. */
+export const requesterInvalidated = new EventTarget()
+
 async function parseJsonOrThrow<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => null)
   if (!res.ok) {
+    if (body?.error?.code === 'INVALID_REQUESTER') {
+      requesterInvalidated.dispatchEvent(new Event('invalidated'))
+    }
     throw new ApiError(
       body?.error?.message ?? 'Something went wrong. Please try again.',
       body?.error?.field,

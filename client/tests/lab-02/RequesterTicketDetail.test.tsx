@@ -79,6 +79,7 @@ describe('UI-14 (AC-24): read-only rendering', () => {
     expect(screen.queryByText(/internal note/i)).toBeNull()
     expect(screen.queryByText(/actions taken/i)).toBeNull()
     expect(screen.queryByText(/it priority/i)).toBeNull()
+    expect(screen.queryByText(/ticket owner/i)).toBeNull()
     expect(screen.queryByLabelText(/status/i)).toBeNull()
   })
 

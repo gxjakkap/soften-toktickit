@@ -43,6 +43,11 @@ test.describe('Screenshot audit: Development Requester Selection', () => {
     await page.waitForURL('**/tickets')
     await expect(page.getByTestId('current-requester')).toContainText('Jennifer Anderson')
     await page.screenshot({ path: shot('dev-requester-selection', 'selected-user-display.png'), fullPage: true })
+
+    // Distinct from the capture above: focuses the actual Change Requester
+    // control (BR-11) instead of re-shooting the same header state — a click
+    // would navigate away before the shot, since it clears context immediately.
+    await page.getByRole('button', { name: 'Change Requester' }).focus()
     await page.screenshot({ path: shot('dev-requester-selection', 'change-requester-action.png'), fullPage: true })
   })
 

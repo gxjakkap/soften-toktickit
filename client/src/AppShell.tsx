@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useRequester } from './RequesterContext'
+import { useRequester } from './useRequester'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'zg-navlink is-active' : 'zg-navlink'
@@ -40,7 +40,10 @@ function AppShell({ children }: { children: ReactNode }) {
             <i className={`bi ${menuOpen ? 'bi-x-lg' : 'bi-list'}`} aria-hidden="true" />
           </button>
 
-          <div id="zg-header-collapsible" className={`zg-header-collapsible${menuOpen ? ' is-open' : ''}`}>
+          <div
+            id="zg-header-collapsible"
+            className={`zg-header-collapsible${menuOpen ? ' is-open' : ''}`}
+          >
             <nav className="zg-nav" aria-label="Main">
               <NavLink to="/tickets" className={navClass} end onClick={() => setMenuOpen(false)}>
                 My Tickets

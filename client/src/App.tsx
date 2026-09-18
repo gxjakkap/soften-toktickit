@@ -4,7 +4,8 @@ import CreateTicket from './CreateTicket'
 import DevRequesterSelection from './DevRequesterSelection'
 import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
-import { RequesterProvider, useRequester } from './RequesterContext'
+import { RequesterProvider } from './RequesterContext'
+import { useRequester } from './useRequester'
 import SystemCheck from './SystemCheck'
 
 /** BR-12: no selected Requester means every Requester-scoped screen bounces to

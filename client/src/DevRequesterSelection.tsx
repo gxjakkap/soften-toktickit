@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useRequester, type Requester } from './RequesterContext'
+import { useRequester, type Requester } from './useRequester'
 
 type LoadState = 'loading' | 'ready' | 'error'
 
@@ -44,7 +44,11 @@ function DevRequesterSelection() {
 
       <div className="zg-card zg-select-screen" style={{ marginTop: 'var(--zg-space-5)' }}>
         <h2 className="zg-title">
-          <i className="bi bi-person-circle" aria-hidden="true" style={{ marginRight: 'var(--zg-space-2)' }} />
+          <i
+            className="bi bi-person-circle"
+            aria-hidden="true"
+            style={{ marginRight: 'var(--zg-space-2)' }}
+          />
           Select Development Requester
         </h2>
 
@@ -104,7 +108,11 @@ function DevRequesterSelection() {
         </p>
 
         <p className="zg-callout" style={{ marginTop: 'var(--zg-space-3)' }}>
-          <i className="bi bi-shield-lock" aria-hidden="true" style={{ marginRight: 'var(--zg-space-2)' }} />
+          <i
+            className="bi bi-shield-lock"
+            aria-hidden="true"
+            style={{ marginRight: 'var(--zg-space-2)' }}
+          />
           Authentication coming in Lab 3. This selection is for testing only and grants no access
           rights.
         </p>

@@ -379,9 +379,11 @@ error).
 ## 4. IT Staff Ticket Endpoints
 
 All endpoints under `/api/staff/*` require an authenticated session with
-role `IT_STAFF`; any other role receives `403 FORBIDDEN`. None of these
-endpoints are ownership-scoped (BR-31) — any active IT Staff user may act
-on any Ticket.
+role `IT_STAFF`; any other role receives `403 FORBIDDEN` — **except**
+`GET /api/staff/tickets/:id` (§4.2), which also accepts role
+`ADMINISTRATOR` as a read-only exception (BR-40). None of these endpoints
+are ownership-scoped (BR-31) — any active IT Staff user may act on any
+Ticket.
 
 ### 4.1 `GET /api/staff/tickets`
 
@@ -444,9 +446,34 @@ filters (AC-25/AC-26), the same convention as Lab 2's My Tickets.
 
 ### 4.2 `GET /api/staff/tickets/:id`
 
-Full Ticket detail for IT Staff (FR-13). Same shape as §3.3's Requester
-detail response, except the `comments` array includes both `PUBLIC` and
-`INTERNAL` entries (BR-04), each carrying `visibility`.
+Full Ticket detail for IT Staff (FR-13), and read-only for Administrator
+(FR-28, BR-40). Same shape as §3.3's Requester detail response, except the
+`comments` array includes both `PUBLIC` and `INTERNAL` entries (BR-04),
+each carrying `visibility`.
+
+**Failure cases:**
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| 401 | `UNAUTHENTICATED` | No valid session. |
+| 403 | `FORBIDDEN` | Caller's role is not `IT_STAFF` or `ADMINISTRATOR`. |
+| 404 | `NOT_FOUND` | Ticket id doesn't exist. |
+
+### 4.3 `PATCH /api/staff/tickets/:id/claim`
+
+Claim an unassigned or self-owned Ticket (FR-14, BR-19). `IT_STAFF` only —
+unlike §4.2, Administrator is not accepted here.
+
+**Request body:** none.
+
+**200 response:**
+
+```json
+{ "id": 101, "ownerId": 3, "ownerName": "Sarah Johnson" }
+```
+
+Claiming a Ticket the caller already owns is a no-op success (BR-19),
+returning the same shape unchanged.
 
 **Failure cases:**
 
@@ -455,10 +482,13 @@ detail response, except the `comments` array includes both `PUBLIC` and
 | 401 | `UNAUTHENTICATED` | No valid session. |
 | 403 | `FORBIDDEN` | Caller's role is not `IT_STAFF`. |
 | 404 | `NOT_FOUND` | Ticket id doesn't exist. |
+| 409 | `ALREADY_OWNED` | The Ticket is currently owned by a different active IT Staff user; use Reassign (§4.4) instead (BR-19/AC-38). |
 
-### 4.3 `PATCH /api/staff/tickets/:id/owner`
+### 4.4 `PATCH /api/staff/tickets/:id/owner`
 
-Claim or reassign ownership (FR-14, FR-15, BR-19, BR-20).
+Reassign ownership (FR-15, BR-20) — no ownership precondition, unlike
+Claim (§4.3): the acting IT Staff user may set the Owner to any active IT
+Staff id, including themselves, or clear it back to unassigned.
 
 **Request body:**
 
@@ -466,8 +496,8 @@ Claim or reassign ownership (FR-14, FR-15, BR-19, BR-20).
 { "ownerId": 3 }
 ```
 
-`ownerId` may be the caller's own id (claim), another active IT Staff
-user's id (reassign), or `null` (clear back to unassigned).
+`ownerId` is any active IT Staff user's id, the caller's own id, or `null`
+(clear back to unassigned).
 
 **200 response:**
 
@@ -484,7 +514,7 @@ user's id (reassign), or `null` (clear back to unassigned).
 | 404 | `NOT_FOUND` | Ticket id doesn't exist. |
 | 400 | `INVALID_OWNER` | `ownerId` doesn't reference an active `IT_STAFF` user (and isn't `null`). |
 
-### 4.4 `PATCH /api/staff/tickets/:id/priority`
+### 4.5 `PATCH /api/staff/tickets/:id/priority`
 
 Change IT Priority (FR-16, BR-21).
 
@@ -501,7 +531,7 @@ Change IT Priority (FR-16, BR-21).
 | 404 | `NOT_FOUND` | Ticket id doesn't exist. |
 | 400 | `VALIDATION_ERROR` | `itPriority` is not `LOW`/`MEDIUM`/`HIGH`. |
 
-### 4.5 `PATCH /api/staff/tickets/:id/status`
+### 4.6 `PATCH /api/staff/tickets/:id/status`
 
 Change Current Status (FR-17, BR-22, specification.md §7).
 
@@ -519,7 +549,7 @@ Change Current Status (FR-17, BR-22, specification.md §7).
 | 400 | `VALIDATION_ERROR` | `status` is not a recognized `TicketStatus` value. |
 | 409 | `INVALID_TRANSITION` | `status` is recognized but not reachable from the Ticket's current status per specification.md §7 (BR-22). |
 
-### 4.6 `POST /api/staff/tickets/:id/comments`
+### 4.7 `POST /api/staff/tickets/:id/comments`
 
 Post a Public Comment or an Internal Note (FR-18, FR-19).
 

@@ -161,7 +161,12 @@ below the Attachments section:
 
 Extends the same Ticket information card pattern as Lab 2's Requester
 Ticket Detail, but with operational fields editable and additional
-sections.
+sections. This screen and its route exist for IT Staff only — an
+Administrator has no navigation entry point to it in Lab 3, even though
+the underlying `GET` endpoint also accepts an Administrator session at the
+API level so BR-04's Internal Note visibility promise is actually
+reachable (specification.md BR-40). That API-only access has no UI here by
+design; it's covered by direct API-level tests, not a screen.
 
 - **Ticket information card**: Ticket No., Created Date, Category, Related
   System, Requester (name — read-only), Requested Priority (badge,
@@ -169,9 +174,15 @@ sections.
   Requester view.
 - **Operational row**, visually distinct from the read-only card above it
   (matches the handout's illustrative screenshot grouping): **Ticket
-  Owner** (dropdown of active IT Staff, plus "Unassigned"; a **Claim**
-  shortcut button appears when unassigned or owned by someone else, setting
-  the dropdown to the current user in one action), **IT Priority**
+  Owner** (dropdown of active IT Staff, plus "Unassigned" — this is the
+  Reassign control, and accepts any target with no ownership precondition
+  — api-spec.md §4.4); a separate **Claim** button, shown only while the
+  Ticket is unassigned or already owned by the current user, sets the
+  Owner to the current user in one click (api-spec.md §4.3) and disappears
+  once claimed by someone else. Taking over a Ticket someone else already
+  owns is done through the Owner dropdown (Reassign), not Claim — Claim
+  rejects with an error if another active IT Staff user owns the Ticket
+  (BR-19), rather than silently reassigning it. **IT Priority**
   (dropdown, editable field styling per Lab 2 §3), **Current Status**
   (dropdown, editable field styling; only transitions permitted by
   specification.md §7 from the Ticket's current status are enabled/listed

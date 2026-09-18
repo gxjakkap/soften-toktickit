@@ -124,6 +124,7 @@ authorization.
 | FR-25 | The system shall prevent an Administrator from deactivating their own account. |
 | FR-26 | The system shall prevent any action that would leave the system with zero active Administrators. |
 | FR-27 | The system shall prevent two users from sharing the same email address, compared case-insensitively. |
+| FR-28 | The system shall let an authenticated Administrator retrieve any Ticket's full detail via the API, including Internal Notes, so that BR-04's Administrator-visibility guarantee is actually reachable; this read is the only Ticket-related capability an Administrator has — no Ticket Queue, no claim/reassign, no priority/status/comment changes. |
 
 ## 5. Business Rules
 
@@ -168,6 +169,7 @@ authorization.
 | BR-37 | Setting a new initial password for an existing user replaces their stored password hash, marks them as requiring a password change, and does not require knowledge of their previous password. |
 | BR-38 | The Administrator user list search matches name or email, case-insensitive, partial match; an optional role filter narrows further; both combine with AND logic. |
 | BR-39 | The Administrator user list is not paginated in Lab 3 — it returns every matching user in one response, ordered by name ascending. |
+| BR-40 | An Administrator may retrieve a Ticket's full detail, including Internal Notes, via `GET /api/staff/tickets/:id` — this is the only Ticket-related capability granted to the Administrator role. Administrators cannot list the Ticket Queue, claim/reassign ownership, change IT Priority or Current Status, or post any Comment or Note, and Lab 3's UI gives them no navigation route to this endpoint — it exists at the API level solely so BR-04's promise ("Internal Notes are visible... to IT Staff and Administrator") is actually true rather than unreachable. |
 
 ## 6. UI Specification Summary
 
@@ -383,11 +385,20 @@ The Lab 2 `RequesterUser` table becomes the Lab 3 `User` table **in place**
 4. Add `ownerId`, `itPriority`, `requesterConfirmedResolvedAt` to `Ticket`.
    Backfill `itPriority = requestedPriority` for every existing row (BR-21).
    `ownerId` and `requesterConfirmedResolvedAt` default to `NULL`.
-5. Migrate the `TicketStatus` enum: add `REOPENED`; rename `PENDING` to
-   `WAITING_FOR_REQUESTER` via a raw `ALTER TYPE ... RENAME VALUE` migration
-   step (Prisma does not generate enum-value renames automatically) so that
-   every existing seeded Ticket in that status keeps its meaning under the
-   new name instead of losing it.
+5. Migrate the `TicketStatus` enum via two raw SQL steps (Prisma does not
+   generate enum-value renames or positioned inserts automatically), in
+   this order:
+   1. `ALTER TYPE "TicketStatus" RENAME VALUE 'PENDING' TO 'WAITING_FOR_REQUESTER';`
+      — every existing seeded Ticket in that status keeps its meaning under
+      the new name instead of losing it.
+   2. `ALTER TYPE "TicketStatus" ADD VALUE 'REOPENED' BEFORE 'CANCELLED';`
+      — the explicit `BEFORE` clause is required. Postgres sorts an enum's
+      values by declaration order, and a plain `ADD VALUE` with no
+      position would append `REOPENED` after `CANCELLED`, leaving the
+      on-disk order out of sync with §8.2's schema (`..., CLOSED, REOPENED,
+      CANCELLED`). Since BR-32 makes Current Status sortable, that mismatch
+      would make the Queue's status sort silently disagree with the schema
+      anyone reads.
 6. Create the `Session` and `TicketComment` tables.
 7. New IT Staff and Administrator accounts are added only via seed data
    (§8.4), never derived from Lab 2 data — Lab 2 never had any concept of
@@ -437,9 +448,10 @@ Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:
 | PATCH | `/api/attachments/:id/remove` | Soft-remove an owned Attachment |
 | POST | `/api/tickets/:id/comments` | Post a Public Comment on an owned Ticket |
 | PATCH | `/api/tickets/:id/resolved` | Mark "Problem Appears Resolved" on an owned Ticket |
-| GET | `/api/staff/tickets` | Search/filter/sort/paginate the shared Ticket Queue (IT Staff) |
-| GET | `/api/staff/tickets/:id` | Retrieve full Ticket detail, including Internal Notes (IT Staff) |
-| PATCH | `/api/staff/tickets/:id/owner` | Claim or reassign Ticket ownership |
+| GET | `/api/staff/tickets` | Search/filter/sort/paginate the shared Ticket Queue (IT Staff only) |
+| GET | `/api/staff/tickets/:id` | Retrieve full Ticket detail, including Internal Notes (IT Staff; read-only for Administrator too — BR-04/BR-40) |
+| PATCH | `/api/staff/tickets/:id/claim` | Claim an unassigned or self-owned Ticket; rejected if someone else already owns it (BR-19) |
+| PATCH | `/api/staff/tickets/:id/owner` | Reassign Ticket ownership to any active IT Staff user, or clear it (BR-20) |
 | PATCH | `/api/staff/tickets/:id/priority` | Change IT Priority |
 | PATCH | `/api/staff/tickets/:id/status` | Change Current Status along the permitted transitions |
 | POST | `/api/staff/tickets/:id/comments` | Post a Public Comment or an Internal Note |
@@ -493,6 +505,9 @@ additionally enforces a role and, where applicable, an ownership check
 | AC-33 | Given an inactive user, when they attempt to log in with correct credentials, then access is denied with the inactive-account response. |
 | AC-34 | Given the viewport is narrowed to mobile width, when the Ticket Queue and User Management screens are viewed, then no horizontal scrolling occurs and all controls remain reachable. |
 | AC-35 | Given a direct API call to an IT-Staff-only endpoint made by an authenticated Requester, when the call is made, then it is rejected as forbidden regardless of any hidden or disabled UI control. |
+| AC-36 | Given an Administrator session, when they call `GET /api/staff/tickets/:id` for an existing Ticket, then the response includes its Internal Notes (BR-04, BR-40). |
+| AC-37 | Given an Administrator session, when they call `GET /api/staff/tickets` (the Queue) or any `/api/staff/tickets/:id/*` mutation endpoint, then it is rejected as forbidden (BR-40). |
+| AC-38 | Given a Ticket owned by IT Staff member A, when IT Staff member B calls Claim (not Reassign) on it, then the claim is rejected, Ticket Owner remains A, and the error indicates Reassign should be used instead (BR-19). |
 
 ## 11. Definition of Done
 
@@ -503,7 +518,7 @@ additionally enforces a role and, where applicable, an ownership check
       Ticket Detail (Lab 2 functions plus Public Comments and Problem
       Appears Resolved), IT Staff Ticket Queue, IT Staff Ticket Detail,
       Administrator User Management
-- [ ] Every acceptance criterion (AC-01–AC-35) has passing, traceable
+- [ ] Every acceptance criterion (AC-01–AC-38) has passing, traceable
       automated test evidence per `tests.md`
 - [ ] No required test is skipped, disabled, or commented out
 - [ ] Every Lab 2 Requester function (create, list/search/filter/sort/
@@ -613,6 +628,16 @@ agent starts.
    IT Staff only. This is the single most consequential judgment call in
    this document — flag it for review before implementation if the intent
    was for Administrators to also work Tickets.
+   **Correction after review**: BR-04 ("Internal Notes are visible only to
+   IT Staff and Administrator") is a given, non-negotiable rule, and the
+   first draft of this document made it unreachable — no endpoint an
+   Administrator could call ever returned Comment or Note content. FR-28/
+   BR-40 close that gap with one narrow, read-only exception:
+   `GET /api/staff/tickets/:id` also accepts an Administrator session. It
+   is the only Ticket-related access an Administrator has; the Queue and
+   every mutation endpoint remain IT-Staff-only, so the "conceptual
+   separation" this item argues for still holds for every operation that
+   isn't pure retrieval.
 8. **(reversible) Ticket Queue default sort: Created Date ascending (oldest
    first)**, not Lab 2's My Tickets default of newest-first. A shared work
    queue's natural default is "what's been waiting longest," to discourage
@@ -651,3 +676,16 @@ agent starts.
     "Requester Ticket" vs. "IT Staff Ticket Detail" retrieval requirements
     in §6) and keeps each namespace's authorization policy uniform instead
     of one endpoint branching on caller role internally.
+15. **(reversible) Claim and Reassign are two separate endpoints, not
+    one.** `PATCH .../claim` (self-only; rejected if someone else already
+    owns the Ticket — BR-19) and `PATCH .../owner` (reassign to any active
+    IT Staff id or `null`, no ownership precondition — BR-20) enforce two
+    different rules with two different failure conditions. A single
+    endpoint accepting an arbitrary `ownerId` can't enforce BR-19's
+    "claiming someone else's Ticket is rejected" without either silently
+    reinterpreting every self-assignment as a claim — which would break
+    BR-20's unrestricted reassign-to-self case — or requiring the client to
+    signal intent some other way. Two endpoints make each rule's
+    precondition explicit and independently testable. (First draft had one
+    combined endpoint with BR-20's unrestricted semantics, silently
+    dropping BR-19's rejection case — caught in review.)

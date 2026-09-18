@@ -30,6 +30,11 @@ Each side reaches "who is asking?" through one file: `server/src/lib/requester-c
 - When submitting a PR, always pass the texts through `unslop` skill, and remove any AI-generated content. The PR description should be clear, concise, and clean of any AI references.
 - When receiving review, fix the code, commit, and push. Don't reply to the comment right away, pass the text through `unslop` skill, and remove any AI-generated content. Then print it to the user to confirm the changes, and only then reply to the comment.
 
+## Linting and formatting
+
+- After making code changes, run `pnpm exec oxlint --fix`, then run `pnpm exec oxfmt`.
+- Before finishing, run `pnpm exec oxlint --deny-warnings --format=agent`.
+
 ## Fresh clone
 
 pnpm blocks Prisma's install scripts, so run `pnpm prisma:generate` in `server/` before anything else. `server/src/generated/` is gitignored, and a missing client surfaces as `Cannot find module '.../generated/prisma/client.js'`.

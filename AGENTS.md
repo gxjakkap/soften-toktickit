@@ -2,7 +2,7 @@
 
 IT ticketing app built as a sequence of course labs. `docs/lab-NN/` holds each lab's contract (`specification.md`, `api-spec.md`, `ui-spec.md`); code follows the contract, and the latest lab directory is the one in flight. When code and contract disagree, surface the conflict instead of picking a side.
 
-`client/` and `server/` each have their own `CLAUDE.md`. Setup, run, and test commands live in `README.md` and each `package.json`.
+`client/` and `server/` each have their own `AGENTS.md`. Setup, run, and test commands live in `README.md` and each `package.json`.
 
 ## Traceability
 

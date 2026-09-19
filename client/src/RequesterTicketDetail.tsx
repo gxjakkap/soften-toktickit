@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchTicket } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
-import { useRequester } from './RequesterContext'
+import { useRequester } from './useRequester'
 import type { TicketDetail } from './types'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
@@ -116,7 +116,11 @@ function RequesterTicketDetail() {
             </div>
           </div>
 
-          <AttachmentSection requesterId={requester.id} ticketId={ticket.id} initialAttachments={ticket.attachments} />
+          <AttachmentSection
+            requesterId={requester.id}
+            ticketId={ticket.id}
+            initialAttachments={ticket.attachments}
+          />
         </>
       )}
     </div>

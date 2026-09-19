@@ -2,15 +2,29 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchCategories, fetchTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
-import { useRequester } from './RequesterContext'
-import type { Category, SortDirection, TicketListResponse, TicketSortField, TicketStatus } from './types'
+import { useRequester } from './useRequester'
+import type {
+  Category,
+  SortDirection,
+  TicketListResponse,
+  TicketSortField,
+  TicketStatus,
+} from './types'
 
 type LoadState = 'loading' | 'ready' | 'error'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
 
-const STATUS_OPTIONS: TicketStatus[] = ['NEW', 'OPEN', 'IN_PROGRESS', 'PENDING', 'RESOLVED', 'CLOSED', 'CANCELLED']
+const STATUS_OPTIONS: TicketStatus[] = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'PENDING',
+  'RESOLVED',
+  'CLOSED',
+  'CANCELLED',
+]
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
   NEW: 'New',
@@ -54,7 +68,9 @@ function MyTickets() {
   const [page, setPage] = useState(1)
 
   useEffect(() => {
-    fetchCategories().then(setCategories).catch(() => setCategories([]))
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
   }, [])
 
   // AC-16: the list narrows as the Requester types, without a request per keystroke.
@@ -110,10 +126,12 @@ function MyTickets() {
   const openTicket = (id: number) => navigate(`/tickets/${id}`)
 
   const isEmptyAccount = state === 'ready' && response?.hasAnyTickets === false
-  const isNoResults = state === 'ready' && response !== null && response.hasAnyTickets && response.totalCount === 0
+  const isNoResults =
+    state === 'ready' && response !== null && response.hasAnyTickets && response.totalCount === 0
   const hasRows = state === 'ready' && response !== null && response.data.length > 0
 
-  const rangeStart = response && response.totalCount > 0 ? (response.page - 1) * response.pageSize + 1 : 0
+  const rangeStart =
+    response && response.totalCount > 0 ? (response.page - 1) * response.pageSize + 1 : 0
   const rangeEnd = response ? Math.min(response.page * response.pageSize, response.totalCount) : 0
 
   return (
@@ -231,7 +249,11 @@ function MyTickets() {
           <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
             You haven't created any tickets yet
           </p>
-          <Link to="/tickets/new" className="zg-btn zg-btn-primary" style={{ marginTop: 'var(--zg-space-3)' }}>
+          <Link
+            to="/tickets/new"
+            className="zg-btn zg-btn-primary"
+            style={{ marginTop: 'var(--zg-space-3)' }}
+          >
             <i className="bi bi-plus-lg" aria-hidden="true" />
             Create Your First Ticket
           </Link>
@@ -256,16 +278,27 @@ function MyTickets() {
 
       {hasRows && response && (
         <>
-          <div className="zg-table-wrap" data-testid="tickets-table" style={{ marginTop: 'var(--zg-space-4)' }}>
+          <div
+            className="zg-table-wrap"
+            data-testid="tickets-table"
+            style={{ marginTop: 'var(--zg-space-4)' }}
+          >
             <table className="zg-table">
               <thead>
                 <tr>
                   {SORTABLE_COLUMNS.map(({ field, label }) => (
                     <th key={field}>
-                      <button type="button" className="zg-sort-btn" onClick={() => toggleSort(field)}>
+                      <button
+                        type="button"
+                        className="zg-sort-btn"
+                        onClick={() => toggleSort(field)}
+                      >
                         {label}
                         {sortBy === field && (
-                          <i className={`bi ${sortDir === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill'}`} aria-hidden="true" />
+                          <i
+                            className={`bi ${sortDir === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill'}`}
+                            aria-hidden="true"
+                          />
                         )}
                       </button>
                     </th>
@@ -298,7 +331,11 @@ function MyTickets() {
             </table>
           </div>
 
-          <div className="zg-ticket-cards" data-testid="tickets-cards" style={{ marginTop: 'var(--zg-space-4)' }}>
+          <div
+            className="zg-ticket-cards"
+            data-testid="tickets-cards"
+            style={{ marginTop: 'var(--zg-space-4)' }}
+          >
             {response.data.map((t) => (
               <Link key={t.id} to={`/tickets/${t.id}`} className="zg-ticket-card">
                 <div className="zg-ticket-card-header">

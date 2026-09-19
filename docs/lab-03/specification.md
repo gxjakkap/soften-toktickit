@@ -457,6 +457,26 @@ Choices made while writing the migration and seed that §8.2–§8.4 did not fix
   `itPriority` from `requestedPriority` (BR-21). The dev Requester lookup only
   accepts `REQUESTER` users. No new routes or screens.
 
+### 8.6 Implementation Notes (Issue #3)
+
+Choices made while writing the auth endpoints that the contract did not fix:
+
+- **Login check order**: password first, then `isActive`, so `INACTIVE_ACCOUNT`
+  (BR-07) is only shown to someone who already knows the password. An unknown
+  email is compared against a dummy bcrypt hash so it takes the same time as a
+  wrong password (BR-06).
+- **Email**: trimmed and lower-cased before lookup (BR-15, §8.5 CHECK).
+- **Change password**: deletes every session the user has, not only the current
+  one, then issues a fresh session. A wrong current password returns
+  `INVALID_CREDENTIALS` with `field: "currentPassword"`. Reusing the current
+  password as the new one is allowed; the contract does not forbid it.
+- **Secrets**: none needed. Session tokens are 32 random bytes and only their
+  SHA-256 is stored, so there is no signing key or hashing pepper to configure.
+- **Not in this issue**: the `PASSWORD_CHANGE_REQUIRED` gate on non-auth
+  endpoints (§1.5) and role guards. `mustChangePassword` is exposed by login
+  and `/api/auth/me`; enforcing it belongs with the authorization middleware.
+  Expired `Session` rows are ignored on read but never purged.
+
 ## 9. API Contract
 
 Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:

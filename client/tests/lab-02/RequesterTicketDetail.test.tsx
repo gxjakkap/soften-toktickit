@@ -99,7 +99,10 @@ describe('UI-14 (AC-24): read-only rendering', () => {
 
 describe('RequesterTicketDetail: loading state', () => {
   it('shows a loading indicator before the ticket resolves', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
     renderDetail()
 
     expect(screen.getByText(/loading/i)).toBeTruthy()
@@ -110,7 +113,9 @@ describe('RequesterTicketDetail: not-found / ownership failure (AC-03)', () => {
   it('shows a safe not-found message when the API returns 404, revealing nothing about the ticket', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => jsonResponse({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }, 404)),
+      vi.fn(() =>
+        jsonResponse({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }, 404),
+      ),
     )
     renderDetail()
 
@@ -123,7 +128,9 @@ describe('RequesterTicketDetail: API failure state', () => {
   it('shows a safe error banner with a retry action on a server error', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' } }, 500)),
+      vi.fn(() =>
+        jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' } }, 500),
+      ),
     )
     renderDetail()
 
@@ -137,7 +144,8 @@ describe('RequesterTicketDetail: empty attachments state', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/tickets/101?requesterId=7') return jsonResponse({ ...ticketDetail, attachments: [] })
+        if (url === '/api/tickets/101?requesterId=7')
+          return jsonResponse({ ...ticketDetail, attachments: [] })
         return Promise.reject(new Error(`unexpected fetch: ${url}`))
       }),
     )

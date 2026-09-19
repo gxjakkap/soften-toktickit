@@ -176,7 +176,7 @@ valid indefinitely).
 | 401 | `UNAUTHENTICATED` | No valid session. |
 | 400 | `VALIDATION_ERROR` | `currentPassword` or `newPassword` missing. |
 | 401 | `INVALID_CREDENTIALS` | `currentPassword` does not match the stored hash. |
-| 400 | `WEAK_PASSWORD` | `newPassword` fails the complexity rule (BR-10). |
+| 400 | `WEAK_PASSWORD` | `newPassword` fails the complexity rule, or equals `currentPassword` (BR-10). |
 | 500 | `INTERNAL_ERROR` | Unexpected error; the old password remains valid. |
 
 ### 1.5 Non-endpoint behavior: the password-change gate

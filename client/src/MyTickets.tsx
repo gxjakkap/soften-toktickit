@@ -20,9 +20,10 @@ const STATUS_OPTIONS: TicketStatus[] = [
   'NEW',
   'OPEN',
   'IN_PROGRESS',
-  'PENDING',
+  'WAITING_FOR_REQUESTER',
   'RESOLVED',
   'CLOSED',
+  'REOPENED',
   'CANCELLED',
 ]
 
@@ -30,9 +31,10 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   NEW: 'New',
   OPEN: 'Open',
   IN_PROGRESS: 'In Progress',
-  PENDING: 'Pending',
+  WAITING_FOR_REQUESTER: 'Waiting for Requester',
   RESOLVED: 'Resolved',
   CLOSED: 'Closed',
+  REOPENED: 'Reopened',
   CANCELLED: 'Cancelled',
 }
 

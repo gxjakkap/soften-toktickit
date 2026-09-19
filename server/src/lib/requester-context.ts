@@ -18,6 +18,6 @@ export function parseRequesterId(raw: unknown): number | null {
 export async function resolveActiveRequester(req: Request) {
   const id = parseRequesterId(extractRequesterId(req))
   if (id === null) return null
-  const requester = await prisma.requesterUser.findUnique({ where: { id } })
-  return requester?.isActive ? requester : null
+  const requester = await prisma.user.findUnique({ where: { id } })
+  return requester?.isActive && requester.role === 'REQUESTER' ? requester : null
 }

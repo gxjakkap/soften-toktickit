@@ -52,12 +52,21 @@ Full-stack monorepo:
    server command after it with a `Cannot find module
    '.../generated/prisma/client.js'` error.
 
-5. Seed reference data and the Lab 2 Development Requesters (safe to re-run):
+5. Seed reference data, users, Tickets and comments (safe to re-run):
 
    ```bash
    cd server
    pnpm prisma:seed
    ```
+
+   **Local development only.** Every seeded account (`*@example.com`: four
+   active and one inactive Requester, three active and one inactive IT Staff,
+   one Administrator) shares the password `DevPass123!`. It is not a secret,
+   and it must never be used outside a local database. Passwords are stored
+   as bcrypt hashes. Re-running the seed resets these accounts to that state.
+   `siriporn.wattana@example.com` is seeded with a mandatory password change.
+   Lab 2 Requesters migrated from an older database get the same password and
+   the same forced change.
 
 ## Running the apps
 

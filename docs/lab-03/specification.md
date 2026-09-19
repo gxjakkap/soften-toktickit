@@ -428,6 +428,35 @@ The Lab 2 `RequesterUser` table becomes the Lab 3 `User` table **in place**
 - Seeded credentials are for local development only, clearly documented as
   such, and are not real personal passwords or secrets.
 
+### 8.5 Implementation Notes (Issue #2)
+
+Choices made while writing the migration and seed that §8.2–§8.4 did not fix:
+
+- **Hashing library**: `bcryptjs` (pure JS, cost 10). Native `bcrypt` needs an
+  install script, which pnpm blocks in this repo. Hashes are interchangeable.
+- **Migrated passwords**: the migration writes one precomputed bcrypt hash of
+  `DevPass123!` for every migrated row, so it needs no database extension.
+- **Case-insensitive email (BR-15)**: the migration lower-cases existing emails
+  and adds `CHECK (email = lower(email))`, so the `@unique` index is
+  effectively case-insensitive at the database. The API must lower-case emails
+  before writing them. If two Lab 2 rows differed only by case, the migration
+  fails on the unique index instead of merging them.
+- **Foreign keys**: `Ticket.requesterId` and `TicketComment.authorId` are
+  `RESTRICT`; `Ticket.ownerId` is `SET NULL`; `TicketComment.ticketId` and
+  `Session.userId` are `CASCADE`. Users are deactivated, never deleted (§3), so
+  the delete rules only matter for tests and manual cleanup.
+- **Ticket Owner role**: not enforced by the database (§12-7); the seed only
+  assigns active IT Staff.
+- **Seed convergence**: re-running resets seeded users to the documented state
+  (name, role, active flag, `mustChangePassword`, dev password) and does not
+  duplicate Tickets or comments. Comments are matched by ticket, author,
+  visibility and content.
+- **Lab 2 code touched**: the `PENDING` to `WAITING_FOR_REQUESTER` rename and
+  new `REOPENED` value were applied to the server status filter and the client
+  status maps (`REOPENED` reuses the Open badge). `POST /api/tickets` sets
+  `itPriority` from `requestedPriority` (BR-21). The dev Requester lookup only
+  accepts `REQUESTER` users. No new routes or screens.
+
 ## 9. API Contract
 
 Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:

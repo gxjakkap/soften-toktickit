@@ -14,11 +14,23 @@ let relatedSystemId: number
 let ticketId: number
 
 beforeAll(async () => {
-  const requester = await prisma.requesterUser.create({
-    data: { name: 'Ticket Detail Fixture', email: `owner.${TAG}`, isActive: true },
+  const requester = await prisma.user.create({
+    data: {
+      passwordHash: 'not-a-real-hash',
+      role: 'REQUESTER',
+      name: 'Ticket Detail Fixture',
+      email: `owner.${TAG}`,
+      isActive: true,
+    },
   })
-  const other = await prisma.requesterUser.create({
-    data: { name: 'Other Fixture', email: `other.${TAG}`, isActive: true },
+  const other = await prisma.user.create({
+    data: {
+      passwordHash: 'not-a-real-hash',
+      role: 'REQUESTER',
+      name: 'Other Fixture',
+      email: `other.${TAG}`,
+      isActive: true,
+    },
   })
   requesterId = requester.id
   otherRequesterId = other.id
@@ -40,9 +52,13 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await prisma.attachment.deleteMany({ where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } } })
-  await prisma.ticket.deleteMany({ where: { requesterId: { in: [requesterId, otherRequesterId] } } })
-  await prisma.requesterUser.deleteMany({ where: { email: { contains: TAG } } })
+  await prisma.attachment.deleteMany({
+    where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } },
+  })
+  await prisma.ticket.deleteMany({
+    where: { requesterId: { in: [requesterId, otherRequesterId] } },
+  })
+  await prisma.user.deleteMany({ where: { email: { contains: TAG } } })
   await prisma.category.deleteMany({ where: { name: { contains: TAG } } })
   await prisma.relatedSystem.deleteMany({ where: { name: { contains: TAG } } })
 })
@@ -64,7 +80,9 @@ describe('GET /api/tickets/:id', () => {
   })
 
   it('API-14 (AC-03): returns 404 NOT_FOUND for a Ticket owned by a different Requester', async () => {
-    const res = await request(app).get(`/api/tickets/${ticketId}`).query({ requesterId: otherRequesterId })
+    const res = await request(app)
+      .get(`/api/tickets/${ticketId}`)
+      .query({ requesterId: otherRequesterId })
 
     expect(res.status).toBe(404)
     expect(res.body.error.code).toBe('NOT_FOUND')

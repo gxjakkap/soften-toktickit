@@ -26,11 +26,23 @@ async function createTicket() {
 }
 
 beforeAll(async () => {
-  const requester = await prisma.requesterUser.create({
-    data: { name: 'Attachment Fixture', email: `owner.${TAG}`, isActive: true },
+  const requester = await prisma.user.create({
+    data: {
+      passwordHash: 'not-a-real-hash',
+      role: 'REQUESTER',
+      name: 'Attachment Fixture',
+      email: `owner.${TAG}`,
+      isActive: true,
+    },
   })
-  const other = await prisma.requesterUser.create({
-    data: { name: 'Other Fixture', email: `other.${TAG}`, isActive: true },
+  const other = await prisma.user.create({
+    data: {
+      passwordHash: 'not-a-real-hash',
+      role: 'REQUESTER',
+      name: 'Other Fixture',
+      email: `other.${TAG}`,
+      isActive: true,
+    },
   })
   requesterId = requester.id
   otherRequesterId = other.id
@@ -42,9 +54,13 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await prisma.attachment.deleteMany({ where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } } })
-  await prisma.ticket.deleteMany({ where: { requesterId: { in: [requesterId, otherRequesterId] } } })
-  await prisma.requesterUser.deleteMany({ where: { email: { contains: TAG } } })
+  await prisma.attachment.deleteMany({
+    where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } },
+  })
+  await prisma.ticket.deleteMany({
+    where: { requesterId: { in: [requesterId, otherRequesterId] } },
+  })
+  await prisma.user.deleteMany({ where: { email: { contains: TAG } } })
   await prisma.category.deleteMany({ where: { name: { contains: TAG } } })
   await prisma.relatedSystem.deleteMany({ where: { name: { contains: TAG } } })
 })
@@ -65,7 +81,15 @@ describe('POST /api/tickets/:id/attachments', () => {
     // api-spec.md §7's 201 shape never includes storedFileName (on-disk name)
     // or removedReason (only meaningful once removed).
     expect(Object.keys(res.body).sort()).toEqual(
-      ['id', 'isRemoved', 'mimeType', 'originalFileName', 'sizeBytes', 'ticketId', 'uploadedAt'].sort(),
+      [
+        'id',
+        'isRemoved',
+        'mimeType',
+        'originalFileName',
+        'sizeBytes',
+        'ticketId',
+        'uploadedAt',
+      ].sort(),
     )
 
     const stored = await prisma.attachment.findUnique({ where: { id: res.body.id } })
@@ -142,7 +166,10 @@ describe('POST /api/tickets/:id/attachments', () => {
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
       .field('requesterId', String(requesterId))
-      .attach('file', Buffer.from('bad'), { filename: 'virus.exe', contentType: 'application/x-msdownload' })
+      .attach('file', Buffer.from('bad'), {
+        filename: 'virus.exe',
+        contentType: 'application/x-msdownload',
+      })
 
     expect(res.status).toBe(415)
 
@@ -156,7 +183,10 @@ async function uploadAttachment(localTicketId: number, filename = 'download-me.p
   const res = await request(app)
     .post(`/api/tickets/${localTicketId}/attachments`)
     .field('requesterId', String(requesterId))
-    .attach('file', Buffer.from('file bytes for download tests'), { filename, contentType: 'image/png' })
+    .attach('file', Buffer.from('file bytes for download tests'), {
+      filename,
+      contentType: 'image/png',
+    })
   return res.body as { id: number }
 }
 
@@ -190,7 +220,9 @@ describe('GET /api/attachments/:id/download', () => {
     const attachment = await uploadAttachment(localTicketId)
     await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
 
-    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId })
+    const res = await request(app)
+      .get(`/api/attachments/${attachment.id}/download`)
+      .query({ requesterId })
 
     expect(res.status).toBe(410)
     expect(res.body.error.code).toBe('ATTACHMENT_REMOVED')
@@ -200,7 +232,9 @@ describe('GET /api/attachments/:id/download', () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
-    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId: otherRequesterId })
+    const res = await request(app)
+      .get(`/api/attachments/${attachment.id}/download`)
+      .query({ requesterId: otherRequesterId })
 
     expect(res.status).toBe(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
@@ -239,7 +273,9 @@ describe('PATCH /api/attachments/:id/remove', () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
-    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .send({ requesterId })
 
     expect(res.status).toBe(200)
     expect(res.body.removedReason).toBeNull()
@@ -248,9 +284,13 @@ describe('PATCH /api/attachments/:id/remove', () => {
   it('is idempotent: removing an already-removed attachment returns 200 with the existing removed state', async () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
-    await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId, reason: 'first' })
+    await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .send({ requesterId, reason: 'first' })
 
-    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .send({ requesterId })
 
     expect(res.status).toBe(200)
     expect(res.body.isRemoved).toBe(true)

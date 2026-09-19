@@ -17,14 +17,16 @@ const fixtures = [
 const emails = fixtures.map((f) => f.email)
 
 beforeAll(async () => {
-  await prisma.requesterUser.deleteMany({ where: { email: { in: emails } } })
+  await prisma.user.deleteMany({ where: { email: { in: emails } } })
   for (const fixture of fixtures) {
-    await prisma.requesterUser.create({ data: fixture })
+    await prisma.user.create({
+      data: { ...fixture, passwordHash: 'not-a-real-hash', role: 'REQUESTER' },
+    })
   }
 })
 
 afterAll(async () => {
-  await prisma.requesterUser.deleteMany({ where: { email: { in: emails } } })
+  await prisma.user.deleteMany({ where: { email: { in: emails } } })
 })
 
 // API-25 (FR-02 ref data): GET /api/categories and GET /api/related-systems
@@ -108,7 +110,10 @@ describe('GET /api/dev-requesters', () => {
     const row = res.body.find(
       (r: { email: string }) => r.email === 'aaa.fixture.active@test.invalid',
     )
-    expect(row).toMatchObject({ name: 'Aaa Fixture Active', email: 'aaa.fixture.active@test.invalid' })
+    expect(row).toMatchObject({
+      name: 'Aaa Fixture Active',
+      email: 'aaa.fixture.active@test.invalid',
+    })
     expect(typeof row.id).toBe('number')
     expect(Object.keys(row).sort()).toEqual(['email', 'id', 'name'])
   })

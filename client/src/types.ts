@@ -4,9 +4,10 @@ export type TicketStatus =
   | 'NEW'
   | 'OPEN'
   | 'IN_PROGRESS'
-  | 'PENDING'
+  | 'WAITING_FOR_REQUESTER'
   | 'RESOLVED'
   | 'CLOSED'
+  | 'REOPENED'
   | 'CANCELLED'
 
 export type Category = { id: number; name: string }
@@ -38,7 +39,12 @@ export type TicketListItem = {
   updatedAt: string
 }
 
-export type TicketSortField = 'createdAt' | 'ticketNumber' | 'summary' | 'requestedPriority' | 'currentStatus'
+export type TicketSortField =
+  | 'createdAt'
+  | 'ticketNumber'
+  | 'summary'
+  | 'requestedPriority'
+  | 'currentStatus'
 export type SortDirection = 'asc' | 'desc'
 
 export type TicketListResponse = {

@@ -7,7 +7,11 @@ import { prisma } from './db.js'
 import { Prisma } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
-import { MAX_ACTIVE_ATTACHMENTS, MAX_ATTACHMENT_BYTES, isAllowedAttachment } from './lib/attachment-validation.js'
+import {
+  MAX_ACTIVE_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  isAllowedAttachment,
+} from './lib/attachment-validation.js'
 import { withSerializableRetry } from './lib/serializable-retry.js'
 
 export const app = express()
@@ -150,6 +154,7 @@ app.post('/api/tickets', async (req, res) => {
         categoryId: category.id,
         relatedSystemId: relatedSystem.id,
         requestedPriority,
+        itPriority: requestedPriority,
         summary,
         description,
       },
@@ -163,8 +168,23 @@ app.post('/api/tickets', async (req, res) => {
   res.status(201).json(ticket)
 })
 
-const SORTABLE_FIELDS = ['createdAt', 'ticketNumber', 'summary', 'requestedPriority', 'currentStatus'] as const
-const STATUSES = ['NEW', 'OPEN', 'IN_PROGRESS', 'PENDING', 'RESOLVED', 'CLOSED', 'CANCELLED']
+const SORTABLE_FIELDS = [
+  'createdAt',
+  'ticketNumber',
+  'summary',
+  'requestedPriority',
+  'currentStatus',
+] as const
+const STATUSES = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_FOR_REQUESTER',
+  'RESOLVED',
+  'CLOSED',
+  'REOPENED',
+  'CANCELLED',
+]
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 50
 
@@ -195,10 +215,16 @@ app.get('/api/tickets', async (req, res) => {
 
   if (typeof req.query.categoryId === 'string' && req.query.categoryId.trim() !== '') {
     const categoryId = Number(req.query.categoryId)
-    const category = Number.isInteger(categoryId) ? await prisma.category.findUnique({ where: { id: categoryId } }) : null
+    const category = Number.isInteger(categoryId)
+      ? await prisma.category.findUnique({ where: { id: categoryId } })
+      : null
     if (!category) {
       return res.status(400).json({
-        error: { code: 'INVALID_FILTER', message: 'categoryId does not reference a known Category.', field: 'categoryId' },
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'categoryId does not reference a known Category.',
+          field: 'categoryId',
+        },
       })
     }
     where.categoryId = categoryId
@@ -214,13 +240,18 @@ app.get('/api/tickets', async (req, res) => {
         },
       })
     }
-    where.requestedPriority = req.query.requestedPriority as Prisma.TicketWhereInput['requestedPriority']
+    where.requestedPriority = req.query
+      .requestedPriority as Prisma.TicketWhereInput['requestedPriority']
   }
 
   if (req.query.status !== undefined) {
     if (!STATUSES.includes(req.query.status as string)) {
       return res.status(400).json({
-        error: { code: 'INVALID_FILTER', message: 'status is not a recognized Current Status.', field: 'status' },
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'status is not a recognized Current Status.',
+          field: 'status',
+        },
       })
     }
     where.currentStatus = req.query.status as Prisma.TicketWhereInput['currentStatus']
@@ -237,7 +268,11 @@ app.get('/api/tickets', async (req, res) => {
   const sortBy = req.query.sortBy === undefined ? 'createdAt' : (req.query.sortBy as string)
   if (!(SORTABLE_FIELDS as readonly string[]).includes(sortBy)) {
     return res.status(400).json({
-      error: { code: 'INVALID_FILTER', message: 'sortBy is not a recognized column.', field: 'sortBy' },
+      error: {
+        code: 'INVALID_FILTER',
+        message: 'sortBy is not a recognized column.',
+        field: 'sortBy',
+      },
     })
   }
 
@@ -358,7 +393,9 @@ app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
   }
 
   const ticketId = Number(req.params.id)
-  const ticket = Number.isInteger(ticketId) ? await prisma.ticket.findUnique({ where: { id: ticketId } }) : null
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId } })
+    : null
   if (!ticket || ticket.requesterId !== requester.id) {
     await cleanupUploadedFile(req.file)
     return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
@@ -376,7 +413,9 @@ app.post('/api/tickets/:id/attachments', handleUpload, async (req, res) => {
     // Wrapped in withSerializableRetry because Postgres SSI can raise a
     // spurious conflict even between transactions that never really raced.
     const attachment = await withSerializableRetry(prisma, async (tx) => {
-      const activeCount = await tx.attachment.count({ where: { ticketId: ticket.id, isRemoved: false } })
+      const activeCount = await tx.attachment.count({
+        where: { ticketId: ticket.id, isRemoved: false },
+      })
       if (activeCount >= MAX_ACTIVE_ATTACHMENTS) throw new AttachmentLimitReachedError()
 
       // api-spec.md §7's 201 shape never includes storedFileName (the
@@ -485,7 +524,10 @@ app.get('/api/attachments/:id/download', async (req, res) => {
   }
   if (attachment.isRemoved) {
     return res.status(410).json({
-      error: { code: 'ATTACHMENT_REMOVED', message: 'This attachment has been removed and can no longer be downloaded.' },
+      error: {
+        code: 'ATTACHMENT_REMOVED',
+        message: 'This attachment has been removed and can no longer be downloaded.',
+      },
     })
   }
 
@@ -511,7 +553,8 @@ app.patch('/api/attachments/:id/remove', async (req, res) => {
   // Idempotent (api-spec.md §9): the caller's desired end state already
   // holds, so a second call returns the existing removed state unchanged
   // rather than overwriting removedReason with this call's (possibly empty).
-  const reason = typeof req.body.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null
+  const reason =
+    typeof req.body.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null
   const result = attachment.isRemoved
     ? attachment
     : await prisma.attachment.update({
@@ -546,8 +589,8 @@ app.patch('/api/attachments/:id/remove', async (req, res) => {
 // Lab 2 testing identities, not authentication (BR-03). Only active rows,
 // ordered by name (BR-09); isActive is never exposed to the client.
 app.get('/api/dev-requesters', async (_req, res) => {
-  const requesters = await prisma.requesterUser.findMany({
-    where: { isActive: true },
+  const requesters = await prisma.user.findMany({
+    where: { isActive: true, role: 'REQUESTER' },
     orderBy: { name: 'asc' },
     select: { id: true, name: true, email: true },
   })
@@ -555,9 +598,11 @@ app.get('/api/dev-requesters', async (_req, res) => {
 })
 
 // Standard error envelope (api-spec.md §0.2). Never leaks internals.
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err)
-  res.status(500).json({
-    error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' },
-  })
-})
+app.use(
+  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err)
+    res.status(500).json({
+      error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' },
+    })
+  },
+)

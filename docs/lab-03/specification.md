@@ -139,7 +139,7 @@ authorization.
 | BR-07 | An account whose password is correct but is inactive is rejected with a distinct "account inactive" response rather than the generic invalid-credentials message. |
 | BR-08 | Lab 3 implements no login-attempt throttling or account lockout; every login attempt is evaluated independently. |
 | BR-09 | Passwords are hashed with bcrypt before storage; the plaintext password is never persisted, logged, or returned by any endpoint or error message. |
-| BR-10 | Every password — an Administrator-set initial password or a user's replacement at first login — must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit, and a special character. |
+| BR-10 | Every password — an Administrator-set initial password or a user's replacement at first login — must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit, and a special character. A replacement password must also differ from the one it replaces, so the first-login change cannot be satisfied by re-entering the temporary password. |
 | BR-11 | A user created by an Administrator, or whose password is reset by an Administrator, is marked as requiring a password change and cannot reach any screen but Change Password until a valid new password is saved. |
 | BR-12 | Logging out deletes the current session server-side and clears the session cookie client-side; any later request presenting the old cookie is treated as unauthenticated. |
 | BR-13 | A session expires 12 hours after it is created, regardless of activity; an expired session is treated identically to no session at all. |
@@ -468,14 +468,14 @@ Choices made while writing the auth endpoints that the contract did not fix:
 - **Email**: trimmed and lower-cased before lookup (BR-15, §8.5 CHECK).
 - **Change password**: deletes every session the user has, not only the current
   one, then issues a fresh session. A wrong current password returns
-  `INVALID_CREDENTIALS` with `field: "currentPassword"`. Reusing the current
-  password as the new one is allowed; the contract does not forbid it.
+  `INVALID_CREDENTIALS` with `field: "currentPassword"`. A new password equal
+  to the current one returns `WEAK_PASSWORD` (BR-10).
+  Expired `Session` rows are deleted whenever a session is created.
 - **Secrets**: none needed. Session tokens are 32 random bytes and only their
   SHA-256 is stored, so there is no signing key or hashing pepper to configure.
 - **Not in this issue**: the `PASSWORD_CHANGE_REQUIRED` gate on non-auth
   endpoints (§1.5) and role guards. `mustChangePassword` is exposed by login
   and `/api/auth/me`; enforcing it belongs with the authorization middleware.
-  Expired `Session` rows are ignored on read but never purged.
 
 ## 9. API Contract
 

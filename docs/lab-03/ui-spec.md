@@ -85,6 +85,9 @@ Replaces Lab 2's Development Requester display and Change Requester action.
 - **Submitting**: Continue shows the Busy state.
 - **Failure (wrong current password)**: field-level error under Current
   password — *"Current password is incorrect."*
+- **Failure (same as current password)**: field-level error under New password,
+  *"New password must be different from the current password."* The server
+  rejects it (BR-10), so Continue also stays disabled while New equals Current.
 - **Failure (weak password)**: field-level error under New password
   reiterating which rule(s) failed, in addition to the live checklist.
 - **Success**: the application shell renders immediately at the role's

@@ -37,9 +37,11 @@ export async function resolveAuthenticatedUser(
   return { user: session.user, sessionId: session.id }
 }
 
-// Only the hash is stored; the raw token exists solely in the cookie.
-export async function startSession(db: Prisma.TransactionClient, res: Response, userId: number) {
+// Only the hash is stored; the raw token exists solely in the cookie. Expired
+// rows are dropped here, on the two paths that already write a session.
+export async function createSession(db: Prisma.TransactionClient, userId: number) {
   const token = randomBytes(32).toString('base64url')
+  await db.session.deleteMany({ where: { expiresAt: { lte: new Date() } } })
   await db.session.create({
     data: {
       tokenHash: sha256(token),
@@ -47,8 +49,13 @@ export async function startSession(db: Prisma.TransactionClient, res: Response, 
       expiresAt: new Date(Date.now() + SESSION_TTL_MS),
     },
   })
-  res.cookie(SESSION_COOKIE, token, { ...cookieOptions, maxAge: SESSION_TTL_MS })
+  return token
 }
+
+// Called only after the session row is committed, so a rolled-back write never
+// leaves a client holding a token that matches nothing.
+export const setSessionCookie = (res: Response, token: string) =>
+  res.cookie(SESSION_COOKIE, token, { ...cookieOptions, maxAge: SESSION_TTL_MS })
 
 export const clearSessionCookie = (res: Response) => res.clearCookie(SESSION_COOKIE, cookieOptions)
 

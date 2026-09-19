@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { app } from '../../src/app.js'
 import { prisma } from '../../src/db.js'
 import { hashPassword } from '../../src/lib/password.js'
@@ -26,6 +26,12 @@ const fixtures = [
   },
   { name: 'Auth Voluntary', email: email('voluntary'), isActive: true, mustChangePassword: false },
   { name: 'Auth Expiry', email: email('expiry'), isActive: true, mustChangePassword: false },
+  {
+    name: 'Auth Commit Fail',
+    email: email('commitfail'),
+    isActive: true,
+    mustChangePassword: false,
+  },
   {
     name: 'Auth Deactivated',
     email: email('deactivated'),
@@ -87,6 +93,21 @@ describe('POST /api/auth/login (§1.1)', () => {
     expect(await prisma.session.findFirst({ where: { tokenHash: token } })).toBeNull()
     const twelveHours = 12 * 60 * 60 * 1000
     expect(Math.abs(session!.expiresAt.getTime() - (Date.now() + twelveHours))).toBeLessThan(10_000)
+  })
+
+  it('deletes expired session rows on login so the table does not only grow (BR-13)', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: email('active') } })
+    const stale = await prisma.session.create({
+      data: {
+        tokenHash: `expired-${TAG}`,
+        userId: user.id,
+        expiresAt: new Date(Date.now() - 1000),
+      },
+    })
+
+    await login(email('active'))
+
+    expect(await prisma.session.findUnique({ where: { id: stale.id } })).toBeNull()
   })
 
   it('matches the email case-insensitively (BR-15)', async () => {
@@ -240,6 +261,12 @@ describe('POST /api/auth/change-password (§1.4)', () => {
     expect(weak.status).toBe(400)
     expect(weak.body.error).toMatchObject({ code: 'WEAK_PASSWORD', field: 'newPassword' })
 
+    // BR-10: the temporary password itself satisfies the complexity rule, but
+    // reusing it would leave the user on the password printed in the README.
+    const same = await change(cookie, { currentPassword: PASSWORD, newPassword: PASSWORD })
+    expect(same.status).toBe(400)
+    expect(same.body.error).toMatchObject({ code: 'WEAK_PASSWORD', field: 'newPassword' })
+
     const stillGated = await request(app).get('/api/auth/me').set('Cookie', cookie)
     expect(stillGated.body.mustChangePassword).toBe(true)
     expect((await login(email('mustchange'))).status).toBe(200)
@@ -263,6 +290,26 @@ describe('POST /api/auth/change-password (§1.4)', () => {
     // The new password is what is stored now (BR-09).
     expect((await login(email('mustchange'), PASSWORD)).status).toBe(401)
     expect((await login(email('mustchange'), NEW_PASSWORD)).status).toBe(200)
+  })
+
+  it('sets no cookie when the change fails to commit, so no client holds a token for a rolled-back row', async () => {
+    const session = await login(email('commitfail'))
+    const realTransaction = prisma.$transaction.bind(prisma)
+    // Run the whole callback, then fail, as a commit error would after it.
+    vi.spyOn(prisma, '$transaction').mockImplementationOnce((async (fn: never) => {
+      await realTransaction(fn)
+      throw new Error('commit failed')
+    }) as never)
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await change(cookieHeader(session), {
+      currentPassword: PASSWORD,
+      newPassword: NEW_PASSWORD,
+    })
+    logged.mockRestore()
+
+    expect(res.status).toBe(500)
+    expect(cookieOf(res)).toBeUndefined()
   })
 
   it('also works as a voluntary change for a user with no gate, leaving one live session', async () => {

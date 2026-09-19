@@ -9,8 +9,9 @@ import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
 import {
   clearSessionCookie,
+  createSession,
   resolveAuthenticatedUser,
-  startSession,
+  setSessionCookie,
   toIdentity,
 } from './lib/auth-context.js'
 import { hashPassword, isStrongPassword, verifyPassword } from './lib/password.js'
@@ -91,7 +92,7 @@ app.post('/api/auth/login', async (req, res) => {
     })
   }
 
-  await startSession(prisma, res, user.id)
+  setSessionCookie(res, await createSession(prisma, user.id))
   res.json(toIdentity(user))
 })
 
@@ -151,16 +152,28 @@ app.post('/api/auth/change-password', async (req, res) => {
     })
   }
 
+  // BR-10: the current password is already verified above, so an exact match
+  // means the user typed the same password into both fields.
+  if (newPassword === currentPassword) {
+    return res.status(400).json({
+      error: {
+        code: 'WEAK_PASSWORD',
+        message: 'New password must be different from the current password.',
+        field: 'newPassword',
+      },
+    })
+  }
+
   const passwordHash = await hashPassword(newPassword)
-  const user = await prisma.$transaction(async (tx) => {
+  const { user, token } = await prisma.$transaction(async (tx) => {
     const updated = await tx.user.update({
       where: { id: auth.user.id },
       data: { passwordHash, mustChangePassword: false },
     })
     await tx.session.deleteMany({ where: { userId: updated.id } })
-    await startSession(tx, res, updated.id)
-    return updated
+    return { user: updated, token: await createSession(tx, updated.id) }
   })
+  setSessionCookie(res, token)
   res.json(toIdentity(user))
 })
 

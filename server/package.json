@@ -13,7 +13,6 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed"
   },
-  "packageManager": "pnpm@10.15.1",
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
@@ -35,6 +34,7 @@
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
+  "packageManager": "pnpm@10.15.1",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/client",

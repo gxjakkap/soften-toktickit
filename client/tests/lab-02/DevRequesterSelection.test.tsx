@@ -23,14 +23,22 @@ function mockRequesters(body: unknown, status = 200) {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) => {
-      if (url === '/api/dev-requesters') return Promise.resolve(new Response(JSON.stringify(body), { status }))
+      if (url === '/api/dev-requesters')
+        return Promise.resolve(new Response(JSON.stringify(body), { status }))
       if (url === '/api/categories' || url === '/api/related-systems') {
         return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))
       }
       if (url.startsWith('/api/tickets?')) {
         return Promise.resolve(
           new Response(
-            JSON.stringify({ data: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, hasAnyTickets: false }),
+            JSON.stringify({
+              data: [],
+              page: 1,
+              pageSize: 10,
+              totalCount: 0,
+              totalPages: 0,
+              hasAnyTickets: false,
+            }),
             { status: 200 },
           ),
         )
@@ -40,8 +48,7 @@ function mockRequesters(body: unknown, status = 200) {
   )
 }
 
-const continueButton = () =>
-  screen.getByRole('button', { name: /continue/i }) as HTMLButtonElement
+const continueButton = () => screen.getByRole('button', { name: /continue/i }) as HTMLButtonElement
 
 function renderApp(initialEntry = '/select-requester') {
   return render(
@@ -195,7 +202,9 @@ describe('UI-03 (AC-02, BR-12): requester-scoped screens redirect when nothing i
       mockRequesters(activeRequesters)
       renderApp(path)
 
-      expect(await screen.findByRole('heading', { name: /select development requester/i })).toBeTruthy()
+      expect(
+        await screen.findByRole('heading', { name: /select development requester/i }),
+      ).toBeTruthy()
     },
   )
 
@@ -207,7 +216,9 @@ describe('UI-03 (AC-02, BR-12): requester-scoped screens redirect when nothing i
         if (url.startsWith('/api/tickets?')) {
           return Promise.resolve(
             new Response(
-              JSON.stringify({ error: { code: 'INVALID_REQUESTER', message: 'Requester is not active.' } }),
+              JSON.stringify({
+                error: { code: 'INVALID_REQUESTER', message: 'Requester is not active.' },
+              }),
               { status: 400 },
             ),
           )
@@ -218,7 +229,9 @@ describe('UI-03 (AC-02, BR-12): requester-scoped screens redirect when nothing i
 
     renderApp('/tickets')
 
-    expect(await screen.findByRole('heading', { name: /select development requester/i })).toBeTruthy()
+    expect(
+      await screen.findByRole('heading', { name: /select development requester/i }),
+    ).toBeTruthy()
     expect(localStorage.getItem(REQUESTER_STORAGE_KEY)).toBeNull()
   })
 })
@@ -247,7 +260,9 @@ describe('UI-04 (AC-23, BR-11): change requester', () => {
 
     await user.click(await screen.findByRole('button', { name: /change requester/i }))
 
-    expect(await screen.findByRole('heading', { name: /select development requester/i })).toBeTruthy()
+    expect(
+      await screen.findByRole('heading', { name: /select development requester/i }),
+    ).toBeTruthy()
     expect(localStorage.getItem(REQUESTER_STORAGE_KEY)).toBeNull()
     expect(screen.queryByTestId('current-requester')).toBeNull()
   })

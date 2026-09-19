@@ -18,7 +18,10 @@ test.describe('E2E-01 (AC-01, AC-09, AC-16, AC-24): create -> find -> open', () 
     const jennifer = await findRequester(page.context().request, REQUESTERS.jennifer.email)
     await loginViaUi(page, jennifer)
 
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Create Ticket' }).click()
+    await page
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'Create Ticket' })
+      .click()
     await page.waitForURL('**/tickets/new')
 
     await waitForCreateTicketReady(page)
@@ -88,7 +91,10 @@ test.describe('E2E-02 (AC-03, AC-23): cross-Requester isolation', () => {
 })
 
 test.describe('E2E-03 (AC-14, AC-15): attachment lifecycle', () => {
-  test('upload, download while active, soft-remove, then download fails safely', async ({ page, request }) => {
+  test('upload, download while active, soft-remove, then download fails safely', async ({
+    page,
+    request,
+  }) => {
     const jennifer = await findRequester(request, REQUESTERS.jennifer.email)
     const ticket = await createTicketViaApi(request, jennifer.id, {
       summary: `Attachment lifecycle fixture ${Date.now()}`,
@@ -102,21 +108,31 @@ test.describe('E2E-03 (AC-14, AC-15): attachment lifecycle', () => {
     const row = page.locator('li.zg-attachment-row', { hasText: 'valid-photo.png' })
     await expect(row.getByRole('link', { name: 'Download' })).toBeVisible()
 
-    const [download] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Download' }).click()])
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      row.getByRole('link', { name: 'Download' }).click(),
+    ])
     expect(download.suggestedFilename()).toBe('valid-photo.png')
 
     await row.getByRole('button', { name: 'Remove' }).click()
-    await page.getByLabel('Reason (optional)').fill('Duplicate upload, removing for the lifecycle test.')
+    await page
+      .getByLabel('Reason (optional)')
+      .fill('Duplicate upload, removing for the lifecycle test.')
     await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click()
 
     await expect(row.getByText('Removed')).toBeVisible()
     await expect(row.getByRole('link', { name: 'Download' })).toHaveCount(0)
 
-    const attachmentId = await page.evaluate(async ({ ticketId, requesterId }) => {
-      const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
-      const body = (await res.json()) as { attachments: { id: number; originalFileName: string }[] }
-      return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
-    }, { ticketId: ticket.id, requesterId: jennifer.id })
+    const attachmentId = await page.evaluate(
+      async ({ ticketId, requesterId }) => {
+        const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
+        const body = (await res.json()) as {
+          attachments: { id: number; originalFileName: string }[]
+        }
+        return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
+      },
+      { ticketId: ticket.id, requesterId: jennifer.id },
+    )
 
     const blockedDownload = await request.get(
       `/api/attachments/${attachmentId}/download?requesterId=${jennifer.id}`,

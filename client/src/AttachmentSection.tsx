@@ -1,6 +1,18 @@
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from 'react'
 import { ApiError, attachmentDownloadUrl, removeAttachment, uploadAttachment } from './apiClient'
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, ensureFileName, isAllowedFile } from './lib/attachment-validation'
+import {
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  ensureFileName,
+  isAllowedFile,
+} from './lib/attachment-validation'
 import type { Attachment } from './types'
 
 type PendingUpload = {
@@ -52,7 +64,9 @@ function AttachmentSection({
       setPending((prev) => prev.filter((p) => p.localId !== item.localId))
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Upload failed. Please retry.'
-      setPending((prev) => prev.map((p) => (p.localId === item.localId ? { ...p, status: 'error', message } : p)))
+      setPending((prev) =>
+        prev.map((p) => (p.localId === item.localId ? { ...p, status: 'error', message } : p)),
+      )
     }
   }
 
@@ -66,18 +80,31 @@ function AttachmentSection({
       if (remainingSlots <= 0) {
         setPending((prev) => [
           ...prev,
-          { localId, file, status: 'rejected', message: `A Ticket may have at most ${MAX_ATTACHMENTS} attachments.` },
+          {
+            localId,
+            file,
+            status: 'rejected',
+            message: `A Ticket may have at most ${MAX_ATTACHMENTS} attachments.`,
+          },
         ])
         continue
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        setPending((prev) => [...prev, { localId, file, status: 'rejected', message: 'File exceeds the 5 MB limit.' }])
+        setPending((prev) => [
+          ...prev,
+          { localId, file, status: 'rejected', message: 'File exceeds the 5 MB limit.' },
+        ])
         continue
       }
       if (!isAllowedFile(file)) {
         setPending((prev) => [
           ...prev,
-          { localId, file, status: 'rejected', message: 'Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF.' },
+          {
+            localId,
+            file,
+            status: 'rejected',
+            message: 'Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, PDF.',
+          },
         ])
         continue
       }
@@ -131,7 +158,11 @@ function AttachmentSection({
   function retryPending(localId: string) {
     const item = pending.find((p) => p.localId === localId)
     if (!item) return
-    setPending((prev) => prev.map((p) => (p.localId === localId ? { ...p, status: 'uploading', message: undefined } : p)))
+    setPending((prev) =>
+      prev.map((p) =>
+        p.localId === localId ? { ...p, status: 'uploading', message: undefined } : p,
+      ),
+    )
     void uploadOne({ ...item, status: 'uploading' })
   }
 
@@ -156,7 +187,9 @@ function AttachmentSection({
       setAttachments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
       closeRemoveDialog()
     } catch (err) {
-      setRemoveError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+      setRemoveError(
+        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+      )
     } finally {
       setRemoving(false)
     }
@@ -194,7 +227,9 @@ function AttachmentSection({
             disabled={atCap}
             onChange={handleFilesSelected}
           />
-          <p className="zg-helper zg-dropzone-text">Drag and drop files here, or click to browse.</p>
+          <p className="zg-helper zg-dropzone-text">
+            Drag and drop files here, or click to browse.
+          </p>
         </div>
         {atCap && (
           <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
@@ -221,7 +256,8 @@ function AttachmentSection({
                   <>
                     {' '}
                     <span className="zg-badge zg-badge-removed">Removed</span>
-                    {attachment.removedAt && ` on ${new Date(attachment.removedAt).toLocaleDateString()}`}
+                    {attachment.removedAt &&
+                      ` on ${new Date(attachment.removedAt).toLocaleDateString()}`}
                   </>
                 )}
               </span>
@@ -256,12 +292,20 @@ function AttachmentSection({
               </span>
               {item.message && <span className="zg-error-message">{item.message}</span>}
               {item.status === 'rejected' && (
-                <button type="button" className="zg-btn zg-btn-tertiary" onClick={() => dismissPending(item.localId)}>
+                <button
+                  type="button"
+                  className="zg-btn zg-btn-tertiary"
+                  onClick={() => dismissPending(item.localId)}
+                >
                   Dismiss
                 </button>
               )}
               {item.status === 'error' && (
-                <button type="button" className="zg-btn zg-btn-tertiary" onClick={() => retryPending(item.localId)}>
+                <button
+                  type="button"
+                  className="zg-btn zg-btn-tertiary"
+                  onClick={() => retryPending(item.localId)}
+                >
                   Retry
                 </button>
               )}
@@ -295,8 +339,8 @@ function AttachmentSection({
                 </div>
                 <div className="modal-body">
                   <p>
-                    Remove <strong>{removeTarget.originalFileName}</strong>? It will no longer be downloadable, but
-                    stays listed as removed.
+                    Remove <strong>{removeTarget.originalFileName}</strong>? It will no longer be
+                    downloadable, but stays listed as removed.
                   </p>
                   <label className="zg-label" htmlFor="remove-reason">
                     Reason (optional)
@@ -315,7 +359,11 @@ function AttachmentSection({
                   )}
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="zg-btn zg-btn-secondary" onClick={closeRemoveDialog}>
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-secondary"
+                    onClick={closeRemoveDialog}
+                  >
                     Cancel
                   </button>
                   <button

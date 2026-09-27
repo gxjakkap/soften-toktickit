@@ -84,7 +84,10 @@ export type TicketListParams = {
 
 // api-spec.md §5: requesterId is the only required param; everything else is
 // omitted from the query string when unset rather than sent as an empty value.
-export function fetchTickets(requesterId: number, params: TicketListParams = {}): Promise<TicketListResponse> {
+export function fetchTickets(
+  requesterId: number,
+  params: TicketListParams = {},
+): Promise<TicketListResponse> {
   const query = new URLSearchParams({ requesterId: String(requesterId) })
   if (params.search) query.set('search', params.search)
   if (params.categoryId !== undefined) query.set('categoryId', String(params.categoryId))
@@ -94,15 +97,21 @@ export function fetchTickets(requesterId: number, params: TicketListParams = {})
   if (params.sortDir) query.set('sortDir', params.sortDir)
   if (params.page) query.set('page', String(params.page))
   if (params.pageSize) query.set('pageSize', String(params.pageSize))
-  return fetch(`/api/tickets?${query.toString()}`).then((res) => parseJsonOrThrow<TicketListResponse>(res))
+  return fetch(`/api/tickets?${query.toString()}`).then((res) =>
+    parseJsonOrThrow<TicketListResponse>(res),
+  )
 }
 
-export function uploadAttachment(requesterId: number, ticketId: number, file: File): Promise<Attachment> {
+export function uploadAttachment(
+  requesterId: number,
+  ticketId: number,
+  file: File,
+): Promise<Attachment> {
   const formData = new FormData()
   formData.append('requesterId', String(requesterId))
   formData.append('file', file)
-  return fetch(`/api/tickets/${ticketId}/attachments`, { method: 'POST', body: formData }).then((res) =>
-    parseJsonOrThrow<Attachment>(res),
+  return fetch(`/api/tickets/${ticketId}/attachments`, { method: 'POST', body: formData }).then(
+    (res) => parseJsonOrThrow<Attachment>(res),
   )
 }
 
@@ -118,7 +127,11 @@ export function attachmentDownloadUrl(requesterId: number, attachmentId: number)
   return `/api/attachments/${attachmentId}/download?requesterId=${requesterId}`
 }
 
-export function removeAttachment(requesterId: number, attachmentId: number, reason?: string): Promise<Attachment> {
+export function removeAttachment(
+  requesterId: number,
+  attachmentId: number,
+  reason?: string,
+): Promise<Attachment> {
   return fetch(`/api/attachments/${attachmentId}/remove`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },

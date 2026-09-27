@@ -3,10 +3,13 @@ import { Prisma } from '../../src/generated/prisma/client.js'
 import { withSerializableRetry } from '../../src/lib/serializable-retry.js'
 
 function serializationFailure() {
-  return new Prisma.PrismaClientKnownRequestError('Transaction failed due to a write conflict or a deadlock.', {
-    code: 'P2034',
-    clientVersion: 'test',
-  })
+  return new Prisma.PrismaClientKnownRequestError(
+    'Transaction failed due to a write conflict or a deadlock.',
+    {
+      code: 'P2034',
+      clientVersion: 'test',
+    },
+  )
 }
 
 describe('withSerializableRetry', () => {
@@ -46,7 +49,9 @@ describe('withSerializableRetry', () => {
       }),
     }
 
-    await expect(withSerializableRetry(fakeClient as never, async () => 'ok', 3)).rejects.toThrow('boom')
+    await expect(withSerializableRetry(fakeClient as never, async () => 'ok', 3)).rejects.toThrow(
+      'boom',
+    )
     expect(fakeClient.$transaction).toHaveBeenCalledTimes(1)
   })
 })

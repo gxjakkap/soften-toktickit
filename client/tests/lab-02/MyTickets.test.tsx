@@ -31,7 +31,11 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
 
 function mockApi(ticketsHandler: (url: URL) => TicketListResponse) {
   const fetchMock = vi.fn((url: string) => {
-    if (url === '/api/categories') return jsonResponse([{ id: 1, name: 'Hardware' }, { id: 2, name: 'Software' }])
+    if (url === '/api/categories')
+      return jsonResponse([
+        { id: 1, name: 'Hardware' },
+        { id: 2, name: 'Software' },
+      ])
     if (url === '/api/related-systems') return jsonResponse([{ id: 5, name: 'Corporate Laptop' }])
     if (url.startsWith('/api/tickets?')) {
       return jsonResponse(ticketsHandler(new URL(url, 'http://localhost')))
@@ -65,7 +69,14 @@ afterEach(() => {
 
 describe('My Tickets states', () => {
   it('UI-10 (AC-20, BR-30): shows the empty-account state, not filters, when the Requester owns zero Tickets', async () => {
-    mockApi(() => ({ data: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, hasAnyTickets: false }))
+    mockApi(() => ({
+      data: [],
+      page: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 0,
+      hasAnyTickets: false,
+    }))
     renderMyTickets()
 
     expect(await screen.findByText(/haven.t created any tickets yet/i)).toBeTruthy()
@@ -74,7 +85,14 @@ describe('My Tickets states', () => {
   })
 
   it('UI-11 (AC-19, BR-30): shows the no-results state with Clear Filters, distinct from the empty state', async () => {
-    mockApi(() => ({ data: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, hasAnyTickets: true }))
+    mockApi(() => ({
+      data: [],
+      page: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 0,
+      hasAnyTickets: true,
+    }))
     renderMyTickets()
 
     expect(await screen.findByText(/no tickets match your filters/i)).toBeTruthy()
@@ -125,7 +143,11 @@ describe('My Tickets states', () => {
 
     expect(await screen.findByText(/showing 11 to 11 of 11 tickets/i)).toBeTruthy()
     expect(within(screen.getByTestId('tickets-table')).getByText('Second page ticket')).toBeTruthy()
-    expect(within(screen.getByRole('navigation', { name: /pagination/i })).getByRole('button', { name: '2' }).getAttribute('aria-current')).toBe('page')
+    expect(
+      within(screen.getByRole('navigation', { name: /pagination/i }))
+        .getByRole('button', { name: '2' })
+        .getAttribute('aria-current'),
+    ).toBe('page')
     const calls = fetchMock.mock.calls
     const lastCall = calls[calls.length - 1][0] as string
     expect(new URL(lastCall, 'http://localhost').searchParams.get('page')).toBe('2')
@@ -136,7 +158,9 @@ describe('My Tickets states', () => {
       const search = url.searchParams.get('search')
       if (search === 'vpn') {
         return {
-          data: [ticket({ id: 3, ticketNumber: 'TKT-2026-000003', summary: 'VPN connection drops' })],
+          data: [
+            ticket({ id: 3, ticketNumber: 'TKT-2026-000003', summary: 'VPN connection drops' }),
+          ],
           page: 1,
           pageSize: 10,
           totalCount: 1,

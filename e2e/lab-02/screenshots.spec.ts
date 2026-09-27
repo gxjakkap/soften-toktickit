@@ -17,15 +17,21 @@ const PHOTO_FIXTURE = path.join(__dirname, 'fixtures/valid-photo.png')
 // the OS temp dir instead — the server only checks extension + declared
 // content type (BR-25), so the actual bytes never matter.
 const UNSUPPORTED_FIXTURE = path.join(os.tmpdir(), 'toktickit-e2e-unsupported.exe')
-fs.writeFileSync(UNSUPPORTED_FIXTURE, Buffer.from('not a real executable, just bytes for a rejection test'))
+fs.writeFileSync(
+  UNSUPPORTED_FIXTURE,
+  Buffer.from('not a real executable, just bytes for a rejection test'),
+)
 
-const shot = (...parts: string[]) => path.join(__dirname, '../../artifacts/lab-02/screenshots', ...parts)
+const shot = (...parts: string[]) =>
+  path.join(__dirname, '../../artifacts/lab-02/screenshots', ...parts)
 
 // ---------------------------------------------------------------------------
 // Section 14 / ui-spec.md §13: Development Requester Selection screen states.
 // ---------------------------------------------------------------------------
 test.describe('Screenshot audit: Development Requester Selection', () => {
-  test('loaded screen, active-only dropdown, and selected-user/change-requester display', async ({ page }) => {
+  test('loaded screen, active-only dropdown, and selected-user/change-requester display', async ({
+    page,
+  }) => {
     await page.goto('/select-requester')
     await expect(page.getByRole('heading', { name: /select development requester/i })).toBeVisible()
     await page.screenshot({ path: shot('dev-requester-selection', 'screen.png'), fullPage: true })
@@ -37,18 +43,27 @@ test.describe('Screenshot audit: Development Requester Selection', () => {
     const jennifer = await findRequester(page.context().request, REQUESTERS.jennifer.email)
     await page.getByLabel(/development requester/i).selectOption(String(jennifer.id))
     await page.getByLabel(/development requester/i).focus()
-    await page.screenshot({ path: shot('dev-requester-selection', 'active-dropdown.png'), fullPage: true })
+    await page.screenshot({
+      path: shot('dev-requester-selection', 'active-dropdown.png'),
+      fullPage: true,
+    })
 
     await page.getByRole('button', { name: 'Continue' }).click()
     await page.waitForURL('**/tickets')
     await expect(page.getByTestId('current-requester')).toContainText('Jennifer Anderson')
-    await page.screenshot({ path: shot('dev-requester-selection', 'selected-user-display.png'), fullPage: true })
+    await page.screenshot({
+      path: shot('dev-requester-selection', 'selected-user-display.png'),
+      fullPage: true,
+    })
 
     // Distinct from the capture above: focuses the actual Change Requester
     // control (BR-11) instead of re-shooting the same header state — a click
     // would navigate away before the shot, since it clears context immediately.
     await page.getByRole('button', { name: 'Change Requester' }).focus()
-    await page.screenshot({ path: shot('dev-requester-selection', 'change-requester-action.png'), fullPage: true })
+    await page.screenshot({
+      path: shot('dev-requester-selection', 'change-requester-action.png'),
+      fullPage: true,
+    })
   })
 
   test('loading state', async ({ page }) => {
@@ -108,14 +123,18 @@ test.describe('Screenshot audit: Create Ticket', () => {
     await page.getByLabel('Related System').selectOption({ index: 1 })
     await page.getByLabel('Requested Priority').selectOption('MEDIUM')
     await page.getByLabel('Summary').fill(`Screenshot fixture ticket ${Date.now()}`)
-    await page.getByLabel('Description').fill('Filled in by the Playwright screenshot suite for Section 14 evidence.')
+    await page
+      .getByLabel('Description')
+      .fill('Filled in by the Playwright screenshot suite for Section 14 evidence.')
 
     // API failure (AC-08): server rejects, entered values must be preserved.
     await page.route('**/api/tickets', (route) =>
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' } }),
+        body: JSON.stringify({
+          error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' },
+        }),
       }),
     )
     await page.getByRole('button', { name: 'Submit' }).click()
@@ -160,7 +179,10 @@ test.describe('Screenshot audit: My Tickets', () => {
     await page.screenshot({ path: shot('my-tickets', 'requester-b-list.png'), fullPage: true })
   })
 
-  test('search, filters, sorting, pagination, empty state, no-results', async ({ page, context }) => {
+  test('search, filters, sorting, pagination, empty state, no-results', async ({
+    page,
+    context,
+  }) => {
     const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
     const siriporn = await findRequester(context.request, REQUESTERS.siriporn.email)
     const searchTerm = `zephyr-${Date.now()}`
@@ -254,14 +276,24 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
     await page.screenshot({ path: shot('ticket-detail', 'retained-metadata.png'), fullPage: true })
 
     // Blocked removed-download attempt (AC-15/BR-28): direct request now 410s.
-    const attachmentId = await page.evaluate(async ({ ticketId, requesterId }) => {
-      const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
-      const body = (await res.json()) as { attachments: { id: number; originalFileName: string }[] }
-      return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
-    }, { ticketId: ticket.id, requesterId: jennifer.id })
-    const blocked = await context.request.get(`/api/attachments/${attachmentId}/download?requesterId=${jennifer.id}`)
+    const attachmentId = await page.evaluate(
+      async ({ ticketId, requesterId }) => {
+        const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
+        const body = (await res.json()) as {
+          attachments: { id: number; originalFileName: string }[]
+        }
+        return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
+      },
+      { ticketId: ticket.id, requesterId: jennifer.id },
+    )
+    const blocked = await context.request.get(
+      `/api/attachments/${attachmentId}/download?requesterId=${jennifer.id}`,
+    )
     expect(blocked.status()).toBe(410)
-    await page.screenshot({ path: shot('ticket-detail', 'blocked-removed-download.png'), fullPage: true })
+    await page.screenshot({
+      path: shot('ticket-detail', 'blocked-removed-download.png'),
+      fullPage: true,
+    })
   })
 
   test('unauthorized ticket-access rejection (BR-15/AC-03)', async ({ page, context }) => {
@@ -274,7 +306,10 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
     await loginViaStorage(page, michael)
     await page.goto(`/tickets/${ownedByJennifer.id}`)
     await expect(page.getByText('Ticket not found.')).toBeVisible()
-    await page.screenshot({ path: shot('ticket-detail', 'unauthorized-access.png'), fullPage: true })
+    await page.screenshot({
+      path: shot('ticket-detail', 'unauthorized-access.png'),
+      fullPage: true,
+    })
   })
 })
 
@@ -285,7 +320,10 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
 // ---------------------------------------------------------------------------
 test.describe('STYLE-02/03/04 (AC-25): responsive screenshots', () => {
   for (const [viewportName, viewport] of Object.entries(VIEWPORTS)) {
-    test(`create-ticket, my-tickets, ticket-detail at ${viewportName}`, async ({ page, context }) => {
+    test(`create-ticket, my-tickets, ticket-detail at ${viewportName}`, async ({
+      page,
+      context,
+    }) => {
       await page.setViewportSize(viewport)
       const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
       const ticket = await createTicketViaApi(context.request, jennifer.id, {

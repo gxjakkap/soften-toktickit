@@ -8,6 +8,14 @@ import { Prisma } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import { resolveActiveRequester } from './lib/requester-context.js'
 import {
+  clearSessionCookie,
+  createSession,
+  resolveAuthenticatedUser,
+  setSessionCookie,
+  toIdentity,
+} from './lib/auth-context.js'
+import { hashPassword, isStrongPassword, verifyPassword } from './lib/password.js'
+import {
   MAX_ACTIVE_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   isAllowedAttachment,
@@ -41,6 +49,132 @@ const upload = multer({
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'TokTickIT API' })
+})
+
+const unauthenticated = {
+  error: { code: 'UNAUTHENTICATED', message: 'You must be signed in to continue.' },
+}
+const isFilled = (v: unknown): v is string => typeof v === 'string' && v.trim() !== ''
+
+// Compared against when the email is unknown so both failures cost one bcrypt
+// round and can't be told apart by timing (BR-06).
+const dummyHash = hashPassword('unused-password')
+
+// api-spec.md §1.1 (FR-01, AC-01, AC-05, AC-06, BR-06, BR-07, BR-15). The
+// password is checked before the account state, so "inactive" is only ever
+// revealed to someone who already knows the password.
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body ?? {}
+  for (const [field, value] of [
+    ['email', email],
+    ['password', password],
+  ] as const) {
+    if (!isFilled(value)) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: `${field} is required.`, field },
+      })
+    }
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
+  const passwordOk = await verifyPassword(password, user?.passwordHash ?? (await dummyHash))
+  if (!user || !passwordOk) {
+    return res.status(401).json({
+      error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' },
+    })
+  }
+  if (!user.isActive) {
+    return res.status(403).json({
+      error: {
+        code: 'INACTIVE_ACCOUNT',
+        message: 'This account is inactive. Contact an Administrator.',
+      },
+    })
+  }
+
+  setSessionCookie(res, await createSession(prisma, user.id))
+  res.json(toIdentity(user))
+})
+
+// api-spec.md §1.2 (FR-04, AC-07, BR-12).
+app.post('/api/auth/logout', async (req, res) => {
+  const auth = await resolveAuthenticatedUser(req)
+  if (!auth) return res.status(401).json(unauthenticated)
+
+  await prisma.session.delete({ where: { id: auth.sessionId } })
+  clearSessionCookie(res)
+  res.status(204).end()
+})
+
+// api-spec.md §1.3 (FR-03, BR-14).
+app.get('/api/auth/me', async (req, res) => {
+  const auth = await resolveAuthenticatedUser(req)
+  if (!auth) return res.status(401).json(unauthenticated)
+  res.json(toIdentity(auth.user))
+})
+
+// api-spec.md §1.4 (FR-02, AC-02, AC-30, BR-02, BR-09, BR-10, BR-11). Open to any
+// signed-in user, gated or not. Every existing session for the user is dropped
+// and a fresh one issued, so a token leaked before the change dies with it.
+app.post('/api/auth/change-password', async (req, res) => {
+  const auth = await resolveAuthenticatedUser(req)
+  if (!auth) return res.status(401).json(unauthenticated)
+
+  const { currentPassword, newPassword } = req.body ?? {}
+  for (const [field, value] of [
+    ['currentPassword', currentPassword],
+    ['newPassword', newPassword],
+  ] as const) {
+    if (!isFilled(value)) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: `${field} is required.`, field },
+      })
+    }
+  }
+
+  if (!(await verifyPassword(currentPassword, auth.user.passwordHash))) {
+    return res.status(401).json({
+      error: {
+        code: 'INVALID_CREDENTIALS',
+        message: 'Current password is incorrect.',
+        field: 'currentPassword',
+      },
+    })
+  }
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({
+      error: {
+        code: 'WEAK_PASSWORD',
+        message:
+          'Password must be at least 8 characters with an uppercase letter, a lowercase letter, a number, and a special character.',
+        field: 'newPassword',
+      },
+    })
+  }
+
+  // BR-10: the current password is already verified above, so an exact match
+  // means the user typed the same password into both fields.
+  if (newPassword === currentPassword) {
+    return res.status(400).json({
+      error: {
+        code: 'WEAK_PASSWORD',
+        message: 'New password must be different from the current password.',
+        field: 'newPassword',
+      },
+    })
+  }
+
+  const passwordHash = await hashPassword(newPassword)
+  const { user, token } = await prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: auth.user.id },
+      data: { passwordHash, mustChangePassword: false },
+    })
+    await tx.session.deleteMany({ where: { userId: updated.id } })
+    return { user: updated, token: await createSession(tx, updated.id) }
+  })
+  setSessionCookie(res, token)
+  res.json(toIdentity(user))
 })
 
 // Only active rows, {id, name} shape (api-spec.md §2). isActive/createdAt

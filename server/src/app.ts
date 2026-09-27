@@ -14,6 +14,7 @@ import {
   setSessionCookie,
   toIdentity,
 } from './lib/auth-context.js'
+import { authenticate, requireAuth, requireRole } from './lib/authorization.js'
 import { hashPassword, isStrongPassword, verifyPassword } from './lib/password.js'
 import {
   MAX_ACTIVE_ATTACHMENTS,
@@ -106,11 +107,11 @@ app.post('/api/auth/logout', async (req, res) => {
   res.status(204).end()
 })
 
-// api-spec.md §1.3 (FR-03, BR-14).
-app.get('/api/auth/me', async (req, res) => {
-  const auth = await resolveAuthenticatedUser(req)
-  if (!auth) return res.status(401).json(unauthenticated)
-  res.json(toIdentity(auth.user))
+// api-spec.md §1.3 (FR-03, BR-14). Exempt from the password-change gate
+// (§1.5) — it's how the client discovers `mustChangePassword` in the first
+// place — so this uses `authenticate` alone, not the full `requireAuth` chain.
+app.get('/api/auth/me', authenticate, (req, res) => {
+  res.json(toIdentity(req.user!))
 })
 
 // api-spec.md §1.4 (FR-02, AC-02, AC-30, BR-02, BR-09, BR-10, BR-11). Open to any
@@ -730,6 +731,47 @@ app.get('/api/dev-requesters', async (_req, res) => {
   })
   res.json(requesters)
 })
+
+// Issue #4: authorization-only stubs for the Ticket Queue/Detail (api-spec.md
+// §4) and Admin User Management (§5). Each proves the role/ownership guard
+// chain end-to-end; the business logic behind it is a later issue's job.
+const notImplemented: express.RequestHandler = (_req, res) => {
+  res.status(501).json({
+    error: { code: 'NOT_IMPLEMENTED', message: 'This endpoint is not implemented yet.' },
+  })
+}
+
+// §4.1 (FR-12, BR-31): IT Staff only.
+app.get('/api/staff/tickets', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+// §4.2 (FR-13, FR-28, BR-40): the one read-only Administrator exception.
+app.get(
+  '/api/staff/tickets/:id',
+  ...requireAuth,
+  requireRole('IT_STAFF', 'ADMINISTRATOR'),
+  notImplemented,
+)
+// §4.3-4.7 (FR-14..19): every Queue mutation is IT Staff only, no exception.
+app.patch('/api/staff/tickets/:id/claim', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+app.patch('/api/staff/tickets/:id/owner', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+app.patch(
+  '/api/staff/tickets/:id/priority',
+  ...requireAuth,
+  requireRole('IT_STAFF'),
+  notImplemented,
+)
+app.patch('/api/staff/tickets/:id/status', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+app.post('/api/staff/tickets/:id/comments', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+
+// §5 (FR-20..23): every Admin User Management endpoint is Administrator only.
+app.get('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
+app.post('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
+app.patch('/api/admin/users/:id', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
+app.patch(
+  '/api/admin/users/:id/password',
+  ...requireAuth,
+  requireRole('ADMINISTRATOR'),
+  notImplemented,
+)
 
 // Standard error envelope (api-spec.md §0.2). Never leaks internals.
 app.use(

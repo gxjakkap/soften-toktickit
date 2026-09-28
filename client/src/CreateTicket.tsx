@@ -17,7 +17,7 @@ import {
   ensureFileName,
   isAllowedFile,
 } from './lib/attachment-validation'
-import { useRequester } from './useRequester'
+import { useAuth } from './useAuth'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
 
 const SUMMARY_MIN = 5
@@ -80,7 +80,7 @@ function initialFormState() {
 }
 
 function CreateTicket() {
-  const { requester } = useRequester()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [refState, setRefState] = useState<RefState>('loading')
@@ -255,7 +255,7 @@ function CreateTicket() {
     setServerError(null)
 
     try {
-      const ticket = await createTicket(requester!.id, {
+      const ticket = await createTicket({
         categoryId: Number(form.categoryId),
         relatedSystemId: Number(form.relatedSystemId),
         requestedPriority: form.requestedPriority as RequestedPriority,
@@ -331,7 +331,7 @@ function CreateTicket() {
               id="requester"
               className="zg-field zg-field-readonly"
               readOnly
-              value={requester?.name ?? ''}
+              value={user?.name ?? ''}
             />
           </div>
         </div>
@@ -489,7 +489,6 @@ function CreateTicket() {
           {createdTicket ? (
             <AttachmentSection
               bare
-              requesterId={requester!.id}
               ticketId={createdTicket.id}
               initialAttachments={[]}
               initialFiles={attachments.filter((a) => a.status === 'pending').map((a) => a.file)}

@@ -3,32 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../../src/app.js'
 import { prisma } from '../../src/db.js'
 
-// API-24 (AC-22, BR-09): GET /api/dev-requesters returns only active
-// requesters, ordered by name ascending.
-//
-// Fixture rows are created and removed by this file so the assertions don't
-// depend on whatever the seed happens to have left in the dev database.
-const fixtures = [
-  { name: 'Zzz Fixture Active', email: 'zzz.fixture.active@test.invalid', isActive: true },
-  { name: 'Aaa Fixture Active', email: 'aaa.fixture.active@test.invalid', isActive: true },
-  { name: 'Mmm Fixture Inactive', email: 'mmm.fixture.inactive@test.invalid', isActive: false },
-]
-
-const emails = fixtures.map((f) => f.email)
-
-beforeAll(async () => {
-  await prisma.user.deleteMany({ where: { email: { in: emails } } })
-  for (const fixture of fixtures) {
-    await prisma.user.create({
-      data: { ...fixture, passwordHash: 'not-a-real-hash', role: 'REQUESTER' },
-    })
-  }
-})
-
-afterAll(async () => {
-  await prisma.user.deleteMany({ where: { email: { in: emails } } })
-})
-
 // API-25 (FR-02 ref data): GET /api/categories and GET /api/related-systems
 // return only active rows, as {id, name} (no isActive/createdAt leaked).
 const categoryFixtures = [
@@ -83,38 +57,5 @@ describe('GET /api/related-systems', () => {
 
     const row = res.body.find((s: { name: string }) => s.name === 'Fixture Active System')
     expect(Object.keys(row).sort()).toEqual(['id', 'name'])
-  })
-})
-
-describe('GET /api/dev-requesters', () => {
-  it('returns only active requesters', async () => {
-    const res = await request(app).get('/api/dev-requesters')
-
-    expect(res.status).toBe(200)
-    const returnedEmails = res.body.map((r: { email: string }) => r.email)
-    expect(returnedEmails).toContain('aaa.fixture.active@test.invalid')
-    expect(returnedEmails).toContain('zzz.fixture.active@test.invalid')
-    expect(returnedEmails).not.toContain('mmm.fixture.inactive@test.invalid')
-  })
-
-  it('orders requesters by name ascending', async () => {
-    const res = await request(app).get('/api/dev-requesters')
-
-    const names = res.body.map((r: { name: string }) => r.name)
-    expect(names).toEqual([...names].sort((a: string, b: string) => a.localeCompare(b)))
-  })
-
-  it('exposes id, name and email but never the isActive flag', async () => {
-    const res = await request(app).get('/api/dev-requesters')
-
-    const row = res.body.find(
-      (r: { email: string }) => r.email === 'aaa.fixture.active@test.invalid',
-    )
-    expect(row).toMatchObject({
-      name: 'Aaa Fixture Active',
-      email: 'aaa.fixture.active@test.invalid',
-    })
-    expect(typeof row.id).toBe('number')
-    expect(Object.keys(row).sort()).toEqual(['email', 'id', 'name'])
   })
 })

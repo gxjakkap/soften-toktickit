@@ -77,10 +77,11 @@ cd server && pnpm dev   # http://localhost:3001
 cd client && pnpm dev   # http://localhost:5173
 ```
 
-The app opens on the Development Requester Selection screen
-(`/select-requester`). Pick a seeded Requester to reach the requester-scoped
-screens — this is a Lab 2 testing mechanism, not authentication. The Lab 1
-system check now lives at `/system-check`.
+The app opens on a minimal Login screen (`/login`) — sign in with a seeded
+account's email and the shared dev password above to reach the Requester
+screens. This is a placeholder pending the full styled Login screen; it is
+real session authentication, not a testing shortcut. The Lab 1 system check
+now lives at `/system-check`.
 
 ## Testing
 
@@ -92,9 +93,9 @@ cd server && pnpm test  # Vitest + Supertest
 ### End-to-end and visual/responsive tests (Playwright)
 
 Requires the seeded database (`pnpm prisma:seed`, above) — the E2E suite
-logs in as the seeded Development Requesters by name/email. From the repo
-root, with the server and client already running (`pnpm exec playwright
-install chromium` once, first time only):
+signs in as seeded Requesters by email/password. From the repo root, with
+the server and client already running (`pnpm exec playwright install
+chromium` once, first time only):
 
 ```bash
 pnpm e2e

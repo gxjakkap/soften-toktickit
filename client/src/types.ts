@@ -1,3 +1,21 @@
+export type UserRole = 'REQUESTER' | 'IT_STAFF' | 'ADMINISTRATOR'
+
+export type AuthUser = {
+  id: number
+  name: string
+  email: string
+  role: UserRole
+  mustChangePassword: boolean
+}
+
+export type TicketComment = {
+  id: number
+  authorName: string
+  authorRole: UserRole
+  content: string
+  createdAt: string
+}
+
 export type RequestedPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export type TicketStatus =
@@ -34,7 +52,9 @@ export type TicketListItem = {
   categoryId: number
   categoryName: string
   requestedPriority: RequestedPriority
+  itPriority: RequestedPriority
   currentStatus: TicketStatus
+  ownerName: string | null
   createdAt: string
   updatedAt: string
 }
@@ -72,13 +92,17 @@ export type TicketDetail = {
   id: number
   ticketNumber: string
   requester: { id: number; name: string }
+  ownerName: string | null
   category: { id: number; name: string }
   relatedSystem: { id: number; name: string }
   requestedPriority: RequestedPriority
+  itPriority: RequestedPriority
   summary: string
   description: string
   currentStatus: TicketStatus
+  requesterConfirmedResolvedAt: string | null
   createdAt: string
   updatedAt: string
   attachments: Attachment[]
+  comments: TicketComment[]
 }

@@ -2,20 +2,22 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import RequesterTicketDetail from '../../src/RequesterTicketDetail'
-import { REQUESTER_STORAGE_KEY, RequesterProvider } from '../../src/RequesterContext'
-
-const requester = { id: 7, name: 'Priya Shah', email: 'priya.shah@example.com' }
+import { AuthProvider } from '../../src/AuthContext'
+import { testUser } from '../helpers/auth'
 
 const ticketDetail = {
   id: 101,
   ticketNumber: 'TKT-2026-000101',
-  requester: { id: 7, name: 'Priya Shah' },
+  requester: { id: testUser.id, name: 'Priya Shah' },
+  ownerName: null,
   category: { id: 2, name: 'Hardware' },
   relatedSystem: { id: 5, name: 'Corporate Laptop' },
   requestedPriority: 'MEDIUM',
+  itPriority: 'MEDIUM',
   summary: 'Laptop battery drains quickly',
   description: 'My laptop battery is draining much faster than usual even when idle.',
   currentStatus: 'NEW',
+  requesterConfirmedResolvedAt: null,
   createdAt: '2026-09-01T09:14:00.000Z',
   updatedAt: '2026-09-01T09:14:00.000Z',
   attachments: [
@@ -29,6 +31,7 @@ const ticketDetail = {
       isRemoved: false,
     },
   ],
+  comments: [],
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -36,14 +39,13 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function renderDetail(ticketId = 101) {
-  localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
   return render(
     <MemoryRouter initialEntries={[`/tickets/${ticketId}`]}>
-      <RequesterProvider>
+      <AuthProvider>
         <Routes>
           <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
         </Routes>
-      </RequesterProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -51,7 +53,6 @@ function renderDetail(ticketId = 101) {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
-  localStorage.clear()
 })
 
 describe('UI-14 (AC-24): read-only rendering', () => {
@@ -59,7 +60,8 @@ describe('UI-14 (AC-24): read-only rendering', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/tickets/101?requesterId=7') return jsonResponse(ticketDetail)
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        if (url === '/api/tickets/101') return jsonResponse(ticketDetail)
         return Promise.reject(new Error(`unexpected fetch: ${url}`))
       }),
     )
@@ -72,22 +74,21 @@ describe('UI-14 (AC-24): read-only rendering', () => {
     expect(screen.getByText(/laptop battery drains quickly/i)).toBeTruthy()
     expect(screen.getByText(/draining much faster/i)).toBeTruthy()
 
-    // No editable form controls anywhere on the screen (BR nothing is
-    // editable on this page), and none of the out-of-scope features render.
-    expect(screen.queryByRole('textbox')).toBeNull()
-    expect(screen.queryByText(/public comment/i)).toBeNull()
+    // No editable form controls anywhere on the screen apart from the new
+    // Public Comments textarea, and none of the out-of-scope features render.
     expect(screen.queryByText(/internal note/i)).toBeNull()
     expect(screen.queryByText(/actions taken/i)).toBeNull()
     expect(screen.queryByText(/it priority/i)).toBeNull()
     expect(screen.queryByText(/ticket owner/i)).toBeNull()
-    expect(screen.queryByLabelText(/status/i)).toBeNull()
+    expect(screen.queryByLabelText(/^status/i)).toBeNull()
   })
 
   it('shows the attachment section with the ticket’s attachments', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/tickets/101?requesterId=7') return jsonResponse(ticketDetail)
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        if (url === '/api/tickets/101') return jsonResponse(ticketDetail)
         return Promise.reject(new Error(`unexpected fetch: ${url}`))
       }),
     )
@@ -101,7 +102,10 @@ describe('RequesterTicketDetail: loading state', () => {
   it('shows a loading indicator before the ticket resolves', () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => new Promise(() => {})),
+      vi.fn((url: string) => {
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        return new Promise(() => {})
+      }),
     )
     renderDetail()
 
@@ -113,9 +117,10 @@ describe('RequesterTicketDetail: not-found / ownership failure (AC-03)', () => {
   it('shows a safe not-found message when the API returns 404, revealing nothing about the ticket', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() =>
-        jsonResponse({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }, 404),
-      ),
+      vi.fn((url: string) => {
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        return jsonResponse({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }, 404)
+      }),
     )
     renderDetail()
 
@@ -128,9 +133,13 @@ describe('RequesterTicketDetail: API failure state', () => {
   it('shows a safe error banner with a retry action on a server error', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() =>
-        jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' } }, 500),
-      ),
+      vi.fn((url: string) => {
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        return jsonResponse(
+          { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' } },
+          500,
+        )
+      }),
     )
     renderDetail()
 
@@ -144,8 +153,8 @@ describe('RequesterTicketDetail: empty attachments state', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/tickets/101?requesterId=7')
-          return jsonResponse({ ...ticketDetail, attachments: [] })
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        if (url === '/api/tickets/101') return jsonResponse({ ...ticketDetail, attachments: [] })
         return Promise.reject(new Error(`unexpected fetch: ${url}`))
       }),
     )
@@ -160,7 +169,8 @@ describe('RequesterTicketDetail: badges', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/tickets/101?requesterId=7') return jsonResponse(ticketDetail)
+        if (url === '/api/auth/me') return jsonResponse(testUser)
+        if (url === '/api/tickets/101') return jsonResponse(ticketDetail)
         return Promise.reject(new Error(`unexpected fetch: ${url}`))
       }),
     )

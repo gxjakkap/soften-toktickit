@@ -1,4 +1,4 @@
-import type { RequestedPriority, TicketStatus } from './types'
+import type { RequestedPriority, TicketStatus, UserRole } from './types'
 
 // ui-spec.md §9: Pending/In Progress and Cancelled/Closed share a badge
 // colour, so each pair also carries a distinct icon (never colour alone).
@@ -64,6 +64,28 @@ export function PriorityBadge({
   return (
     <span className={`zg-badge ${PRIORITY_BADGE_CLASS[priority]}`} data-testid={testId}>
       {PRIORITY_LABEL[priority]}
+    </span>
+  )
+}
+
+// ui-spec.md §8: role badges for Public Comment authors (and, later, any
+// other screen that shows who a user is).
+const ROLE_LABEL: Record<UserRole, string> = {
+  REQUESTER: 'Requester',
+  IT_STAFF: 'IT Staff',
+  ADMINISTRATOR: 'Administrator',
+}
+
+const ROLE_BADGE_CLASS: Record<UserRole, string> = {
+  REQUESTER: 'zg-badge-role-requester',
+  IT_STAFF: 'zg-badge-role-it-staff',
+  ADMINISTRATOR: 'zg-badge-role-administrator',
+}
+
+export function RoleBadge({ role, testId }: { role: UserRole; testId?: string }) {
+  return (
+    <span className={`zg-badge ${ROLE_BADGE_CLASS[role]}`} data-testid={testId}>
+      {ROLE_LABEL[role]}
     </span>
   )
 }

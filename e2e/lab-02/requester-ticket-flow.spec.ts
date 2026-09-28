@@ -2,8 +2,7 @@ import path from 'node:path'
 import { expect, test } from '@playwright/test'
 import {
   createTicketViaApi,
-  findRequester,
-  loginViaStorage,
+  loginViaApi,
   loginViaUi,
   REQUESTERS,
   waitForCreateTicketReady,
@@ -12,11 +11,10 @@ import {
 const PHOTO_FIXTURE = path.join(__dirname, 'fixtures/valid-photo.png')
 
 test.describe('E2E-01 (AC-01, AC-09, AC-16, AC-24): create -> find -> open', () => {
-  test('selecting a Requester, creating a Ticket with an attachment, finding it by search, and opening its detail all agree', async ({
+  test('signing in, creating a Ticket with an attachment, finding it by search, and opening its detail all agree', async ({
     page,
   }) => {
-    const jennifer = await findRequester(page.context().request, REQUESTERS.jennifer.email)
-    await loginViaUi(page, jennifer)
+    await loginViaUi(page, REQUESTERS.jennifer.email)
 
     await page
       .getByRole('navigation', { name: 'Main' })
@@ -54,7 +52,7 @@ test.describe('E2E-01 (AC-01, AC-09, AC-16, AC-24): create -> find -> open', () 
 
     await page.getByRole('link', { name: ticketNumber }).click()
     await expect(page.getByRole('heading', { name: summary })).toBeVisible()
-    await expect(page.getByText('Public Comments')).toHaveCount(0)
+    await expect(page.getByText('Public Comments')).toBeVisible()
     await expect(page.getByText('Internal Notes')).toHaveCount(0)
   })
 })
@@ -64,28 +62,23 @@ test.describe('E2E-02 (AC-03, AC-23): cross-Requester isolation', () => {
     page,
     request,
   }) => {
-    const jennifer = await findRequester(request, REQUESTERS.jennifer.email)
-    const michael = await findRequester(request, REQUESTERS.michael.email)
-
-    const ownedByJennifer = await createTicketViaApi(request, jennifer.id, {
+    await loginViaApi(request, REQUESTERS.jennifer.email)
+    const ownedByJennifer = await createTicketViaApi(request, {
       summary: `Isolation fixture ${Date.now()}`,
     })
 
-    await loginViaStorage(page, michael)
+    await loginViaApi(page.request, REQUESTERS.michael.email)
     await page.goto('/tickets')
     await expect(page.getByRole('link', { name: ownedByJennifer.ticketNumber })).toHaveCount(0)
 
     await page.goto(`/tickets/${ownedByJennifer.id}`)
     await expect(page.getByText('Ticket not found.')).toBeVisible()
 
-    // AC-23: switching Requester clears the previous one's data from the app.
+    // AC-23: switching signed-in user clears the previous one's data from the app.
     await page.goto('/tickets')
-    await page.getByRole('button', { name: 'Change Requester' }).click()
-    await page.waitForURL('**/select-requester')
-    const jenniferAgain = await findRequester(request, REQUESTERS.jennifer.email)
-    await page.getByLabel(/development requester/i).selectOption(String(jenniferAgain.id))
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.waitForURL('**/tickets')
+    await page.getByRole('button', { name: 'Logout' }).click()
+    await page.waitForURL('**/login')
+    await loginViaUi(page, REQUESTERS.jennifer.email)
     await expect(page.getByRole('link', { name: ownedByJennifer.ticketNumber })).toBeVisible()
   })
 })
@@ -95,12 +88,12 @@ test.describe('E2E-03 (AC-14, AC-15): attachment lifecycle', () => {
     page,
     request,
   }) => {
-    const jennifer = await findRequester(request, REQUESTERS.jennifer.email)
-    const ticket = await createTicketViaApi(request, jennifer.id, {
+    await loginViaApi(request, REQUESTERS.jennifer.email)
+    const ticket = await createTicketViaApi(request, {
       summary: `Attachment lifecycle fixture ${Date.now()}`,
     })
 
-    await loginViaStorage(page, jennifer)
+    await loginViaApi(page.request, REQUESTERS.jennifer.email)
     await page.goto(`/tickets/${ticket.id}`)
 
     await page.getByTestId('attachment-dropzone').click()
@@ -123,20 +116,15 @@ test.describe('E2E-03 (AC-14, AC-15): attachment lifecycle', () => {
     await expect(row.getByText('Removed')).toBeVisible()
     await expect(row.getByRole('link', { name: 'Download' })).toHaveCount(0)
 
-    const attachmentId = await page.evaluate(
-      async ({ ticketId, requesterId }) => {
-        const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
-        const body = (await res.json()) as {
-          attachments: { id: number; originalFileName: string }[]
-        }
-        return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
-      },
-      { ticketId: ticket.id, requesterId: jennifer.id },
-    )
+    const attachmentId = await page.evaluate(async (ticketId) => {
+      const res = await fetch(`/api/tickets/${ticketId}`)
+      const body = (await res.json()) as {
+        attachments: { id: number; originalFileName: string }[]
+      }
+      return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
+    }, ticket.id)
 
-    const blockedDownload = await request.get(
-      `/api/attachments/${attachmentId}/download?requesterId=${jennifer.id}`,
-    )
+    const blockedDownload = await request.get(`/api/attachments/${attachmentId}/download`)
     expect(blockedDownload.status()).toBe(410)
   })
 })

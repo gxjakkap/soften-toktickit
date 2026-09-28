@@ -4,8 +4,7 @@ import path from 'node:path'
 import { expect, test } from '@playwright/test'
 import {
   createTicketViaApi,
-  findRequester,
-  loginViaStorage,
+  loginViaApi,
   REQUESTERS,
   VIEWPORTS,
   waitForCreateTicketReady,
@@ -25,66 +24,11 @@ fs.writeFileSync(
 const shot = (...parts: string[]) =>
   path.join(__dirname, '../../artifacts/lab-02/screenshots', ...parts)
 
-// ---------------------------------------------------------------------------
-// Section 14 / ui-spec.md §13: Development Requester Selection screen states.
-// ---------------------------------------------------------------------------
-test.describe('Screenshot audit: Development Requester Selection', () => {
-  test('loaded screen, active-only dropdown, and selected-user/change-requester display', async ({
-    page,
-  }) => {
-    await page.goto('/select-requester')
-    await expect(page.getByRole('heading', { name: /select development requester/i })).toBeVisible()
-    await page.screenshot({ path: shot('dev-requester-selection', 'screen.png'), fullPage: true })
-
-    // AC-22: the seeded inactive Requester (Patricia Reyes) must never appear.
-    const optionTexts = await page.locator('#dev-requester option').allTextContents()
-    expect(optionTexts.some((t) => t.includes('Patricia'))).toBe(false)
-
-    const jennifer = await findRequester(page.context().request, REQUESTERS.jennifer.email)
-    await page.getByLabel(/development requester/i).selectOption(String(jennifer.id))
-    await page.getByLabel(/development requester/i).focus()
-    await page.screenshot({
-      path: shot('dev-requester-selection', 'active-dropdown.png'),
-      fullPage: true,
-    })
-
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.waitForURL('**/tickets')
-    await expect(page.getByTestId('current-requester')).toContainText('Jennifer Anderson')
-    await page.screenshot({
-      path: shot('dev-requester-selection', 'selected-user-display.png'),
-      fullPage: true,
-    })
-
-    // Distinct from the capture above: focuses the actual Change Requester
-    // control (BR-11) instead of re-shooting the same header state — a click
-    // would navigate away before the shot, since it clears context immediately.
-    await page.getByRole('button', { name: 'Change Requester' }).focus()
-    await page.screenshot({
-      path: shot('dev-requester-selection', 'change-requester-action.png'),
-      fullPage: true,
-    })
-  })
-
-  test('loading state', async ({ page }) => {
-    await page.route('**/api/dev-requesters', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      await route.continue()
-    })
-    const goto = page.goto('/select-requester')
-    await expect(page.getByText(/loading development requesters/i)).toBeVisible()
-    await page.screenshot({ path: shot('dev-requester-selection', 'loading.png'), fullPage: true })
-    await goto
-  })
-
-  test('failure state', async ({ page }) => {
-    await page.route('**/api/dev-requesters', (route) => route.fulfill({ status: 500, body: '{}' }))
-    await page.goto('/select-requester')
-    await expect(page.getByRole('alert')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
-    await page.screenshot({ path: shot('dev-requester-selection', 'failure.png'), fullPage: true })
-  })
-})
+// Issue #5: Lab 2's Development Requester Selection screen (and its
+// dedicated screenshot audit below) is gone — replaced by session auth.
+// Lab 3's Login screen is a minimal placeholder (see client/src/Login.tsx),
+// not the real ui-spec.md §2 screen Issue #9 will build, so it isn't given
+// an equivalent visual-audit block here.
 
 // ---------------------------------------------------------------------------
 // Section 14: Create Ticket flow states.
@@ -94,8 +38,7 @@ test.describe('Screenshot audit: Create Ticket', () => {
     page,
     context,
   }) => {
-    const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-    await loginViaStorage(page, jennifer)
+    await loginViaApi(context.request, REQUESTERS.jennifer.email)
     await page.goto('/tickets/new')
     await expect(page.getByRole('heading', { name: 'Create Ticket' })).toBeVisible()
     await page.screenshot({ path: shot('create-ticket', 'initial.png'), fullPage: true })
@@ -164,16 +107,14 @@ test.describe('Screenshot audit: Create Ticket', () => {
 // ---------------------------------------------------------------------------
 test.describe('Screenshot audit: My Tickets', () => {
   test("Requester A's list vs. Requester B's list (isolation)", async ({ page, context }) => {
-    const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-    const michael = await findRequester(context.request, REQUESTERS.michael.email)
-
-    await loginViaStorage(page, jennifer)
+    await loginViaApi(context.request, REQUESTERS.jennifer.email)
     await page.goto('/tickets')
     await expect(page.getByTestId('tickets-table')).toBeVisible()
     await page.screenshot({ path: shot('my-tickets', 'requester-a-list.png'), fullPage: true })
 
-    await page.evaluate(() => window.localStorage.clear())
-    await loginViaStorage(page, michael)
+    // A fresh login simply issues a new session cookie, so no explicit
+    // logout/storage-clear step is needed between users.
+    await loginViaApi(context.request, REQUESTERS.michael.email)
     await page.goto('/tickets')
     await expect(page.getByTestId('tickets-table')).toBeVisible()
     await page.screenshot({ path: shot('my-tickets', 'requester-b-list.png'), fullPage: true })
@@ -183,15 +124,13 @@ test.describe('Screenshot audit: My Tickets', () => {
     page,
     context,
   }) => {
-    const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-    const siriporn = await findRequester(context.request, REQUESTERS.siriporn.email)
+    await loginViaApi(context.request, REQUESTERS.jennifer.email)
     const searchTerm = `zephyr-${Date.now()}`
-    await createTicketViaApi(context.request, jennifer.id, {
+    await createTicketViaApi(context.request, {
       summary: `Zephyr fixture ${searchTerm}`,
       requestedPriority: 'HIGH',
     })
 
-    await loginViaStorage(page, jennifer)
     await page.goto('/tickets')
 
     // Search (AC-16).
@@ -222,9 +161,8 @@ test.describe('Screenshot audit: My Tickets', () => {
     await expect(page.getByText('No tickets match your filters')).toBeVisible()
     await page.screenshot({ path: shot('my-tickets', 'no-results.png'), fullPage: true })
 
-    // Empty state (AC-20, BR-30): Siriporn Wattana owns zero tickets.
-    await page.evaluate(() => window.localStorage.clear())
-    await loginViaStorage(page, siriporn)
+    // Empty state (AC-20, BR-30): Emma Watson owns zero tickets.
+    await loginViaApi(context.request, REQUESTERS.emma.email)
     await page.goto('/tickets')
     await expect(page.getByText("You haven't created any tickets yet")).toBeVisible()
     await page.screenshot({ path: shot('my-tickets', 'empty-state.png'), fullPage: true })
@@ -239,12 +177,11 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
     page,
     context,
   }) => {
-    const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-    const ticket = await createTicketViaApi(context.request, jennifer.id, {
+    await loginViaApi(context.request, REQUESTERS.jennifer.email)
+    const ticket = await createTicketViaApi(context.request, {
       summary: `Ticket detail screenshot fixture ${Date.now()}`,
     })
 
-    await loginViaStorage(page, jennifer)
     await page.goto(`/tickets/${ticket.id}`)
     await expect(page.getByText(ticket.ticketNumber)).toBeVisible()
     await page.screenshot({ path: shot('ticket-detail', 'owned-detail.png'), fullPage: true })
@@ -276,19 +213,14 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
     await page.screenshot({ path: shot('ticket-detail', 'retained-metadata.png'), fullPage: true })
 
     // Blocked removed-download attempt (AC-15/BR-28): direct request now 410s.
-    const attachmentId = await page.evaluate(
-      async ({ ticketId, requesterId }) => {
-        const res = await fetch(`/api/tickets/${ticketId}?requesterId=${requesterId}`)
-        const body = (await res.json()) as {
-          attachments: { id: number; originalFileName: string }[]
-        }
-        return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
-      },
-      { ticketId: ticket.id, requesterId: jennifer.id },
-    )
-    const blocked = await context.request.get(
-      `/api/attachments/${attachmentId}/download?requesterId=${jennifer.id}`,
-    )
+    const attachmentId = await page.evaluate(async (ticketId) => {
+      const res = await fetch(`/api/tickets/${ticketId}`)
+      const body = (await res.json()) as {
+        attachments: { id: number; originalFileName: string }[]
+      }
+      return body.attachments.find((a) => a.originalFileName === 'valid-photo.png')!.id
+    }, ticket.id)
+    const blocked = await context.request.get(`/api/attachments/${attachmentId}/download`)
     expect(blocked.status()).toBe(410)
     await page.screenshot({
       path: shot('ticket-detail', 'blocked-removed-download.png'),
@@ -297,13 +229,13 @@ test.describe('Screenshot audit: Ticket Detail and Attachments', () => {
   })
 
   test('unauthorized ticket-access rejection (BR-15/AC-03)', async ({ page, context }) => {
-    const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-    const michael = await findRequester(context.request, REQUESTERS.michael.email)
-    const ownedByJennifer = await createTicketViaApi(context.request, jennifer.id, {
+    await loginViaApi(context.request, REQUESTERS.jennifer.email)
+    const ownedByJennifer = await createTicketViaApi(context.request, {
       summary: `Unauthorized-access fixture ${Date.now()}`,
     })
 
-    await loginViaStorage(page, michael)
+    // A fresh login on the same context simply issues a new session cookie.
+    await loginViaApi(context.request, REQUESTERS.michael.email)
     await page.goto(`/tickets/${ownedByJennifer.id}`)
     await expect(page.getByText('Ticket not found.')).toBeVisible()
     await page.screenshot({
@@ -325,11 +257,10 @@ test.describe('STYLE-02/03/04 (AC-25): responsive screenshots', () => {
       context,
     }) => {
       await page.setViewportSize(viewport)
-      const jennifer = await findRequester(context.request, REQUESTERS.jennifer.email)
-      const ticket = await createTicketViaApi(context.request, jennifer.id, {
+      await loginViaApi(context.request, REQUESTERS.jennifer.email)
+      const ticket = await createTicketViaApi(context.request, {
         summary: `Responsive fixture ${viewportName} ${Date.now()}`,
       })
-      await loginViaStorage(page, jennifer)
 
       const assertNoHorizontalScroll = async () => {
         const bodyWidth = await page.evaluate(() => document.body.scrollWidth)

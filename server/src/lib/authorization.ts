@@ -51,7 +51,11 @@ export const requireAuth: RequestHandler[] = [authenticate, requirePasswordChang
 // 404 — the resource genuinely exists and the caller's identity is known.
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!roles.includes(req.user!.role)) {
+    // Defensive: a route mounted without `requireAuth` ahead of it should
+    // surface as 401, not throw and land in the error envelope as a 500 that
+    // hides the real cause (PR #49 review).
+    if (!req.user) return res.status(401).json(unauthenticated)
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         error: {
           code: 'FORBIDDEN',

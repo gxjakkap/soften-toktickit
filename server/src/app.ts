@@ -15,6 +15,7 @@ import {
   toIdentity,
 } from './lib/auth-context.js'
 import { authenticate, requireAuth, requireRole } from './lib/authorization.js'
+import { errorEnvelope } from './lib/error-handler.js'
 import { hashPassword, isStrongPassword, verifyPassword } from './lib/password.js'
 import {
   MAX_ACTIVE_ATTACHMENTS,
@@ -774,11 +775,4 @@ app.patch(
 )
 
 // Standard error envelope (api-spec.md §0.2). Never leaks internals.
-app.use(
-  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error(err)
-    res.status(500).json({
-      error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' },
-    })
-  },
-)
+app.use(errorEnvelope)

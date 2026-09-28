@@ -85,6 +85,23 @@ describe('requireRole (api-spec.md §0.1 role rule)', () => {
     expect(next).toHaveBeenCalledOnce()
     expect(res.statusCode).toBeUndefined()
   })
+
+  // PR #49 review: cheap insurance for a route mounted without `requireAuth`
+  // running first — a misconfiguration should surface as 401, not a bare
+  // TypeError that the error envelope can only report as a 500.
+  it('401 UNAUTHENTICATED instead of throwing when req.user is not set', () => {
+    const req = {} as never
+    const res = mockRes()
+    const next = vi.fn()
+
+    requireRole('IT_STAFF')(req, res as never, next)
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.statusCode).toBe(401)
+    expect(res.body).toEqual({
+      error: { code: 'UNAUTHENTICATED', message: 'You must be signed in to continue.' },
+    })
+  })
 })
 
 describe('isOwner (BR-03)', () => {

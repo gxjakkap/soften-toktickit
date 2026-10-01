@@ -680,3 +680,68 @@ textarea.zg-field {
 .zg-detail-full {
   grid-column: 1 / -1;
 }
+
+/* Ticket Queue filter panel — ui-spec.md §5. Collapsed behind one Filters
+   control rather than five always-visible dropdowns. */
+.zg-filter-panel {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, 1fr);
+  padding: var(--zg-space-4);
+}
+
+@media (max-width: 991px) {
+  .zg-filter-panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-filter-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zg-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-chip {
+  align-items: center;
+  background: var(--zg-pale);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 999px;
+  color: var(--zg-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  gap: var(--zg-space-1);
+  padding: 2px var(--zg-space-2);
+}
+
+.zg-chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  padding: 0;
+}
+
+/* Full-page Forbidden state — ui-spec.md §5/§6/§7, shared by every
+   role-gated screen a wrong role reaches by direct URL. */
+.zg-forbidden {
+  margin: var(--zg-space-6) auto 0;
+  max-width: 480px;
+  text-align: center;
+}
+
+.zg-sort-indicator {
+  color: var(--zg-text);
+  font-size: 13px;
+}

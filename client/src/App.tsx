@@ -4,6 +4,8 @@ import CreateTicket from './CreateTicket'
 import Login from './Login'
 import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
+import StaffTicketDetailPlaceholder from './StaffTicketDetailPlaceholder'
+import StaffTicketQueue from './StaffTicketQueue'
 import { AuthProvider } from './AuthContext'
 import { useAuth } from './useAuth'
 import SystemCheck from './SystemCheck'
@@ -37,6 +39,10 @@ export function AppRoutes() {
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
+        <Route path="/staff/tickets" element={<StaffTicketQueue />} />
+        {/* Issue #7's screen; a stub keeps the Queue's "open" action usable
+            until Ticket Detail lands (ui-spec.md §5/§6). */}
+        <Route path="/staff/tickets/:id" element={<StaffTicketDetailPlaceholder />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/tickets" replace />} />

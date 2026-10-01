@@ -71,10 +71,10 @@ describe('Ticket Queue / Detail role guards (api-spec.md §4)', () => {
     expect(res.body.error.code).toBe('FORBIDDEN')
   })
 
-  it('passes an IT Staff caller through to the stub (proves the guard chain, not the feature)', async () => {
+  it('allows an IT Staff caller through the guard chain (Issue #6: the Queue itself)', async () => {
     const cookie = await loginCookie(email('staff'))
     const res = await request(app).get('/api/staff/tickets').set('Cookie', cookie)
-    expect(res.status).toBe(501)
+    expect(res.status).toBe(200)
   })
 
   it('403 FORBIDDEN when an Administrator calls the Queue (BR-40/AC-37)', async () => {

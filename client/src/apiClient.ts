@@ -9,6 +9,8 @@ import type {
   TicketComment,
   TicketDetail,
   TicketListResponse,
+  TicketQueueResponse,
+  TicketQueueSortField,
   TicketSortField,
   TicketStatus,
 } from './types'
@@ -117,6 +119,38 @@ export function fetchTickets(params: TicketListParams = {}): Promise<TicketListR
   const qs = query.toString()
   return fetch(`/api/tickets${qs ? `?${qs}` : ''}`).then((res) =>
     parseJsonOrThrow<TicketListResponse>(res),
+  )
+}
+
+export type TicketQueueParams = {
+  search?: string
+  categoryId?: number
+  requestedPriority?: RequestedPriority
+  itPriority?: RequestedPriority
+  status?: TicketStatus
+  ownerId?: number | 'unassigned'
+  sortBy?: TicketQueueSortField
+  sortDir?: SortDirection
+  page?: number
+  pageSize?: number
+}
+
+// api-spec.md §4.1: every param optional, omitted from the query string when unset.
+export function fetchStaffTickets(params: TicketQueueParams = {}): Promise<TicketQueueResponse> {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.categoryId !== undefined) query.set('categoryId', String(params.categoryId))
+  if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
+  if (params.itPriority) query.set('itPriority', params.itPriority)
+  if (params.status) query.set('status', params.status)
+  if (params.ownerId !== undefined) query.set('ownerId', String(params.ownerId))
+  if (params.sortBy) query.set('sortBy', params.sortBy)
+  if (params.sortDir) query.set('sortDir', params.sortDir)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  const qs = query.toString()
+  return fetch(`/api/staff/tickets${qs ? `?${qs}` : ''}`).then((res) =>
+    parseJsonOrThrow<TicketQueueResponse>(res),
   )
 }
 

@@ -46,13 +46,38 @@ function AppShell({ children }: { children: ReactNode }) {
             id="zg-header-collapsible"
             className={`zg-header-collapsible${menuOpen ? ' is-open' : ''}`}
           >
+            {/* ui-spec.md §1: nav is role-scoped — a role only ever sees its
+                own destinations; hiding a link is UX, not the authorization
+                mechanism (FR-06 enforces the real boundary server-side). */}
             <nav className="zg-nav" aria-label="Main">
-              <NavLink to="/tickets" className={navClass} end onClick={() => setMenuOpen(false)}>
-                My Tickets
-              </NavLink>
-              <NavLink to="/tickets/new" className={navClass} onClick={() => setMenuOpen(false)}>
-                Create Ticket
-              </NavLink>
+              {user?.role === 'REQUESTER' && (
+                <>
+                  <NavLink
+                    to="/tickets"
+                    className={navClass}
+                    end
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My Tickets
+                  </NavLink>
+                  <NavLink
+                    to="/tickets/new"
+                    className={navClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Create Ticket
+                  </NavLink>
+                </>
+              )}
+              {user?.role === 'IT_STAFF' && (
+                <NavLink
+                  to="/staff/tickets"
+                  className={navClass}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Ticket Queue
+                </NavLink>
+              )}
             </nav>
 
             <div className="zg-header-requester">

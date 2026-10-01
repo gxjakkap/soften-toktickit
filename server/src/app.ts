@@ -22,6 +22,7 @@ import {
   isAllowedAttachment,
 } from './lib/attachment-validation.js'
 import { withSerializableRetry } from './lib/serializable-retry.js'
+import { TICKET_STATUSES, canTransition } from './lib/ticket-status.js'
 
 export const app = express()
 
@@ -303,16 +304,6 @@ const SORTABLE_FIELDS = [
   'requestedPriority',
   'currentStatus',
 ] as const
-const STATUSES = [
-  'NEW',
-  'OPEN',
-  'IN_PROGRESS',
-  'WAITING_FOR_REQUESTER',
-  'RESOLVED',
-  'CLOSED',
-  'REOPENED',
-  'CANCELLED',
-]
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 50
 
@@ -369,7 +360,7 @@ app.get('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, re
   }
 
   if (req.query.status !== undefined) {
-    if (!STATUSES.includes(req.query.status as string)) {
+    if (!TICKET_STATUSES.includes(req.query.status as string)) {
       return res.status(400).json({
         error: {
           code: 'INVALID_FILTER',
@@ -449,6 +440,9 @@ app.get('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, re
 
 class UnsupportedFileTypeError extends Error {}
 class AttachmentLimitReachedError extends Error {}
+class TicketNotFoundError extends Error {}
+class TicketAlreadyOwnedError extends Error {}
+class InvalidTransitionError extends Error {}
 
 const uploadSingleFile = upload.single('file')
 
@@ -895,7 +889,7 @@ app.get('/api/staff/tickets', ...requireAuth, requireRole('IT_STAFF'), async (re
   }
 
   if (req.query.status !== undefined) {
-    if (!STATUSES.includes(req.query.status as string)) {
+    if (!TICKET_STATUSES.includes(req.query.status as string)) {
       return res.status(400).json({
         error: {
           code: 'INVALID_FILTER',
@@ -991,24 +985,347 @@ app.get('/api/staff/tickets', ...requireAuth, requireRole('IT_STAFF'), async (re
     hasAnyTickets,
   })
 })
-// §4.2 (FR-13, FR-28, BR-40): the one read-only Administrator exception.
+// Issue #7: active IT Staff, {id, name} only, name ascending. Not in the
+// original api-spec.md §4 contract — added to feed ui-spec.md §6's Reassign
+// dropdown, since no existing endpoint an IT Staff caller may call lists
+// other IT Staff users (/api/admin/users is Administrator-only, FR-20).
+// Documented as api-spec.md §4.1b / specification.md §8.7.
+app.get('/api/staff/it-staff-users', ...requireAuth, requireRole('IT_STAFF'), async (_req, res) => {
+  const staff = await prisma.user.findMany({
+    where: { role: 'IT_STAFF', isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
+  res.json(staff)
+})
+
+// api-spec.md §4.2 (FR-13, FR-28, BR-04, BR-40): same shape as the Requester
+// detail (§3.3), plus `ownerId` (needed by the client to decide Claim-button
+// visibility and preselect the Reassign dropdown — not in the illustrative
+// response shape, but additive) and, unlike §3.3, every Comment/Note
+// regardless of visibility — this is the one place BR-04's Administrator
+// promise is actually reachable.
 app.get(
   '/api/staff/tickets/:id',
   ...requireAuth,
   requireRole('IT_STAFF', 'ADMINISTRATOR'),
-  notImplemented,
+  async (req, res) => {
+    const ticketId = Number(req.params.id)
+    const ticket = Number.isInteger(ticketId)
+      ? await prisma.ticket.findUnique({
+          where: { id: ticketId },
+          select: {
+            id: true,
+            ticketNumber: true,
+            requester: { select: { id: true, name: true } },
+            ownerId: true,
+            owner: { select: { name: true } },
+            itPriority: true,
+            requesterConfirmedResolvedAt: true,
+            category: { select: { id: true, name: true } },
+            relatedSystem: { select: { id: true, name: true } },
+            requestedPriority: true,
+            summary: true,
+            description: true,
+            currentStatus: true,
+            createdAt: true,
+            updatedAt: true,
+            attachments: {
+              select: {
+                id: true,
+                originalFileName: true,
+                mimeType: true,
+                sizeBytes: true,
+                uploadedAt: true,
+                isRemoved: true,
+                removedAt: true,
+              },
+            },
+            comments: {
+              orderBy: { createdAt: 'asc' },
+              select: {
+                id: true,
+                visibility: true,
+                content: true,
+                createdAt: true,
+                author: { select: { name: true, role: true } },
+              },
+            },
+          },
+        })
+      : null
+
+    if (!ticket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    const { owner, comments, ...responseBody } = ticket
+    res.json({
+      ...responseBody,
+      ownerName: owner?.name ?? null,
+      comments: comments.map((c) => ({
+        id: c.id,
+        authorName: c.author.name,
+        authorRole: c.author.role,
+        visibility: c.visibility,
+        content: c.content,
+        createdAt: c.createdAt,
+      })),
+    })
+  },
 )
-// §4.3-4.7 (FR-14..19): every Queue mutation is IT Staff only, no exception.
-app.patch('/api/staff/tickets/:id/claim', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
-app.patch('/api/staff/tickets/:id/owner', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+
+// api-spec.md §4.3 (FR-14, BR-19, AC-38). Serializable so two concurrent
+// claims on the same unassigned Ticket can't both read "unowned" and both
+// win — one must see the other's write and 409.
+app.patch(
+  '/api/staff/tickets/:id/claim',
+  ...requireAuth,
+  requireRole('IT_STAFF'),
+  async (req, res) => {
+    const staff = req.user!
+    const ticketId = Number(req.params.id)
+    if (!Number.isInteger(ticketId)) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    try {
+      const result = await withSerializableRetry(prisma, async (tx) => {
+        const ticket = await tx.ticket.findUnique({
+          where: { id: ticketId },
+          select: { ownerId: true },
+        })
+        if (!ticket) throw new TicketNotFoundError()
+        if (ticket.ownerId !== null && ticket.ownerId !== staff.id) {
+          throw new TicketAlreadyOwnedError()
+        }
+        // BR-19: claiming a Ticket the caller already owns is a no-op.
+        if (ticket.ownerId === staff.id) {
+          return { id: ticketId, ownerId: staff.id, ownerName: staff.name }
+        }
+        const updated = await tx.ticket.update({
+          where: { id: ticketId },
+          data: { ownerId: staff.id },
+          select: { id: true, owner: { select: { name: true } } },
+        })
+        return { id: updated.id, ownerId: staff.id, ownerName: updated.owner!.name }
+      })
+      res.json(result)
+    } catch (err) {
+      if (err instanceof TicketNotFoundError) {
+        return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+      }
+      if (err instanceof TicketAlreadyOwnedError) {
+        return res.status(409).json({
+          error: {
+            code: 'ALREADY_OWNED',
+            message:
+              'This Ticket is already owned by another IT Staff member. Use Reassign instead.',
+          },
+        })
+      }
+      throw err
+    }
+  },
+)
+
+// api-spec.md §4.4 (FR-15, BR-20): no ownership precondition — any active
+// IT Staff id (including the caller's own), or null to clear.
+app.patch(
+  '/api/staff/tickets/:id/owner',
+  ...requireAuth,
+  requireRole('IT_STAFF'),
+  async (req, res) => {
+    const ticketId = Number(req.params.id)
+    if (!Number.isInteger(ticketId)) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    let ownerId: number | null
+    if (req.body?.ownerId === null) {
+      ownerId = null
+    } else {
+      const candidate = Number(req.body?.ownerId)
+      const candidateUser = Number.isInteger(candidate)
+        ? await prisma.user.findUnique({ where: { id: candidate } })
+        : null
+      if (!candidateUser || candidateUser.role !== 'IT_STAFF' || !candidateUser.isActive) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_OWNER',
+            message: 'ownerId must reference an active IT Staff user, or be null.',
+            field: 'ownerId',
+          },
+        })
+      }
+      ownerId = candidateUser.id
+    }
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } })
+    if (!ticket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    const updated = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { ownerId },
+      select: { id: true, ownerId: true, owner: { select: { name: true } } },
+    })
+    res.json({ id: updated.id, ownerId: updated.ownerId, ownerName: updated.owner?.name ?? null })
+  },
+)
+
+// api-spec.md §4.5 (FR-16, BR-21).
 app.patch(
   '/api/staff/tickets/:id/priority',
   ...requireAuth,
   requireRole('IT_STAFF'),
-  notImplemented,
+  async (req, res) => {
+    const ticketId = Number(req.params.id)
+    const itPriority = req.body?.itPriority
+    if (!PRIORITIES.includes(itPriority)) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'itPriority must be LOW, MEDIUM, or HIGH.',
+          field: 'itPriority',
+        },
+      })
+    }
+
+    const ticket = Number.isInteger(ticketId)
+      ? await prisma.ticket.findUnique({ where: { id: ticketId } })
+      : null
+    if (!ticket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    const updated = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { itPriority },
+      select: { id: true, itPriority: true },
+    })
+    res.json(updated)
+  },
 )
-app.patch('/api/staff/tickets/:id/status', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
-app.post('/api/staff/tickets/:id/comments', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+
+// api-spec.md §4.6 (FR-17, BR-22, specification.md §7). Serializable so a
+// transition validated against a current status can't be applied against a
+// status that changed underneath it between the read and the write.
+app.patch(
+  '/api/staff/tickets/:id/status',
+  ...requireAuth,
+  requireRole('IT_STAFF'),
+  async (req, res) => {
+    const ticketId = Number(req.params.id)
+    const status = req.body?.status
+    if (!TICKET_STATUSES.includes(status)) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'status is not a recognized Current Status.',
+          field: 'status',
+        },
+      })
+    }
+    if (!Number.isInteger(ticketId)) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    try {
+      const updated = await withSerializableRetry(prisma, async (tx) => {
+        const ticket = await tx.ticket.findUnique({
+          where: { id: ticketId },
+          select: { currentStatus: true },
+        })
+        if (!ticket) throw new TicketNotFoundError()
+        if (!canTransition(ticket.currentStatus, status)) throw new InvalidTransitionError()
+        return tx.ticket.update({
+          where: { id: ticketId },
+          data: { currentStatus: status },
+          select: { id: true, currentStatus: true },
+        })
+      })
+      res.json(updated)
+    } catch (err) {
+      if (err instanceof TicketNotFoundError) {
+        return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+      }
+      if (err instanceof InvalidTransitionError) {
+        return res.status(409).json({
+          error: {
+            code: 'INVALID_TRANSITION',
+            message: 'This status change is not permitted from the Ticket’s current status.',
+          },
+        })
+      }
+      throw err
+    }
+  },
+)
+
+// api-spec.md §4.7 (FR-18, FR-19, BR-26..30). Unlike §3.7, `visibility` is
+// accepted from the client — this is the one caller allowed to write INTERNAL.
+app.post(
+  '/api/staff/tickets/:id/comments',
+  ...requireAuth,
+  requireRole('IT_STAFF'),
+  async (req, res) => {
+    const staff = req.user!
+    const ticketId = Number(req.params.id)
+
+    const visibility = req.body?.visibility
+    if (visibility !== 'PUBLIC' && visibility !== 'INTERNAL') {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'visibility must be PUBLIC or INTERNAL.',
+          field: 'visibility',
+        },
+      })
+    }
+
+    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
+    if (content.length < 1 || content.length > COMMENT_CONTENT_MAX) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Comment must be between 1 and ${COMMENT_CONTENT_MAX} characters.`,
+          field: 'content',
+        },
+      })
+    }
+
+    const ticket = Number.isInteger(ticketId)
+      ? await prisma.ticket.findUnique({ where: { id: ticketId } })
+      : null
+    if (!ticket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    }
+
+    const comment = await prisma.ticketComment.create({
+      data: { ticketId: ticket.id, authorId: staff.id, visibility, content },
+      select: {
+        id: true,
+        ticketId: true,
+        visibility: true,
+        content: true,
+        createdAt: true,
+        author: { select: { name: true, role: true } },
+      },
+    })
+
+    res.status(201).json({
+      id: comment.id,
+      ticketId: comment.ticketId,
+      authorName: comment.author.name,
+      authorRole: comment.author.role,
+      visibility: comment.visibility,
+      content: comment.content,
+      createdAt: comment.createdAt,
+    })
+  },
+)
 
 // §5 (FR-20..23): every Admin User Management endpoint is Administrator only.
 app.get('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)

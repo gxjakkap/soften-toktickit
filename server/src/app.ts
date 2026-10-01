@@ -210,7 +210,7 @@ const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH']
 app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
   const requester = req.user!
 
-  const summary = typeof req.body.summary === 'string' ? req.body.summary.trim() : ''
+  const summary = typeof req.body?.summary === 'string' ? req.body.summary.trim() : ''
   if (summary.length < SUMMARY_MIN || summary.length > SUMMARY_MAX) {
     return res.status(400).json({
       error: {
@@ -221,7 +221,7 @@ app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, r
     })
   }
 
-  const description = typeof req.body.description === 'string' ? req.body.description.trim() : ''
+  const description = typeof req.body?.description === 'string' ? req.body.description.trim() : ''
   if (description.length < DESCRIPTION_MIN || description.length > DESCRIPTION_MAX) {
     return res.status(400).json({
       error: {
@@ -232,7 +232,7 @@ app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, r
     })
   }
 
-  const requestedPriority = req.body.requestedPriority
+  const requestedPriority = req.body?.requestedPriority
   if (!PRIORITIES.includes(requestedPriority)) {
     return res.status(400).json({
       error: {
@@ -243,7 +243,7 @@ app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, r
     })
   }
 
-  const categoryId = Number(req.body.categoryId)
+  const categoryId = Number(req.body?.categoryId)
   const category = Number.isInteger(categoryId)
     ? await prisma.category.findUnique({ where: { id: categoryId } })
     : null
@@ -257,7 +257,7 @@ app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, r
     })
   }
 
-  const relatedSystemId = Number(req.body.relatedSystemId)
+  const relatedSystemId = Number(req.body?.relatedSystemId)
   const relatedSystem = Number.isInteger(relatedSystemId)
     ? await prisma.relatedSystem.findUnique({ where: { id: relatedSystemId } })
     : null
@@ -754,7 +754,7 @@ app.post(
       return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
     }
 
-    const content = typeof req.body.content === 'string' ? req.body.content.trim() : ''
+    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
     if (content.length < 1 || content.length > COMMENT_CONTENT_MAX) {
       return res.status(400).json({
         error: {

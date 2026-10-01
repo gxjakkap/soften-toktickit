@@ -101,8 +101,8 @@ chromium` once, first time only):
 pnpm e2e
 ```
 
-This runs the full user-flow suite (`e2e/lab-02/requester-ticket-flow.spec.ts`)
-and the Section 14 screenshot/visual-regression suite
-(`e2e/lab-02/screenshots.spec.ts`), which writes to
-`artifacts/lab-02/screenshots/`. If the server/client aren't already
-running, Playwright starts them itself (see `playwright.config.ts`).
+This runs the full user-flow suites (`e2e/lab-02/requester-ticket-flow.spec.ts`,
+`e2e/lab-03/requester-comments-and-resolved.spec.ts`) and the Section 14
+screenshot/visual-regression suite (`e2e/lab-03/screenshots.spec.ts`), which
+writes to `artifacts/lab-03/screenshots/`. If the server/client aren't
+already running, Playwright starts them itself (see `playwright.config.ts`).

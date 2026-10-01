@@ -8,9 +8,9 @@ import {
   REQUESTERS,
   VIEWPORTS,
   waitForCreateTicketReady,
-} from './helpers'
+} from '../lab-02/helpers'
 
-const PHOTO_FIXTURE = path.join(__dirname, 'fixtures/valid-photo.png')
+const PHOTO_FIXTURE = path.join(__dirname, '../lab-02/fixtures/valid-photo.png')
 // Not committed to the repo: an .exe-named fixture with a DOS-header magic
 // byte can get quarantined by antivirus on clone/checkout. Written fresh to
 // the OS temp dir instead — the server only checks extension + declared
@@ -22,13 +22,16 @@ fs.writeFileSync(
 )
 
 const shot = (...parts: string[]) =>
-  path.join(__dirname, '../../artifacts/lab-02/screenshots', ...parts)
+  path.join(__dirname, '../../artifacts/lab-03/screenshots', ...parts)
 
-// Issue #5: Lab 2's Development Requester Selection screen (and its
-// dedicated screenshot audit below) is gone — replaced by session auth.
-// Lab 3's Login screen is a minimal placeholder (see client/src/Login.tsx),
-// not the real ui-spec.md §2 screen Issue #9 will build, so it isn't given
-// an equivalent visual-audit block here.
+// Issue #5: moved from e2e/lab-02/ — these flows are session-authenticated
+// now, so re-capturing them is Lab 3 evidence (handout §12), and this file
+// writes to artifacts/lab-03/screenshots/ rather than overwriting Lab 2's
+// already-submitted artifacts/lab-02/screenshots/. Lab 2's Development
+// Requester Selection screen (and its dedicated screenshot audit) is gone
+// — replaced by session auth. Lab 3's Login screen is a minimal placeholder
+// (see client/src/Login.tsx), not the real ui-spec.md §2 screen Issue #9
+// will build, so it isn't given an equivalent visual-audit block here.
 
 // ---------------------------------------------------------------------------
 // Section 14: Create Ticket flow states.

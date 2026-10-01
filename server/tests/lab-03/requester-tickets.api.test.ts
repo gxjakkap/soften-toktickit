@@ -120,6 +120,19 @@ describe('POST /api/tickets (session-derived identity)', () => {
     expect(res.status).toBe(201)
     expect(res.body.itPriority).toBe('HIGH')
   })
+
+  it('400s VALIDATION_ERROR, not 500, on a body-less request (Express 5 leaves req.body undefined)', async () => {
+    const cookie = await ownerCookie()
+
+    const res = await request(app)
+      .post('/api/tickets')
+      .set('Cookie', cookie)
+      .set('Content-Type', 'text/plain')
+      .send()
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
 })
 
 describe('GET /api/tickets (session-derived identity)', () => {
@@ -254,6 +267,20 @@ describe('POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30)', () => {
     expect(res.status).toBe(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
     expect(res.body.error.field).toBe('content')
+  })
+
+  it('400s VALIDATION_ERROR, not 500, on a body-less request (Express 5 leaves req.body undefined)', async () => {
+    const cookie = await ownerCookie()
+    const ticketId = await createOwnedTicket(cookie)
+
+    const res = await request(app)
+      .post(`/api/tickets/${ticketId}/comments`)
+      .set('Cookie', cookie)
+      .set('Content-Type', 'text/plain')
+      .send()
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 
   it('404s when the Ticket is not owned by the caller (no existence leak)', async () => {

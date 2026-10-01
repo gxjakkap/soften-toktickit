@@ -14,7 +14,12 @@ import {
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
 import { permittedTransitions } from './lib/ticket-status'
 import { useAuth } from './useAuth'
-import type { ActiveStaffUser, RequestedPriority, StaffTicketDetail, TicketStatus } from './types'
+import type {
+  ActiveStaffUser,
+  RequestedPriority,
+  StaffTicketDetail as StaffTicketDetailData,
+  TicketStatus,
+} from './types'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -39,7 +44,7 @@ function StaffTicketDetail() {
   const allowed = user?.role === 'IT_STAFF'
 
   const [state, setState] = useState<LoadState>('loading')
-  const [ticket, setTicket] = useState<StaffTicketDetail | null>(null)
+  const [ticket, setTicket] = useState<StaffTicketDetailData | null>(null)
   const [itStaff, setItStaff] = useState<ActiveStaffUser[]>([])
 
   const [ownerId, setOwnerId] = useState<number | null>(null)

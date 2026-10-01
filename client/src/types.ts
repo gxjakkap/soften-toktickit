@@ -76,6 +76,40 @@ export type TicketListResponse = {
   hasAnyTickets: boolean
 }
 
+// api-spec.md §4.1 (BR-32): the IT Staff Ticket Queue's own row shape and
+// sortable-field set, distinct from My Tickets' (no `summary` sort, adds
+// `updatedAt`/`itPriority`; no `categoryId`/`requesterId`, since the Queue
+// isn't ownership-scoped and only shows derived display fields).
+export type TicketQueueItem = {
+  id: number
+  ticketNumber: string
+  summary: string
+  categoryName: string
+  requestedPriority: RequestedPriority
+  itPriority: RequestedPriority
+  currentStatus: TicketStatus
+  ownerName: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type TicketQueueSortField =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'ticketNumber'
+  | 'requestedPriority'
+  | 'itPriority'
+  | 'currentStatus'
+
+export type TicketQueueResponse = {
+  data: TicketQueueItem[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+  hasAnyTickets: boolean
+}
+
 export type Attachment = {
   id: number
   ticketId: number

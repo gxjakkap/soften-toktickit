@@ -10,3 +10,12 @@ export const testUser: AuthUser = {
   role: 'REQUESTER',
   mustChangePassword: false,
 }
+
+// Issue #6: the IT Staff Ticket Queue's own fixture identity.
+export const testStaffUser: AuthUser = {
+  id: 12,
+  name: 'Sarah Johnson',
+  email: 'sarah.johnson@example.com',
+  role: 'IT_STAFF',
+  mustChangePassword: false,
+}

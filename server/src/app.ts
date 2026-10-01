@@ -833,8 +833,164 @@ const notImplemented: express.RequestHandler = (_req, res) => {
   })
 }
 
-// §4.1 (FR-12, BR-31): IT Staff only.
-app.get('/api/staff/tickets', ...requireAuth, requireRole('IT_STAFF'), notImplemented)
+const QUEUE_SORTABLE_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'ticketNumber',
+  'requestedPriority',
+  'itPriority',
+  'currentStatus',
+] as const
+
+// api-spec.md §4.1 (FR-12, BR-31, BR-32, AC-22..26, AC-38 n/a here). The
+// shared Ticket Queue: not ownership-scoped (BR-31), so `where` carries no
+// requesterId/ownerId base filter the way /api/tickets does. Default sort is
+// createdAt asc — oldest first (specification.md §12-8) — the opposite
+// default from My Tickets.
+app.get('/api/staff/tickets', ...requireAuth, requireRole('IT_STAFF'), async (req, res) => {
+  const where: Prisma.TicketWhereInput = {}
+
+  if (typeof req.query.categoryId === 'string' && req.query.categoryId.trim() !== '') {
+    const categoryId = Number(req.query.categoryId)
+    const category = Number.isInteger(categoryId)
+      ? await prisma.category.findUnique({ where: { id: categoryId } })
+      : null
+    if (!category) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'categoryId does not reference a known Category.',
+          field: 'categoryId',
+        },
+      })
+    }
+    where.categoryId = categoryId
+  }
+
+  if (req.query.requestedPriority !== undefined) {
+    if (!PRIORITIES.includes(req.query.requestedPriority as string)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'requestedPriority must be LOW, MEDIUM, or HIGH.',
+          field: 'requestedPriority',
+        },
+      })
+    }
+    where.requestedPriority = req.query
+      .requestedPriority as Prisma.TicketWhereInput['requestedPriority']
+  }
+
+  if (req.query.itPriority !== undefined) {
+    if (!PRIORITIES.includes(req.query.itPriority as string)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'itPriority must be LOW, MEDIUM, or HIGH.',
+          field: 'itPriority',
+        },
+      })
+    }
+    where.itPriority = req.query.itPriority as Prisma.TicketWhereInput['itPriority']
+  }
+
+  if (req.query.status !== undefined) {
+    if (!STATUSES.includes(req.query.status as string)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_FILTER',
+          message: 'status is not a recognized Current Status.',
+          field: 'status',
+        },
+      })
+    }
+    where.currentStatus = req.query.status as Prisma.TicketWhereInput['currentStatus']
+  }
+
+  if (req.query.ownerId !== undefined) {
+    if (req.query.ownerId === 'unassigned') {
+      where.ownerId = null
+    } else {
+      const ownerId = Number(req.query.ownerId)
+      if (!Number.isInteger(ownerId)) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_FILTER',
+            message: 'ownerId must be an integer id or "unassigned".',
+            field: 'ownerId',
+          },
+        })
+      }
+      where.ownerId = ownerId
+    }
+  }
+
+  if (typeof req.query.search === 'string' && req.query.search.trim() !== '') {
+    const search = req.query.search.trim()
+    where.OR = [
+      { ticketNumber: { contains: search, mode: 'insensitive' } },
+      { summary: { contains: search, mode: 'insensitive' } },
+    ]
+  }
+
+  const sortBy = req.query.sortBy === undefined ? 'createdAt' : (req.query.sortBy as string)
+  if (!(QUEUE_SORTABLE_FIELDS as readonly string[]).includes(sortBy)) {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_FILTER',
+        message: 'sortBy is not a recognized column.',
+        field: 'sortBy',
+      },
+    })
+  }
+
+  const sortDir = req.query.sortDir === undefined ? 'asc' : (req.query.sortDir as string)
+  if (sortDir !== 'asc' && sortDir !== 'desc') {
+    return res.status(400).json({
+      error: { code: 'INVALID_FILTER', message: 'sortDir must be asc or desc.', field: 'sortDir' },
+    })
+  }
+
+  const page = clampPage(req.query.page)
+  const pageSize = clampPageSize(req.query.pageSize)
+
+  const [totalCount, hasAnyTickets, data] = await Promise.all([
+    prisma.ticket.count({ where }),
+    // api-spec.md §4.1: system-wide, unfiltered — distinguishes the true
+    // empty Queue from these-filters-match-nothing (AC-25/AC-26), unlike My
+    // Tickets' hasAnyTickets which scopes to the one Requester.
+    prisma.ticket.count({ take: 1 }).then((c) => c > 0),
+    prisma.ticket.findMany({
+      where,
+      // Tie-break on id in the same direction keeps pagination deterministic
+      // when rows tie on sortBy (same precedent as /api/tickets above).
+      orderBy: [{ [sortBy]: sortDir }, { id: sortDir }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { category: { select: { name: true } }, owner: { select: { name: true } } },
+    }),
+  ])
+
+  res.json({
+    data: data.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      categoryName: t.category.name,
+      requestedPriority: t.requestedPriority,
+      itPriority: t.itPriority,
+      currentStatus: t.currentStatus,
+      ownerName: t.owner?.name ?? null,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    })),
+    page,
+    pageSize,
+    totalCount,
+    totalPages: Math.ceil(totalCount / pageSize),
+    hasAnyTickets,
+  })
+})
 // §4.2 (FR-13, FR-28, BR-40): the one read-only Administrator exception.
 app.get(
   '/api/staff/tickets/:id',

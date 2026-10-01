@@ -1,24 +1,26 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import AppShell from './AppShell'
 import CreateTicket from './CreateTicket'
-import DevRequesterSelection from './DevRequesterSelection'
+import Login from './Login'
 import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
-import { RequesterProvider } from './RequesterContext'
-import { useRequester } from './useRequester'
+import { AuthProvider } from './AuthContext'
+import { useAuth } from './useAuth'
 import SystemCheck from './SystemCheck'
 
-/** BR-12: no selected Requester means every Requester-scoped screen bounces to
- *  the selection screen, whether reached by nav or by a pasted URL. */
-function RequireRequester() {
-  const { requester } = useRequester()
-  if (!requester) return <Navigate to="/select-requester" replace />
+/** BR-03: no authenticated session means every protected screen bounces to
+ *  Login, whether reached by nav or by a pasted URL. */
+function RequireAuth() {
+  const { user, status } = useAuth()
+  if (status === 'loading') return null
+  if (!user) return <Navigate to="/login" replace />
 
   return (
     <AppShell>
-      {/* FR-13: keying on the requester id remounts every Requester-scoped
-          screen on a switch, so their data reloads instead of going stale. */}
-      <div key={requester.id} data-testid="requester-scope" data-requester-id={requester.id}>
+      {/* Keying on the user id remounts every protected screen on a
+          session change, so their data reloads instead of going stale
+          (carried forward from Lab 2's FR-13 requester-switch behavior). */}
+      <div key={user.id} data-testid="auth-scope">
         <Outlet />
       </div>
     </AppShell>
@@ -28,10 +30,10 @@ function RequireRequester() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/select-requester" element={<DevRequesterSelection />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/system-check" element={<SystemCheck />} />
 
-      <Route element={<RequireRequester />}>
+      <Route element={<RequireAuth />}>
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
@@ -45,9 +47,9 @@ export function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <RequesterProvider>
+      <AuthProvider>
         <AppRoutes />
-      </RequesterProvider>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

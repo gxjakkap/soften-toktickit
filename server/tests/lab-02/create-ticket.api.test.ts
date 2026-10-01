@@ -2,23 +2,34 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../../src/app.js'
 import { prisma } from '../../src/db.js'
+import { hashPassword } from '../../src/lib/password.js'
+import { loginCookie } from '../helpers/auth.js'
 
 // API-01..05 (AC-01, AC-04, AC-05, AC-06; BR-01, BR-02, BR-07, BR-08, BR-12,
 // BR-20, BR-21) plus the api-spec.md §4 INVALID_REFERENCE cases for an
 // invalid/inactive Category or Related System.
+//
+// Lab 3 (BR-03, BR-16): the Requester now comes from the session, not a
+// client-supplied requesterId, so every request here authenticates first.
+// API-05's old "inactive/unknown requesterId" cases no longer apply as
+// written — an inactive account cannot obtain a session at all (covered by
+// auth.api.test.ts's INACTIVE_ACCOUNT case) — and are replaced below by the
+// AC-03 case proving a spoofed requesterId in the body is ignored.
 
 const TAG = 'create-ticket.test.invalid'
+const PASSWORD = 'DevPass123!'
 
 let activeRequesterId: number
-let inactiveRequesterId: number
+let otherRequesterId: number
 let activeCategoryId: number
 let inactiveCategoryId: number
 let activeRelatedSystemId: number
 let inactiveRelatedSystemId: number
+let cookie: string
 
 async function wipe() {
   await prisma.ticket.deleteMany({
-    where: { requesterId: { in: [activeRequesterId, inactiveRequesterId].filter(Boolean) } },
+    where: { requesterId: { in: [activeRequesterId, otherRequesterId].filter(Boolean) } },
   })
   await prisma.user.deleteMany({ where: { email: { contains: TAG } } })
   await prisma.category.deleteMany({ where: { name: { contains: TAG } } })
@@ -27,7 +38,6 @@ async function wipe() {
 
 function validBody(overrides: Record<string, unknown> = {}) {
   return {
-    requesterId: activeRequesterId,
     categoryId: activeCategoryId,
     relatedSystemId: activeRelatedSystemId,
     requestedPriority: 'MEDIUM',
@@ -38,26 +48,16 @@ function validBody(overrides: Record<string, unknown> = {}) {
 }
 
 beforeAll(async () => {
+  const passwordHash = await hashPassword(PASSWORD)
   const activeRequester = await prisma.user.create({
-    data: {
-      passwordHash: 'not-a-real-hash',
-      role: 'REQUESTER',
-      name: 'Active Fixture',
-      email: `active.${TAG}`,
-      isActive: true,
-    },
+    data: { passwordHash, role: 'REQUESTER', name: 'Active Fixture', email: `active.${TAG}` },
   })
-  const inactiveRequester = await prisma.user.create({
-    data: {
-      passwordHash: 'not-a-real-hash',
-      role: 'REQUESTER',
-      name: 'Inactive Fixture',
-      email: `inactive.${TAG}`,
-      isActive: false,
-    },
+  const otherRequester = await prisma.user.create({
+    data: { passwordHash, role: 'REQUESTER', name: 'Other Fixture', email: `other.${TAG}` },
   })
   activeRequesterId = activeRequester.id
-  inactiveRequesterId = inactiveRequester.id
+  otherRequesterId = otherRequester.id
+  cookie = await loginCookie(app, `active.${TAG}`, PASSWORD)
 
   const activeCategory = await prisma.category.create({ data: { name: `Category Active ${TAG}` } })
   const inactiveCategory = await prisma.category.create({
@@ -84,7 +84,7 @@ async function ticketCountForRequester() {
 
 describe('POST /api/tickets', () => {
   it('API-01 (AC-01, BR-01, BR-02): creates a Ticket and returns 201 with a unique Ticket Number', async () => {
-    const res = await request(app).post('/api/tickets').send(validBody())
+    const res = await request(app).post('/api/tickets').set('Cookie', cookie).send(validBody())
 
     expect(res.status).toBe(201)
     expect(res.body.ticketNumber).toMatch(/^TKT-\d{4}-\d{6}$/)
@@ -93,7 +93,7 @@ describe('POST /api/tickets', () => {
     expect(res.body.categoryId).toBe(activeCategoryId)
     expect(res.body.relatedSystemId).toBe(activeRelatedSystemId)
 
-    const second = await request(app).post('/api/tickets').send(validBody())
+    const second = await request(app).post('/api/tickets').set('Cookie', cookie).send(validBody())
     expect(second.status).toBe(201)
     expect(second.body.ticketNumber).not.toBe(res.body.ticketNumber)
 
@@ -106,6 +106,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ summary: '' }))
 
     expect(res.status).toBe(400)
@@ -119,6 +120,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ description: 'too short' }))
 
     expect(res.status).toBe(400)
@@ -132,6 +134,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ requestedPriority: undefined }))
 
     expect(res.status).toBe(400)
@@ -140,28 +143,27 @@ describe('POST /api/tickets', () => {
     expect(await ticketCountForRequester()).toBe(before)
   })
 
-  it('API-05 (BR-12): rejects an inactive requesterId and inserts nothing', async () => {
-    const before = await prisma.ticket.count({ where: { categoryId: activeCategoryId } })
+  it('API-05 (AC-03, BR-03, BR-12): ignores a client-supplied requesterId and files the Ticket under the session owner', async () => {
+    const before = await ticketCountForRequester()
 
     const res = await request(app)
       .post('/api/tickets')
-      .send(validBody({ requesterId: inactiveRequesterId }))
+      .set('Cookie', cookie)
+      .send(validBody({ requesterId: otherRequesterId }))
 
-    expect(res.status).toBe(400)
-    expect(res.body.error.code).toBe('INVALID_REQUESTER')
-    expect(await prisma.ticket.count({ where: { categoryId: activeCategoryId } })).toBe(before)
+    expect(res.status).toBe(201)
+    expect(res.body.requesterId).toBe(activeRequesterId)
+    expect(await ticketCountForRequester()).toBe(before + 1)
   })
 
-  it('API-05 (BR-12): rejects an unknown requesterId and inserts nothing', async () => {
-    const before = await prisma.ticket.count({ where: { categoryId: activeCategoryId } })
+  it('401s with no session', async () => {
+    const before = await ticketCountForRequester()
 
-    const res = await request(app)
-      .post('/api/tickets')
-      .send(validBody({ requesterId: -999 }))
+    const res = await request(app).post('/api/tickets').send(validBody())
 
-    expect(res.status).toBe(400)
-    expect(res.body.error.code).toBe('INVALID_REQUESTER')
-    expect(await prisma.ticket.count({ where: { categoryId: activeCategoryId } })).toBe(before)
+    expect(res.status).toBe(401)
+    expect(res.body.error.code).toBe('UNAUTHENTICATED')
+    expect(await ticketCountForRequester()).toBe(before)
   })
 
   it('rejects an inactive Category with INVALID_REFERENCE and inserts nothing', async () => {
@@ -169,6 +171,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ categoryId: inactiveCategoryId }))
 
     expect(res.status).toBe(400)
@@ -182,6 +185,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ categoryId: -999 }))
 
     expect(res.status).toBe(400)
@@ -194,6 +198,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ relatedSystemId: inactiveRelatedSystemId }))
 
     expect(res.status).toBe(400)
@@ -207,6 +212,7 @@ describe('POST /api/tickets', () => {
 
     const res = await request(app)
       .post('/api/tickets')
+      .set('Cookie', cookie)
       .send(validBody({ relatedSystemId: -999 }))
 
     expect(res.status).toBe(400)

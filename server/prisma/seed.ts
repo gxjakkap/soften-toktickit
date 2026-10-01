@@ -26,10 +26,12 @@ const DEV_PASSWORD = 'DevPass123!'
 
 type Role = 'REQUESTER' | 'IT_STAFF' | 'ADMINISTRATOR'
 
-// specification.md §8.4: 4 active + 1 inactive Requester, 3 active + 1 inactive
+// specification.md §8.4: 5 active + 1 inactive Requester, 3 active + 1 inactive
 // IT Staff, 1 Administrator. Siriporn is the deterministic mustChangePassword
-// fixture for the first-login flow (BR-02/BR-11). Inactive accounts must never
-// authenticate (BR-01/BR-07) or appear in the Lab 2 dev selector.
+// fixture for the first-login flow (BR-02/BR-11); Emma is the empty-account
+// fixture (Issue #5) — Siriporn can no longer serve both roles once real auth
+// gates every protected route on mustChangePassword. Inactive accounts must
+// never authenticate (BR-01/BR-07).
 const users: {
   name: string
   email: string
@@ -52,6 +54,16 @@ const users: {
     mustChangePassword: true,
   },
   { name: 'David Chen', email: 'david.chen@example.com', role: 'REQUESTER', isActive: true },
+  // Issue #5: a Requester who is both active and free of the mustChangePassword
+  // gate, with zero seeded Tickets — Siriporn can no longer double as the
+  // empty-account fixture now that real auth enforces that gate on every
+  // protected route, blocking a ticket-list check entirely.
+  {
+    name: 'Emma Watson',
+    email: 'emma.watson@example.com',
+    role: 'REQUESTER',
+    isActive: true,
+  },
   {
     name: 'Patricia Reyes',
     email: 'patricia.reyes@example.com',
@@ -124,7 +136,9 @@ const ticketSeeds = [
   ...ticketSpecs('jennifer.anderson@example.com', 14), // exceeds page 1 at the default page size of 10
   ...ticketSpecs('michael.brown@example.com', 3),
   ...ticketSpecs('david.chen@example.com', 5),
-  // siriporn.wattana@example.com deliberately gets zero Tickets (empty-state demo).
+  // siriporn.wattana@example.com and emma.watson@example.com deliberately get
+  // zero Tickets — Emma is the empty-state demo/e2e fixture (Issue #5);
+  // Siriporn stays zero too, incidentally, but is seeded for mustChangePassword.
 ].map((spec, i) => ({
   ...spec,
   ticketNumber: formatTicketNumber(900001 + i, spec.createdAt.getFullYear()),

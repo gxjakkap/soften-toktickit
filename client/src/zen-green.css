@@ -463,6 +463,22 @@ textarea.zg-field {
   color: #5a5a5a;
 }
 
+/* Role badges — Lab 3 ui-spec §8. */
+.zg-badge-role-requester {
+  background: #e7eef5;
+  color: #33475b;
+}
+
+.zg-badge-role-it-staff {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-role-administrator {
+  background: #fceed1;
+  color: #8a5a00;
+}
+
 /* Desktop/tablet table (ui-spec §11.3, §8). */
 .zg-table-wrap {
   display: block;

@@ -27,13 +27,11 @@ function formatSize(bytes: number): string {
 }
 
 function AttachmentSection({
-  requesterId,
   ticketId,
   initialAttachments,
   initialFiles,
   bare,
 }: {
-  requesterId: number
   ticketId: number
   initialAttachments: Attachment[]
   /** Files already picked/validated before the Ticket existed (Create Ticket's
@@ -59,7 +57,7 @@ function AttachmentSection({
 
   async function uploadOne(item: PendingUpload) {
     try {
-      const uploaded = await uploadAttachment(requesterId, ticketId, item.file)
+      const uploaded = await uploadAttachment(ticketId, item.file)
       setAttachments((prev) => [...prev, uploaded])
       setPending((prev) => prev.filter((p) => p.localId !== item.localId))
     } catch (err) {
@@ -183,7 +181,7 @@ function AttachmentSection({
     setRemoving(true)
     setRemoveError(null)
     try {
-      const updated = await removeAttachment(requesterId, removeTarget.id, removeReason.trim())
+      const updated = await removeAttachment(removeTarget.id, removeReason.trim())
       setAttachments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
       closeRemoveDialog()
     } catch (err) {
@@ -263,10 +261,7 @@ function AttachmentSection({
               </span>
               {!attachment.isRemoved && (
                 <span className="zg-actions" style={{ justifyContent: 'flex-end' }}>
-                  <a
-                    className="zg-btn zg-btn-tertiary"
-                    href={attachmentDownloadUrl(requesterId, attachment.id)}
-                  >
+                  <a className="zg-btn zg-btn-tertiary" href={attachmentDownloadUrl(attachment.id)}>
                     Download
                   </a>
                   <button

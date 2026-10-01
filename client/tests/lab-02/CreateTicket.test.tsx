@@ -1,11 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../../src/App'
-import { REQUESTER_STORAGE_KEY, RequesterProvider } from '../../src/RequesterContext'
+import { AuthProvider } from '../../src/AuthContext'
+import { testUser } from '../helpers/auth'
 
-const requester = { id: 7, name: 'Priya Shah', email: 'priya.shah@example.com' }
 const categories = [
   { id: 1, name: 'Hardware' },
   { id: 2, name: 'Software' },
@@ -29,6 +29,7 @@ function mockApi(
   } = {},
 ) {
   const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+    if (url === '/api/auth/me') return jsonResponse(testUser)
     if (url === '/api/categories') return jsonResponse(categories)
     if (url === '/api/related-systems') return jsonResponse(relatedSystems)
     if (url === '/api/tickets' && options?.method === 'POST') {
@@ -37,7 +38,7 @@ function mockApi(
         overrides.createTicketBody ?? {
           id: 101,
           ticketNumber: 'TKT-2026-000101',
-          requesterId: requester.id,
+          requesterId: testUser.id,
           categoryId: 1,
           relatedSystemId: 5,
           requestedPriority: 'MEDIUM',
@@ -71,12 +72,11 @@ function mockApi(
 }
 
 function renderCreateTicket() {
-  localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
   return render(
     <MemoryRouter initialEntries={['/tickets/new']}>
-      <RequesterProvider>
+      <AuthProvider>
         <AppRoutes />
-      </RequesterProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -96,14 +96,9 @@ function submitButton() {
   return screen.getByRole('button', { name: /^submit$/i }) as HTMLButtonElement
 }
 
-beforeEach(() => {
-  localStorage.clear()
-})
-
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
-  localStorage.clear()
 })
 
 describe('Create Ticket initial state', () => {
@@ -117,7 +112,7 @@ describe('Create Ticket initial state', () => {
 
     expect(ticketNumber.value).toMatch(/generated after submission/i)
     expect(ticketDate.value).toMatch(/generated after submission/i)
-    expect(requesterField.value).toBe(requester.name)
+    expect(requesterField.value).toBe(testUser.name)
     expect(ticketNumber.readOnly).toBe(true)
     expect(ticketDate.readOnly).toBe(true)
     expect(requesterField.readOnly).toBe(true)
@@ -192,6 +187,7 @@ describe('UI-05 (AC-04, AC-26): blank Summary', () => {
     mockApi()
     renderCreateTicket()
 
+    await screen.findByLabelText(/category/i)
     await user.click(submitButton())
     await screen.findByText(/summary is required/i)
 
@@ -257,6 +253,7 @@ describe('UI-06 (AC-07): double-submit', () => {
     const user = userEvent.setup()
     let resolveCreate: (() => void) | undefined
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
@@ -267,7 +264,7 @@ describe('UI-06 (AC-07): double-submit', () => {
                 JSON.stringify({
                   id: 101,
                   ticketNumber: 'TKT-2026-000101',
-                  requesterId: requester.id,
+                  requesterId: testUser.id,
                   categoryId: 1,
                   relatedSystemId: 5,
                   requestedPriority: 'MEDIUM',
@@ -306,6 +303,7 @@ describe('UI-07 (AC-08): server failure preserves entered values', () => {
   it('shows a safe error message and keeps the form values, creating nothing', async () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
@@ -548,13 +546,14 @@ describe('inline attachment retry after Ticket creation', () => {
     const user = userEvent.setup()
     let attachmentAttempts = 0
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
         return jsonResponse({
           id: 101,
           ticketNumber: 'TKT-2026-000101',
-          requesterId: requester.id,
+          requesterId: testUser.id,
           categoryId: 1,
           relatedSystemId: 5,
           requestedPriority: 'MEDIUM',

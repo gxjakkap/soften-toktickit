@@ -1,25 +1,37 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
-import { ApiError, fetchTicket } from './apiClient'
-import { PriorityBadge, StatusBadge } from './badges'
-import { useRequester } from './useRequester'
-import type { TicketDetail } from './types'
+import { ApiError, fetchTicket, markResolved, postComment } from './apiClient'
+import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
+import { useAuth } from './useAuth'
+import type { TicketComment, TicketDetail } from './types'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
+const COMMENT_MAX = 2000
+
 function RequesterTicketDetail() {
   const { id } = useParams<{ id: string }>()
-  const { requester } = useRequester()
+  const { user } = useAuth()
   const [state, setState] = useState<LoadState>('loading')
   const [ticket, setTicket] = useState<TicketDetail | null>(null)
+  const [comments, setComments] = useState<TicketComment[]>([])
+  const [commentDraft, setCommentDraft] = useState('')
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
+  const [resolvedAt, setResolvedAt] = useState<string | null>(null)
+  const [confirmingResolve, setConfirmingResolve] = useState(false)
+  const [resolving, setResolving] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    if (!requester || !id) return
+    if (!user || !id) return
     setState('loading')
-    fetchTicket(requester.id, Number(id))
+    fetchTicket(Number(id))
       .then((data) => {
         setTicket(data)
+        setComments(data.comments)
+        setResolvedAt(data.requesterConfirmedResolvedAt)
         setState('ready')
       })
       .catch((err) => {
@@ -31,9 +43,45 @@ function RequesterTicketDetail() {
           setState('error')
         }
       })
-  }, [requester, id])
+  }, [user, id])
 
   useEffect(load, [load])
+
+  async function handlePostComment() {
+    if (!ticket) return
+    const content = commentDraft.trim()
+    if (!content) return
+    setCommentSubmitting(true)
+    setCommentError(null)
+    try {
+      const comment = await postComment(ticket.id, content)
+      setComments((prev) => [...prev, comment])
+      setCommentDraft('')
+    } catch (err) {
+      setCommentError(
+        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+      )
+    } finally {
+      setCommentSubmitting(false)
+    }
+  }
+
+  async function confirmMarkResolved() {
+    if (!ticket) return
+    setResolving(true)
+    setResolveError(null)
+    try {
+      const result = await markResolved(ticket.id)
+      setResolvedAt(result.requesterConfirmedResolvedAt)
+      setConfirmingResolve(false)
+    } catch (err) {
+      setResolveError(
+        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+      )
+    } finally {
+      setResolving(false)
+    }
+  }
 
   return (
     <div>
@@ -72,10 +120,35 @@ function RequesterTicketDetail() {
         </div>
       )}
 
-      {state === 'ready' && ticket && requester && (
+      {state === 'ready' && ticket && user && (
         <>
           <div className="zg-card">
-            <h1 className="zg-title">{ticket.summary}</h1>
+            {/* ui-spec.md §4: hidden once Closed/Cancelled; never itself
+                changes Current Status (BR-24, BR-25). */}
+            {ticket.currentStatus !== 'CLOSED' && ticket.currentStatus !== 'CANCELLED' && (
+              <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
+                {resolvedAt ? (
+                  <span className="zg-badge zg-badge-status-resolved" data-testid="resolved-badge">
+                    Marked resolved by you on {new Date(resolvedAt).toLocaleDateString()}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-secondary"
+                    onClick={() => {
+                      setResolveError(null)
+                      setConfirmingResolve(true)
+                    }}
+                  >
+                    Problem Appears Resolved
+                  </button>
+                )}
+              </div>
+            )}
+
+            <h1 className="zg-title" style={{ marginTop: 'var(--zg-space-3)' }}>
+              {ticket.summary}
+            </h1>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -116,11 +189,128 @@ function RequesterTicketDetail() {
             </div>
           </div>
 
-          <AttachmentSection
-            requesterId={requester.id}
-            ticketId={ticket.id}
-            initialAttachments={ticket.attachments}
-          />
+          <AttachmentSection ticketId={ticket.id} initialAttachments={ticket.attachments} />
+
+          <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
+            <h2 className="zg-section-heading">Public Comments</h2>
+
+            {comments.length === 0 ? (
+              <p className="zg-helper" style={{ marginTop: 'var(--zg-space-4)' }}>
+                No comments yet.
+              </p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, marginTop: 'var(--zg-space-4)' }}>
+                {comments.map((comment) => (
+                  <li key={comment.id} style={{ marginBottom: 'var(--zg-space-4)' }}>
+                    <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
+                      <strong>{comment.authorName}</strong>
+                      <RoleBadge role={comment.authorRole} />
+                      <span className="zg-helper">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div style={{ marginTop: 'var(--zg-space-4)' }}>
+              <label className="zg-label" htmlFor="new-comment">
+                Add a comment
+              </label>
+              <textarea
+                id="new-comment"
+                className="zg-field"
+                rows={3}
+                maxLength={COMMENT_MAX}
+                value={commentDraft}
+                disabled={commentSubmitting}
+                aria-disabled={commentSubmitting}
+                onChange={(e) => setCommentDraft(e.target.value)}
+              />
+              {commentDraft.length >= COMMENT_MAX * 0.8 && (
+                <p className="zg-helper zg-char-count">
+                  {commentDraft.length}/{COMMENT_MAX} characters
+                </p>
+              )}
+              {commentError && (
+                <p className="zg-error-message" role="alert">
+                  {commentError}
+                </p>
+              )}
+              <div className="zg-actions" style={{ marginTop: 'var(--zg-space-3)' }}>
+                <button
+                  type="button"
+                  className="zg-btn zg-btn-primary"
+                  disabled={commentSubmitting || commentDraft.trim().length === 0}
+                  aria-disabled={commentSubmitting || commentDraft.trim().length === 0}
+                  onClick={handlePostComment}
+                >
+                  {commentSubmitting ? 'Posting…' : 'Post Comment'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {confirmingResolve && (
+            <>
+              <div
+                className="modal d-block"
+                tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="resolve-confirm-title"
+              >
+                <div className="modal-dialog">
+                  <div className="modal-content zg-modal-content">
+                    <div className="modal-header">
+                      <h5 className="zg-modal-title" id="resolve-confirm-title">
+                        Problem Appears Resolved
+                      </h5>
+                      <button
+                        type="button"
+                        className="btn-close"
+                        aria-label="Close"
+                        title="Close"
+                        onClick={() => setConfirmingResolve(false)}
+                      />
+                    </div>
+                    <div className="modal-body">
+                      <p>
+                        This tells IT Staff your issue looks fixed — it does not close the Ticket.
+                        IT Staff will confirm and formally resolve it.
+                      </p>
+                      {resolveError && (
+                        <p className="zg-error-message" role="alert">
+                          {resolveError}
+                        </p>
+                      )}
+                    </div>
+                    <div className="modal-footer">
+                      <button
+                        type="button"
+                        className="zg-btn zg-btn-secondary"
+                        onClick={() => setConfirmingResolve(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="zg-btn zg-btn-primary"
+                        disabled={resolving}
+                        aria-disabled={resolving}
+                        onClick={confirmMarkResolved}
+                      >
+                        {resolving ? 'Confirming…' : 'Confirm'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-backdrop show" />
+            </>
+          )}
         </>
       )}
     </div>

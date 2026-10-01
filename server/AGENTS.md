@@ -4,7 +4,7 @@ Express 5 + Prisma 7 (`@prisma/adapter-pg`) on Postgres. ESM under `NodeNext`, s
 
 ## Routes
 
-`src/app.ts` holds every route, each headed by a comment naming its `api-spec.md` section and IDs. Resolve the caller through `resolveActiveRequester(req)` from `lib/requester-context.ts`; handlers never read `requesterId` themselves. New routes follow the same shape.
+`src/app.ts` holds every route, each headed by a comment naming its `api-spec.md` section and IDs. Requester-scoped routes resolve the caller through `requireAuth` + `requireRole('REQUESTER')` (`lib/authorization.ts`) and read identity from `req.user`, never from a client-supplied `requesterId`. New routes follow the same shape.
 
 Errors are `{ error: { code, message, field? } }`. A resource the caller does not own returns the same 404 as one that does not exist (BR-15), so ids cannot be enumerated.
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchCategories, fetchTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
-import { useRequester } from './useRequester'
+import { useAuth } from './useAuth'
 import type {
   Category,
   SortDirection,
@@ -53,7 +53,7 @@ function formatDate(iso: string): string {
 }
 
 function MyTickets() {
-  const { requester } = useRequester()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [state, setState] = useState<LoadState>('loading')
@@ -86,9 +86,9 @@ function MyTickets() {
   }, [search, categoryId, requestedPriority, status])
 
   const load = useCallback(() => {
-    if (!requester) return
+    if (!user) return
     setState('loading')
-    fetchTickets(requester.id, {
+    fetchTickets({
       search: search || undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       requestedPriority: (requestedPriority || undefined) as never,
@@ -103,7 +103,7 @@ function MyTickets() {
         setState('ready')
       })
       .catch(() => setState('error'))
-  }, [requester, search, categoryId, requestedPriority, status, sortBy, sortDir, page])
+  }, [user, search, categoryId, requestedPriority, status, sortBy, sortDir, page])
 
   useEffect(load, [load])
 

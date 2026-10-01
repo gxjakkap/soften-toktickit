@@ -1,14 +1,13 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../../src/App'
-import { REQUESTER_STORAGE_KEY, RequesterProvider } from '../../src/RequesterContext'
+import { AuthProvider } from '../../src/AuthContext'
+import { testUser } from '../helpers/auth'
 import type { TicketListItem, TicketListResponse } from '../../src/types'
 
 // UI-10..13 (AC-16, AC-18, AC-19, AC-20; BR-30).
-
-const requester = { id: 7, name: 'Priya Shah', email: 'priya.shah@example.com' }
 
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -22,7 +21,9 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
     categoryId: 1,
     categoryName: 'Hardware',
     requestedPriority: 'MEDIUM',
+    itPriority: 'MEDIUM',
     currentStatus: 'NEW',
+    ownerName: null,
     createdAt: '2026-01-01T09:00:00.000Z',
     updatedAt: '2026-01-01T09:00:00.000Z',
     ...overrides,
@@ -31,6 +32,7 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
 
 function mockApi(ticketsHandler: (url: URL) => TicketListResponse) {
   const fetchMock = vi.fn((url: string) => {
+    if (url === '/api/auth/me') return jsonResponse(testUser)
     if (url === '/api/categories')
       return jsonResponse([
         { id: 1, name: 'Hardware' },
@@ -47,24 +49,18 @@ function mockApi(ticketsHandler: (url: URL) => TicketListResponse) {
 }
 
 function renderMyTickets() {
-  localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
   return render(
     <MemoryRouter initialEntries={['/tickets']}>
-      <RequesterProvider>
+      <AuthProvider>
         <AppRoutes />
-      </RequesterProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
 
-beforeEach(() => {
-  localStorage.clear()
-})
-
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
-  localStorage.clear()
 })
 
 describe('My Tickets states', () => {

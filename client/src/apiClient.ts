@@ -1,10 +1,14 @@
 import type {
+  ActiveStaffUser,
   Attachment,
   AuthUser,
   Category,
+  CommentVisibility,
   RelatedSystem,
   RequestedPriority,
   SortDirection,
+  StaffTicketComment,
+  StaffTicketDetail,
   Ticket,
   TicketComment,
   TicketDetail,
@@ -194,4 +198,69 @@ export function markResolved(
   return fetch(`/api/tickets/${ticketId}/resolved`, { method: 'PATCH' }).then((res) =>
     parseJsonOrThrow(res),
   )
+}
+
+// api-spec.md §4.2.
+export function fetchStaffTicket(ticketId: number): Promise<StaffTicketDetail> {
+  return fetch(`/api/staff/tickets/${ticketId}`).then((res) =>
+    parseJsonOrThrow<StaffTicketDetail>(res),
+  )
+}
+
+// api-spec.md §4.1b (specification.md §8.7): feeds the Reassign dropdown.
+export function fetchActiveItStaff(): Promise<ActiveStaffUser[]> {
+  return fetch('/api/staff/it-staff-users').then((res) => parseJsonOrThrow<ActiveStaffUser[]>(res))
+}
+
+export function claimTicket(
+  ticketId: number,
+): Promise<{ id: number; ownerId: number; ownerName: string }> {
+  return fetch(`/api/staff/tickets/${ticketId}/claim`, { method: 'PATCH' }).then((res) =>
+    parseJsonOrThrow(res),
+  )
+}
+
+export function reassignTicket(
+  ticketId: number,
+  ownerId: number | null,
+): Promise<{ id: number; ownerId: number | null; ownerName: string | null }> {
+  return fetch(`/api/staff/tickets/${ticketId}/owner`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerId }),
+  }).then((res) => parseJsonOrThrow(res))
+}
+
+export function updateItPriority(
+  ticketId: number,
+  itPriority: RequestedPriority,
+): Promise<{ id: number; itPriority: RequestedPriority }> {
+  return fetch(`/api/staff/tickets/${ticketId}/priority`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itPriority }),
+  }).then((res) => parseJsonOrThrow(res))
+}
+
+export function updateTicketStatus(
+  ticketId: number,
+  status: TicketStatus,
+): Promise<{ id: number; currentStatus: TicketStatus }> {
+  return fetch(`/api/staff/tickets/${ticketId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  }).then((res) => parseJsonOrThrow(res))
+}
+
+export function postStaffComment(
+  ticketId: number,
+  visibility: CommentVisibility,
+  content: string,
+): Promise<StaffTicketComment> {
+  return fetch(`/api/staff/tickets/${ticketId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visibility, content }),
+  }).then((res) => parseJsonOrThrow<StaffTicketComment>(res))
 }

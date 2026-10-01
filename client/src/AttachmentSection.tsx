@@ -31,6 +31,7 @@ function AttachmentSection({
   initialAttachments,
   initialFiles,
   bare,
+  readOnly,
 }: {
   ticketId: number
   initialAttachments: Attachment[]
@@ -41,6 +42,9 @@ function AttachmentSection({
    *  outer card chrome Ticket Detail needs to keep this visually distinct
    *  (ui-spec §11.4). */
   bare?: boolean
+  /** ui-spec.md §6: IT Staff can view and download but not upload/remove —
+   *  attachment management stays a Requester action. */
+  readOnly?: boolean
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>(initialAttachments)
   const [pending, setPending] = useState<PendingUpload[]>([])
@@ -197,44 +201,46 @@ function AttachmentSection({
     <>
       <h2 className="zg-section-heading">Attachments</h2>
 
-      <div style={{ marginTop: 'var(--zg-space-4)' }}>
-        <label className="zg-label" htmlFor="attachments">
-          Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
-        </label>
-        <div
-          className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
-          data-testid="attachment-dropzone"
-          role="button"
-          tabIndex={atCap ? -1 : 0}
-          aria-disabled={atCap}
-          aria-label="Attach files: click to browse or drag and drop"
-          onClick={openFileBrowser}
-          onKeyDown={handleDropzoneKeyDown}
-          onDragOver={handleDragOver}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-        >
-          <input
-            id="attachments"
-            ref={fileInputRef}
-            type="file"
-            className="zg-visually-hidden"
-            tabIndex={-1}
-            accept=".jpg,.jpeg,.png,.webp,.pdf"
-            multiple
-            disabled={atCap}
-            onChange={handleFilesSelected}
-          />
-          <p className="zg-helper zg-dropzone-text">
-            Drag and drop files here, or click to browse.
-          </p>
+      {!readOnly && (
+        <div style={{ marginTop: 'var(--zg-space-4)' }}>
+          <label className="zg-label" htmlFor="attachments">
+            Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
+          </label>
+          <div
+            className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
+            data-testid="attachment-dropzone"
+            role="button"
+            tabIndex={atCap ? -1 : 0}
+            aria-disabled={atCap}
+            aria-label="Attach files: click to browse or drag and drop"
+            onClick={openFileBrowser}
+            onKeyDown={handleDropzoneKeyDown}
+            onDragOver={handleDragOver}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <input
+              id="attachments"
+              ref={fileInputRef}
+              type="file"
+              className="zg-visually-hidden"
+              tabIndex={-1}
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              multiple
+              disabled={atCap}
+              onChange={handleFilesSelected}
+            />
+            <p className="zg-helper zg-dropzone-text">
+              Drag and drop files here, or click to browse.
+            </p>
+          </div>
+          {atCap && (
+            <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
+              5-attachment limit reached. Remove a file to attach another.
+            </p>
+          )}
         </div>
-        {atCap && (
-          <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
-            5-attachment limit reached. Remove a file to attach another.
-          </p>
-        )}
-      </div>
+      )}
 
       {attachments.length === 0 && pending.length === 0 ? (
         <p className="zg-helper" style={{ marginTop: 'var(--zg-space-4)' }}>
@@ -264,13 +270,15 @@ function AttachmentSection({
                   <a className="zg-btn zg-btn-tertiary" href={attachmentDownloadUrl(attachment.id)}>
                     Download
                   </a>
-                  <button
-                    type="button"
-                    className="zg-btn zg-btn-destructive"
-                    onClick={() => openRemoveDialog(attachment)}
-                  >
-                    Remove
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="zg-btn zg-btn-destructive"
+                      onClick={() => openRemoveDialog(attachment)}
+                    >
+                      Remove
+                    </button>
+                  )}
                 </span>
               )}
             </li>

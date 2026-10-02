@@ -6,6 +6,7 @@ import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
 import StaffTicketDetail from './StaffTicketDetail'
 import StaffTicketQueue from './StaffTicketQueue'
+import UserManagement from './UserManagement'
 import { AuthProvider } from './AuthContext'
 import { useAuth } from './useAuth'
 import SystemCheck from './SystemCheck'
@@ -41,6 +42,7 @@ export function AppRoutes() {
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />
         <Route path="/staff/tickets" element={<StaffTicketQueue />} />
         <Route path="/staff/tickets/:id" element={<StaffTicketDetail />} />
+        <Route path="/admin/users" element={<UserManagement />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/tickets" replace />} />

@@ -157,3 +157,14 @@ export type StaffTicketDetail = Omit<TicketDetail, 'comments'> & {
 
 // api-spec.md §4.1b: the Reassign dropdown's option list.
 export type ActiveStaffUser = { id: number; name: string }
+
+// api-spec.md §5 (Issue #8): Administrator User Management.
+export type AdminUser = {
+  id: number
+  name: string
+  email: string
+  role: UserRole
+  isActive: boolean
+}
+
+export type AdminUserListResponse = { data: AdminUser[]; totalCount: number }

@@ -770,3 +770,73 @@ textarea.zg-field {
   color: var(--zg-text);
   font-size: 13px;
 }
+
+/* Administrator User Management — ui-spec.md §7, §9. Two panels on desktop and
+   tablet; on mobile the side panel becomes a full-screen sheet over the list. */
+.zg-um-layout {
+  display: grid;
+  gap: var(--zg-space-5);
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--zg-space-4);
+}
+
+.zg-um-layout.has-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+}
+
+.zg-um-panel {
+  align-self: start;
+}
+
+.zg-um-field {
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-um-toggle {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 600;
+  gap: var(--zg-space-2);
+}
+
+.zg-um-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+}
+
+.zg-um-password {
+  border-top: 1px solid var(--zg-field-readonly-border);
+  margin-top: var(--zg-space-5);
+  padding-top: var(--zg-space-4);
+}
+
+.zg-rule-list {
+  color: var(--zg-text);
+  font-size: 13px;
+  list-style: none;
+  margin: var(--zg-space-2) 0;
+  padding: 0;
+}
+
+.zg-rule-list li.is-met {
+  color: var(--zg-success-text);
+}
+
+@media (max-width: 767px) {
+  .zg-um-layout.has-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zg-um-layout.has-panel .zg-um-list {
+    display: none;
+  }
+
+  .zg-um-panel {
+    inset: 0;
+    overflow-y: auto;
+    position: fixed;
+    z-index: 1040;
+    border-radius: 0;
+  }
+}

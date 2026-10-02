@@ -1,5 +1,7 @@
 import type {
   ActiveStaffUser,
+  AdminUser,
+  AdminUserListResponse,
   Attachment,
   AuthUser,
   Category,
@@ -17,6 +19,7 @@ import type {
   TicketQueueSortField,
   TicketSortField,
   TicketStatus,
+  UserRole,
 } from './types'
 
 /** specification.md §11-1 (BR-31): the single frontend seam that attaches the
@@ -263,4 +266,55 @@ export function postStaffComment(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ visibility, content }),
   }).then((res) => parseJsonOrThrow<StaffTicketComment>(res))
+}
+
+// api-spec.md §5 (FR-20..23): Administrator-only user management.
+export function fetchAdminUsers(
+  params: { search?: string; role?: UserRole } = {},
+): Promise<AdminUserListResponse> {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.role) query.set('role', params.role)
+  const qs = query.toString()
+  return fetch(`/api/admin/users${qs ? `?${qs}` : ''}`).then((res) =>
+    parseJsonOrThrow<AdminUserListResponse>(res),
+  )
+}
+
+export type CreateAdminUserInput = {
+  name: string
+  email: string
+  role: UserRole
+  isActive: boolean
+  initialPassword: string
+}
+
+export function createAdminUser(input: CreateAdminUserInput): Promise<AdminUser> {
+  return fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).then((res) => parseJsonOrThrow<AdminUser>(res))
+}
+
+export function updateAdminUser(
+  id: number,
+  changes: Partial<Pick<AdminUser, 'name' | 'email' | 'role' | 'isActive'>>,
+): Promise<AdminUser> {
+  return fetch(`/api/admin/users/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes),
+  }).then((res) => parseJsonOrThrow<AdminUser>(res))
+}
+
+export function setAdminUserPassword(
+  id: number,
+  newPassword: string,
+): Promise<{ id: number; mustChangePassword: boolean }> {
+  return fetch(`/api/admin/users/${id}/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword }),
+  }).then((res) => parseJsonOrThrow(res))
 }

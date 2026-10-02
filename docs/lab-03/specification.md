@@ -477,6 +477,30 @@ Choices made while writing the auth endpoints that the contract did not fix:
   endpoints (§1.5) and role guards. `mustChangePassword` is exposed by login
   and `/api/auth/me`; enforcing it belongs with the authorization middleware.
 
+### 8.7 Implementation Notes (Issue #7)
+
+Choices made while writing the Ticket Detail ownership/priority/status/notes
+endpoints that §4–§9 did not fix:
+
+- **No contract endpoint lists IT Staff.** `ui-spec.md` §6 requires a
+  Reassign dropdown of active IT Staff users, but `/api/admin/users` is
+  Administrator-only (FR-20) and no `/api/staff/*` listing endpoint existed.
+  `GET /api/staff/it-staff-users` (IT Staff only, `{id, name}[]`, name
+  ascending) closes that gap — the smallest addition that makes FR-15
+  actually buildable, following the same precedent as FR-28/BR-40.
+- **`GET /api/staff/tickets/:id` returns `ownerId` in addition to
+  `ownerName`.** The client needs the raw id to decide Claim-button
+  visibility (`ownerId === null || ownerId === caller.id`) and to preselect
+  the Reassign dropdown; `ownerName` alone can't do either reliably.
+  Additive to the §4.2 shape, not a change to it.
+- **Claim and Status-transition run inside `withSerializableRetry`**, the
+  same guard already used for the Attachment cap: both read a precondition
+  (current owner, current status) and then write based on it, so two
+  concurrent IT Staff actions on the same Ticket need Postgres Serializable
+  isolation to avoid one overwriting the other's precondition check.
+  Reassign and Priority have no precondition to race against — any value
+  overwrites unconditionally — so a plain `update` is enough for those two.
+
 ## 9. API Contract
 
 Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:
@@ -497,6 +521,7 @@ Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:
 | PATCH | `/api/attachments/:id/remove` | Soft-remove an owned Attachment |
 | POST | `/api/tickets/:id/comments` | Post a Public Comment on an owned Ticket |
 | PATCH | `/api/tickets/:id/resolved` | Mark "Problem Appears Resolved" on an owned Ticket |
+| GET | `/api/staff/it-staff-users` | List active IT Staff users, for the Ticket Detail Reassign dropdown (IT Staff only; Issue #7 addition, §8.7) |
 | GET | `/api/staff/tickets` | Search/filter/sort/paginate the shared Ticket Queue (IT Staff only) |
 | GET | `/api/staff/tickets/:id` | Retrieve full Ticket detail, including Internal Notes (IT Staff; read-only for Administrator too — BR-04/BR-40) |
 | PATCH | `/api/staff/tickets/:id/claim` | Claim an unassigned or self-owned Ticket; rejected if someone else already owns it (BR-19) |

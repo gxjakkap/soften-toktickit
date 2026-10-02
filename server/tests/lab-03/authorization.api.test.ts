@@ -85,8 +85,13 @@ describe('Ticket Queue / Detail role guards (api-spec.md §4)', () => {
 
   it('Administrator is allowed on Ticket Detail read-only (BR-40/AC-36), Requester is not (AC-04)', async () => {
     const adminCookie = await loginCookie(email('admin'))
-    const adminRes = await request(app).get('/api/staff/tickets/1').set('Cookie', adminCookie)
-    expect(adminRes.status).toBe(501)
+    // Issue #7: the route now runs real lookup logic, so a nonexistent id
+    // 404s — proof the guard chain let the Administrator through to it,
+    // rather than stopping at the role check (which would be 403).
+    const adminRes = await request(app)
+      .get('/api/staff/tickets/999999999')
+      .set('Cookie', adminCookie)
+    expect(adminRes.status).toBe(404)
 
     const requesterCookie = await loginCookie(email('requester'))
     const requesterRes = await request(app)
@@ -111,10 +116,10 @@ describe('Ticket Queue / Detail role guards (api-spec.md §4)', () => {
     }
   })
 
-  it('an IT Staff mutation route passes the guard chain through to the stub', async () => {
+  it('an IT Staff mutation route passes the guard chain through to the real route (Issue #7)', async () => {
     const cookie = await loginCookie(email('staff'))
-    const res = await request(app).patch('/api/staff/tickets/1/claim').set('Cookie', cookie)
-    expect(res.status).toBe(501)
+    const res = await request(app).patch('/api/staff/tickets/999999999/claim').set('Cookie', cookie)
+    expect(res.status).toBe(404)
   })
 })
 

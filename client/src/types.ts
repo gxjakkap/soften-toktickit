@@ -140,3 +140,20 @@ export type TicketDetail = {
   attachments: Attachment[]
   comments: TicketComment[]
 }
+
+// api-spec.md §4.7 (BR-04): a staff-posted comment also carries which of the
+// two audiences it's for.
+export type CommentVisibility = 'PUBLIC' | 'INTERNAL'
+
+export type StaffTicketComment = TicketComment & { visibility: CommentVisibility }
+
+// api-spec.md §4.2: same shape as TicketDetail, plus `ownerId`
+// (specification.md §8.7 — needed to decide Claim-button visibility and
+// preselect the Reassign dropdown) and both comment visibilities.
+export type StaffTicketDetail = Omit<TicketDetail, 'comments'> & {
+  ownerId: number | null
+  comments: StaffTicketComment[]
+}
+
+// api-spec.md §4.1b: the Reassign dropdown's option list.
+export type ActiveStaffUser = { id: number; name: string }

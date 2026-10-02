@@ -18,6 +18,10 @@
   --zg-warning-text: #8a5a00;
   --zg-success-bg: var(--zg-pale);
   --zg-success-text: var(--zg-secondary);
+  /* ui-spec.md §6: reserved for the Internal Notes composer/background
+     contrast only — never reused as a generic warning elsewhere. */
+  --zg-internal-notes-bg: #fdf3e7;
+  --zg-internal-notes-text: #8a5a00;
 
   --zg-space-1: 4px;
   --zg-space-2: 8px;
@@ -461,6 +465,27 @@ textarea.zg-field {
 .zg-badge-status-cancelled {
   background: #eaeaea;
   color: #5a5a5a;
+}
+
+/* ui-spec.md §8: deliberately distinct from every other status color — a
+   Reopened Ticket signals "needs re-triage," not routine progress. */
+.zg-badge-status-reopened {
+  background: #efe7fb;
+  color: #5b3fa8;
+}
+
+/* ui-spec.md §6: Internal Notes card — visually distinct background so
+   private text can't be mistaken for, or typed into, the Public Comments
+   composer. */
+.zg-internal-notes {
+  background: var(--zg-internal-notes-bg);
+  border-radius: 8px;
+  padding: var(--zg-space-5);
+}
+
+.zg-internal-notes-label {
+  color: var(--zg-internal-notes-text);
+  font-weight: 600;
 }
 
 /* Role badges — Lab 3 ui-spec §8. */

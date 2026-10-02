@@ -385,6 +385,27 @@ role `IT_STAFF`; any other role receives `403 FORBIDDEN` — **except**
 are ownership-scoped (BR-31) — any active IT Staff user may act on any
 Ticket.
 
+### 4.1b `GET /api/staff/it-staff-users`
+
+**Issue #7 addition — not in the original contract.** `IT_STAFF` only.
+Feeds `ui-spec.md` §6's Reassign dropdown; no existing endpoint an IT Staff
+caller may call lists other IT Staff users. See specification.md §8.7.
+
+**200 response:**
+
+```json
+[{ "id": 3, "name": "Sarah Johnson" }, { "id": 9, "name": "Michael Brown" }]
+```
+
+Active `IT_STAFF` users only, ordered by name ascending.
+
+**Failure cases:**
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| 401 | `UNAUTHENTICATED` | No valid session. |
+| 403 | `FORBIDDEN` | Caller's role is not `IT_STAFF`. |
+
 ### 4.1 `GET /api/staff/tickets`
 
 The Ticket Queue (FR-12, BR-31, BR-32).
@@ -447,9 +468,10 @@ filters (AC-25/AC-26), the same convention as Lab 2's My Tickets.
 ### 4.2 `GET /api/staff/tickets/:id`
 
 Full Ticket detail for IT Staff (FR-13), and read-only for Administrator
-(FR-28, BR-40). Same shape as §3.3's Requester detail response, except the
-`comments` array includes both `PUBLIC` and `INTERNAL` entries (BR-04),
-each carrying `visibility`.
+(FR-28, BR-40). Same shape as §3.3's Requester detail response, plus
+`ownerId` (specification.md §8.7 — the client needs the raw id for the
+Claim/Reassign controls), except the `comments` array includes both
+`PUBLIC` and `INTERNAL` entries (BR-04), each carrying `visibility`.
 
 **Failure cases:**
 
@@ -482,7 +504,7 @@ returning the same shape unchanged.
 | 401 | `UNAUTHENTICATED` | No valid session. |
 | 403 | `FORBIDDEN` | Caller's role is not `IT_STAFF`. |
 | 404 | `NOT_FOUND` | Ticket id doesn't exist. |
-| 409 | `ALREADY_OWNED` | The Ticket is currently owned by a different active IT Staff user; use Reassign (§4.4) instead (BR-19/AC-38). |
+| 409 | `ALREADY_OWNED` | The Ticket is currently owned by a different IT Staff user (active or not — BR-19 draws no distinction); use Reassign (§4.4) instead (BR-19/AC-38). |
 
 ### 4.4 `PATCH /api/staff/tickets/:id/owner`
 

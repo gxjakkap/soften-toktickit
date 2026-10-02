@@ -504,7 +504,7 @@ returning the same shape unchanged.
 | 401 | `UNAUTHENTICATED` | No valid session. |
 | 403 | `FORBIDDEN` | Caller's role is not `IT_STAFF`. |
 | 404 | `NOT_FOUND` | Ticket id doesn't exist. |
-| 409 | `ALREADY_OWNED` | The Ticket is currently owned by a different active IT Staff user; use Reassign (§4.4) instead (BR-19/AC-38). |
+| 409 | `ALREADY_OWNED` | The Ticket is currently owned by a different IT Staff user (active or not — BR-19 draws no distinction); use Reassign (§4.4) instead (BR-19/AC-38). |
 
 ### 4.4 `PATCH /api/staff/tickets/:id/owner`
 

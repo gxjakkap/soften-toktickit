@@ -1161,17 +1161,28 @@ app.patch(
       ownerId = candidateUser.id
     }
 
-    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } })
-    if (!ticket) {
-      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+    try {
+      // Serializable, matching Claim (§4.3): Reassign has no precondition of
+      // its own, but a plain-isolation write here is invisible to Claim's SSI
+      // conflict check, so a Reassign landing between Claim's read and write
+      // gets silently overwritten instead of one of the two retrying (PR #52
+      // review). Running both at Serializable makes Postgres see the conflict.
+      const updated = await withSerializableRetry(prisma, async (tx) => {
+        const ticket = await tx.ticket.findUnique({ where: { id: ticketId } })
+        if (!ticket) throw new TicketNotFoundError()
+        return tx.ticket.update({
+          where: { id: ticketId },
+          data: { ownerId },
+          select: { id: true, ownerId: true, owner: { select: { name: true } } },
+        })
+      })
+      res.json({ id: updated.id, ownerId: updated.ownerId, ownerName: updated.owner?.name ?? null })
+    } catch (err) {
+      if (err instanceof TicketNotFoundError) {
+        return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+      }
+      throw err
     }
-
-    const updated = await prisma.ticket.update({
-      where: { id: ticketId },
-      data: { ownerId },
-      select: { id: true, ownerId: true, owner: { select: { name: true } } },
-    })
-    res.json({ id: updated.id, ownerId: updated.ownerId, ownerName: updated.owner?.name ?? null })
   },
 )
 

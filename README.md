@@ -77,10 +77,11 @@ cd server && pnpm dev   # http://localhost:3001
 cd client && pnpm dev   # http://localhost:5173
 ```
 
-The app opens on a minimal Login screen (`/login`) — sign in with a seeded
-account's email and the shared dev password above to reach the Requester
-screens. This is a placeholder pending the full styled Login screen; it is
-real session authentication, not a testing shortcut. The Lab 1 system check
+The app opens on the Login screen (`/login`) — sign in with a seeded
+account's email and the shared dev password above. A role's default landing
+screen follows automatically (Requester -> My Tickets, IT Staff -> Ticket
+Queue, Administrator -> User Management); an account with a mandatory
+password change is routed to Change Password first. The Lab 1 system check
 now lives at `/system-check`.
 
 ## Testing
@@ -93,16 +94,27 @@ cd server && pnpm test  # Vitest + Supertest
 ### End-to-end and visual/responsive tests (Playwright)
 
 Requires the seeded database (`pnpm prisma:seed`, above) — the E2E suite
-signs in as seeded Requesters by email/password. From the repo root, with
-the server and client already running (`pnpm exec playwright install
-chromium` once, first time only):
+signs in as seeded accounts by email/password. From the repo root, with the
+server and client already running (`pnpm exec playwright install chromium`
+once, first time only):
 
 ```bash
 pnpm e2e
 ```
 
 This runs the full user-flow suites (`e2e/lab-02/requester-ticket-flow.spec.ts`,
-`e2e/lab-03/requester-comments-and-resolved.spec.ts`) and the Section 14
-screenshot/visual-regression suite (`e2e/lab-03/screenshots.spec.ts`), which
-writes to `artifacts/lab-03/screenshots/`. If the server/client aren't
-already running, Playwright starts them itself (see `playwright.config.ts`).
+`e2e/lab-03/requester-comments-and-resolved.spec.ts`,
+`e2e/lab-03/staff-ticket-flow.spec.ts`, `e2e/lab-03/user-administration.spec.ts`)
+and the screenshot/visual-regression suites (`e2e/lab-03/screenshots.spec.ts`,
+`e2e/lab-03/staff-and-admin-screenshots.spec.ts`), which write to
+`artifacts/lab-03/screenshots/`. If the server/client aren't already
+running, Playwright starts them itself (see `playwright.config.ts`).
+
+### Everything, one command
+
+```bash
+pnpm test
+```
+
+Runs the server suite, the client suite, and the full Playwright suite, in
+that order, from the repo root.

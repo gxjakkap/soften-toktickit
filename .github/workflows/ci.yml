@@ -34,7 +34,14 @@ jobs:
       - run: pnpm exec oxfmt --check
       - run: pnpm --filter server build
       - run: pnpm --filter client build
-      - run: pnpm --filter client test
+      - run: pnpm --filter client test -- --reporter=default --reporter=json --outputFile.json=client-test-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-test-results
+          path: client/client-test-results.json
+          if-no-files-found: ignore
+          retention-days: 1
 
   server:
     name: Server tests
@@ -66,7 +73,14 @@ jobs:
       - run: pnpm --filter server prisma:generate
       - run: pnpm --filter server exec prisma migrate deploy
       - run: pnpm --filter server prisma:seed
-      - run: pnpm --filter server test
+      - run: pnpm --filter server test -- --reporter=default --reporter=json --outputFile.json=server-test-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-test-results
+          path: server/server-test-results.json
+          if-no-files-found: ignore
+          retention-days: 1
 
   e2e:
     name: Playwright e2e
@@ -99,10 +113,19 @@ jobs:
       - run: pnpm --filter server exec prisma migrate deploy
       - run: pnpm --filter server prisma:seed
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm e2e
+      - run: pnpm e2e -- --reporter=list,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-test-results.json
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-results
           path: test-results/
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: e2e-test-results.json
+          if-no-files-found: ignore
+          retention-days: 1

@@ -329,6 +329,38 @@ body {
   border-color: var(--zg-error-border);
 }
 
+/* Login §2 / Change Password §3: the show/hide toggle sits inside the field
+   rather than taking its own column, so the layout matches a plain field. */
+.zg-password-field {
+  position: relative;
+}
+
+.zg-password-field .zg-field {
+  padding-right: calc(var(--zg-space-3) + 28px);
+}
+
+.zg-password-toggle {
+  align-items: center;
+  background: none;
+  border: none;
+  bottom: 0;
+  color: var(--zg-secondary);
+  cursor: pointer;
+  display: flex;
+  padding: 0 var(--zg-space-3);
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.zg-banner-warning {
+  background: var(--zg-warning-bg);
+  border: 1px solid var(--zg-warning-text);
+  border-radius: 6px;
+  color: var(--zg-warning-text);
+  padding: var(--zg-space-3);
+}
+
 .zg-field:disabled,
 .zg-field[aria-disabled='true'] {
   cursor: not-allowed;

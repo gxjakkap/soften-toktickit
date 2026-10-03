@@ -11,12 +11,14 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, createTicket, fetchCategories, fetchRelatedSystems } from './apiClient'
+import Forbidden from './Forbidden'
 import {
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   ensureFileName,
   isAllowedFile,
 } from './lib/attachment-validation'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
 
@@ -82,6 +84,9 @@ function initialFormState() {
 function CreateTicket() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  // !user: the session hasn't resolved yet — defer judgment rather than
+  // flashing Forbidden before the role is even known.
+  const allowed = !user || user.role === 'REQUESTER'
 
   const [refState, setRefState] = useState<RefState>('loading')
   const [categories, setCategories] = useState<Category[]>([])
@@ -99,6 +104,7 @@ function CreateTicket() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadReferenceData = () => {
+    if (!allowed) return
     setRefState('loading')
     Promise.all([fetchCategories(), fetchRelatedSystems()])
       .then(([cats, systems]) => {
@@ -109,7 +115,7 @@ function CreateTicket() {
       .catch(() => setRefState('error'))
   }
 
-  useEffect(loadReferenceData, [])
+  useEffect(loadReferenceData, [allowed])
 
   useEffect(() => {
     function handlePaste(event: ClipboardEvent) {
@@ -290,6 +296,17 @@ function CreateTicket() {
   }
 
   const disabled = submitting || createdTicket !== null
+
+  // specification.md §12-14: an IT Staff or Administrator reaching this
+  // Requester route directly gets the full-page forbidden state.
+  if (!allowed) {
+    return (
+      <Forbidden
+        testId="create-ticket-forbidden"
+        homeTo={user ? roleHomePath(user.role) : '/login'}
+      />
+    )
+  }
 
   return (
     <div className="zg-card">

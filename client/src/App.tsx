@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import AppShell from './AppShell'
+import ChangePassword from './ChangePassword'
 import CreateTicket from './CreateTicket'
+import { roleHomePath } from './lib/role-routes'
 import Login from './Login'
 import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
@@ -12,11 +14,14 @@ import { useAuth } from './useAuth'
 import SystemCheck from './SystemCheck'
 
 /** BR-03: no authenticated session means every protected screen bounces to
- *  Login, whether reached by nav or by a pasted URL. */
+ *  Login, whether reached by nav or by a pasted URL. FR-02/AC-02: a user who
+ *  must change their password cannot reach any other authenticated screen
+ *  until they do. */
 function RequireAuth() {
   const { user, status } = useAuth()
   if (status === 'loading') return null
   if (!user) return <Navigate to="/login" replace />
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />
 
   return (
     <AppShell>
@@ -30,10 +35,29 @@ function RequireAuth() {
   )
 }
 
+/** ui-spec.md §3: this screen is reachable only while mustChangePassword is
+ *  true — once satisfied, it redirects to the role's own landing screen. */
+function RequireAuthForPasswordChange() {
+  const { user, status } = useAuth()
+  if (status === 'loading') return null
+  if (!user) return <Navigate to="/login" replace />
+  if (!user.mustChangePassword) return <Navigate to={roleHomePath(user.role)} replace />
+  return <ChangePassword />
+}
+
+function DefaultRedirect() {
+  const { user, status } = useAuth()
+  if (status === 'loading') return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />
+  return <Navigate to={roleHomePath(user.role)} replace />
+}
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/change-password" element={<RequireAuthForPasswordChange />} />
       <Route path="/system-check" element={<SystemCheck />} />
 
       <Route element={<RequireAuth />}>
@@ -45,7 +69,7 @@ export function AppRoutes() {
         <Route path="/admin/users" element={<UserManagement />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/tickets" replace />} />
+      <Route path="*" element={<DefaultRedirect />} />
     </Routes>
   )
 }

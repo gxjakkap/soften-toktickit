@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchCategories, fetchStaffTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
+import Forbidden from './Forbidden'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
   Category,
@@ -209,21 +211,7 @@ function StaffTicketQueue() {
   // gets a full-page forbidden state, never a silent redirect — the API
   // already returns 403 (BR-40/AC-37), so the client has a real reason to show.
   if (!allowed) {
-    return (
-      <div className="zg-forbidden" data-testid="queue-forbidden">
-        <i className="bi bi-shield-lock" aria-hidden="true" style={{ fontSize: '32px' }} />
-        <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
-          You don't have access to this page.
-        </p>
-        <Link
-          to="/tickets"
-          className="zg-btn zg-btn-secondary"
-          style={{ marginTop: 'var(--zg-space-3)' }}
-        >
-          Back to your home page
-        </Link>
-      </div>
-    )
+    return <Forbidden testId="queue-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }
 
   return (

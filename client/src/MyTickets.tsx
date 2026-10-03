@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchCategories, fetchTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
+import Forbidden from './Forbidden'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
   Category,
@@ -55,6 +57,10 @@ function formatDate(iso: string): string {
 function MyTickets() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  // !user: the session hasn't resolved yet (direct-render tests, or a brief
+  // window before RequireAuth would normally gate this) — defer judgment
+  // rather than flashing Forbidden before the role is even known.
+  const allowed = !user || user.role === 'REQUESTER'
 
   const [state, setState] = useState<LoadState>('loading')
   const [response, setResponse] = useState<TicketListResponse | null>(null)
@@ -70,10 +76,11 @@ function MyTickets() {
   const [page, setPage] = useState(1)
 
   useEffect(() => {
+    if (!allowed) return
     fetchCategories()
       .then(setCategories)
       .catch(() => setCategories([]))
-  }, [])
+  }, [allowed])
 
   // AC-16: the list narrows as the Requester types, without a request per keystroke.
   useEffect(() => {
@@ -86,7 +93,7 @@ function MyTickets() {
   }, [search, categoryId, requestedPriority, status])
 
   const load = useCallback(() => {
-    if (!user) return
+    if (!user || !allowed) return
     setState('loading')
     fetchTickets({
       search: search || undefined,
@@ -103,7 +110,7 @@ function MyTickets() {
         setState('ready')
       })
       .catch(() => setState('error'))
-  }, [user, search, categoryId, requestedPriority, status, sortBy, sortDir, page])
+  }, [user, allowed, search, categoryId, requestedPriority, status, sortBy, sortDir, page])
 
   useEffect(load, [load])
 
@@ -135,6 +142,15 @@ function MyTickets() {
   const rangeStart =
     response && response.totalCount > 0 ? (response.page - 1) * response.pageSize + 1 : 0
   const rangeEnd = response ? Math.min(response.page * response.pageSize, response.totalCount) : 0
+
+  // specification.md §12-14: an IT Staff or Administrator reaching this
+  // Requester route directly gets the same full-page forbidden state as
+  // the IT Staff/Administrator screens, never a silent error banner.
+  if (!allowed) {
+    return (
+      <Forbidden testId="my-tickets-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
+    )
+  }
 
   return (
     <div>

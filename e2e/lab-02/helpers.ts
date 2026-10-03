@@ -40,14 +40,20 @@ export async function loginViaApi(
 
 /** Drives the real Login screen UI — used where the test's point is to
  *  exercise the actual sign-in flow, not just get a session as fast as
- *  possible. Lab 3's Login screen is a minimal placeholder (see Login.tsx);
- *  the full ui-spec.md §2 screen is Issue #9's job. */
-export async function loginViaUi(page: Page, email: string, password = SEED_PASSWORD) {
+ *  possible. `expectedUrl` defaults to a Requester's landing screen; pass
+ *  the caller's actual role-default (or '**\/change-password') for other
+ *  accounts (ui-spec.md §2). */
+export async function loginViaUi(
+  page: Page,
+  email: string,
+  password = SEED_PASSWORD,
+  expectedUrl = '**/tickets',
+) {
   await page.goto('/login')
   await page.getByLabel(/email address/i).fill(email)
   await page.getByLabel(/^password/i).fill(password)
   await page.getByRole('button', { name: 'Sign In' }).click()
-  await page.waitForURL('**/tickets')
+  await page.waitForURL(expectedUrl)
 }
 
 /** Create Ticket's Category/Related System selects render as soon as the

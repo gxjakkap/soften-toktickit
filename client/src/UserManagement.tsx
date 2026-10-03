@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import {
   ApiError,
   createAdminUser,
@@ -8,7 +7,10 @@ import {
   updateAdminUser,
 } from './apiClient'
 import { RoleBadge } from './badges'
-import { PASSWORD_RULES, isStrongPassword } from './lib/password-rules'
+import Forbidden from './Forbidden'
+import { isStrongPassword } from './lib/password-rules'
+import { roleHomePath } from './lib/role-routes'
+import PasswordChecklist from './PasswordChecklist'
 import { useAuth } from './useAuth'
 import type { AdminUser, UserRole } from './types'
 
@@ -34,23 +36,6 @@ function StatusPill({ active }: { active: boolean }) {
       <i className={`bi ${active ? 'bi-check-circle' : 'bi-slash-circle'}`} aria-hidden="true" />
       {active ? 'Active' : 'Inactive'}
     </span>
-  )
-}
-
-function PasswordChecklist({ value }: { value: string }) {
-  return (
-    <ul className="zg-rule-list" aria-label="Password rules">
-      {PASSWORD_RULES.map((rule) => {
-        const ok = rule.test(value)
-        return (
-          <li key={rule.label} className={ok ? 'is-met' : undefined}>
-            <i className={`bi ${ok ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" />
-            {rule.label}
-            <span className="zg-visually-hidden">{ok ? ' (met)' : ' (not met)'}</span>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 
@@ -431,21 +416,7 @@ function UserManagement() {
   // ui-spec.md §7: a non-Administrator reaching this route gets a full-page
   // forbidden state, not a redirect; the API rejects them with 403 regardless.
   if (!allowed) {
-    return (
-      <div className="zg-forbidden" data-testid="users-forbidden">
-        <i className="bi bi-shield-lock" aria-hidden="true" style={{ fontSize: '32px' }} />
-        <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
-          You don't have access to this page.
-        </p>
-        <Link
-          to="/tickets"
-          className="zg-btn zg-btn-secondary"
-          style={{ marginTop: 'var(--zg-space-3)' }}
-        >
-          Back to your home page
-        </Link>
-      </div>
-    )
+    return <Forbidden testId="users-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }
 
   const filtered = search !== '' || role !== ''

@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
+import Forbidden from './Forbidden'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { TicketComment, TicketDetail } from './types'
 
@@ -13,6 +15,9 @@ const COMMENT_MAX = 2000
 function RequesterTicketDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  // !user: the session hasn't resolved yet — defer judgment rather than
+  // flashing Forbidden before the role is even known.
+  const allowed = !user || user.role === 'REQUESTER'
   const [state, setState] = useState<LoadState>('loading')
   const [ticket, setTicket] = useState<TicketDetail | null>(null)
   const [comments, setComments] = useState<TicketComment[]>([])
@@ -25,7 +30,7 @@ function RequesterTicketDetail() {
   const [resolveError, setResolveError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    if (!user || !id) return
+    if (!user || !id || !allowed) return
     setState('loading')
     fetchTicket(Number(id))
       .then((data) => {
@@ -43,7 +48,7 @@ function RequesterTicketDetail() {
           setState('error')
         }
       })
-  }, [user, id])
+  }, [user, id, allowed])
 
   useEffect(load, [load])
 
@@ -81,6 +86,18 @@ function RequesterTicketDetail() {
     } finally {
       setResolving(false)
     }
+  }
+
+  // specification.md §12-14: an IT Staff or Administrator reaching this
+  // Requester route directly gets the full-page forbidden state, with no
+  // Ticket request made.
+  if (!allowed) {
+    return (
+      <Forbidden
+        testId="requester-detail-forbidden"
+        homeTo={user ? roleHomePath(user.role) : '/login'}
+      />
+    )
   }
 
   return (

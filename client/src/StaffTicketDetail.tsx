@@ -12,7 +12,9 @@ import {
   updateTicketStatus,
 } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
+import Forbidden from './Forbidden'
 import { permittedTransitions } from './lib/ticket-status'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
   ActiveStaffUser,
@@ -210,19 +212,7 @@ function StaffTicketDetail() {
   // Administrator's read-only API access (BR-40) has no UI entry point.
   if (!allowed) {
     return (
-      <div className="zg-forbidden" data-testid="detail-forbidden">
-        <i className="bi bi-shield-lock" aria-hidden="true" style={{ fontSize: '32px' }} />
-        <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
-          You don't have access to this page.
-        </p>
-        <Link
-          to="/tickets"
-          className="zg-btn zg-btn-secondary"
-          style={{ marginTop: 'var(--zg-space-3)' }}
-        >
-          Back to your home page
-        </Link>
-      </div>
+      <Forbidden testId="detail-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
     )
   }
 

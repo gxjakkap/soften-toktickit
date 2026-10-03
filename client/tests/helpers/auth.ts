@@ -19,3 +19,12 @@ export const testStaffUser: AuthUser = {
   role: 'IT_STAFF',
   mustChangePassword: false,
 }
+
+// Issue #8: the Administrator User Management fixture identity.
+export const testAdminUser: AuthUser = {
+  id: 21,
+  name: 'Alex Morgan',
+  email: 'alex.morgan@example.com',
+  role: 'ADMINISTRATOR',
+  mustChangePassword: false,
+}

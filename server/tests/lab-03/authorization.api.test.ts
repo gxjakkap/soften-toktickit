@@ -142,10 +142,10 @@ describe('Admin User Management role guards (api-spec.md §5)', () => {
     expect(res.status).toBe(403)
   })
 
-  it('passes an Administrator caller through to the stub', async () => {
+  it('passes an Administrator caller through to the handler', async () => {
     const cookie = await loginCookie(email('admin'))
     const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
-    expect(res.status).toBe(501)
+    expect(res.status).toBe(200)
   })
 })
 

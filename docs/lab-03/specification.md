@@ -501,6 +501,33 @@ endpoints that §4–§9 did not fix:
   Reassign and Priority have no precondition to race against — any value
   overwrites unconditionally — so a plain `update` is enough for those two.
 
+### 8.8 Implementation Notes (Issue #8)
+
+Choices made while writing Administrator User Management that §4–§9 did not fix:
+
+- **Field name**: the contract and schema call the flag `mustChangePassword`;
+  the issue text said `requiresPasswordChange`. The contract name is used.
+- **Status code for the safety rules**: `api-spec.md` §0.3 lists self-deactivation
+  and last-Administrator under `403`, while §5.3's table gives `409`
+  (`SELF_DEACTIVATION`, `LAST_ADMINISTRATOR`). The endpoint table is followed,
+  since it is the more specific one. `403` stays for a wrong role.
+- **Last active Administrator**: an edit is rejected when the target is an active
+  Administrator and the result would no longer be one (deactivated, or role
+  changed) and no other active Administrator exists. Only an active
+  Administrator can call the API, so in practice this fires when the sole
+  Administrator changes their own role (self-deactivation is caught first). An
+  Administrator may demote themself while another active Administrator remains;
+  their sessions are then deleted (BR-34). The check and write run in one
+  Serializable transaction.
+- **Role validation**: `role` must be exactly `REQUESTER`, `IT_STAFF` or
+  `ADMINISTRATOR` (case-sensitive); lower-case, arrays and missing values are
+  `400 VALIDATION_ERROR` with `field: "role"`. An unknown `role` query filter is
+  `400 INVALID_FILTER`; an empty `role=` is treated as no filter.
+- **PATCH body**: only supplied fields change; an empty body is `400`. Sessions
+  are deleted only when `isActive` goes true to false or the role actually changes.
+- **Navigation**: the "User Management" link and `/admin/users` route were added
+  so the screen is reachable. The Login/Change Password screens remain Issue #9.
+
 ## 9. API Contract
 
 Full detail lives in [`api-spec.md`](./api-spec.md). Endpoint summary:

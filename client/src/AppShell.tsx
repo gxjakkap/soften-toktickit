@@ -78,6 +78,11 @@ function AppShell({ children }: { children: ReactNode }) {
                   Ticket Queue
                 </NavLink>
               )}
+              {user?.role === 'ADMINISTRATOR' && (
+                <NavLink to="/admin/users" className={navClass} onClick={() => setMenuOpen(false)}>
+                  User Management
+                </NavLink>
+              )}
             </nav>
 
             <div className="zg-header-requester">

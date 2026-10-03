@@ -818,15 +818,6 @@ app.patch(
   },
 )
 
-// Issue #4: authorization-only stubs for the Ticket Queue/Detail (api-spec.md
-// §4) and Admin User Management (§5). Each proves the role/ownership guard
-// chain end-to-end; the business logic behind it is a later issue's job.
-const notImplemented: express.RequestHandler = (_req, res) => {
-  res.status(501).json({
-    error: { code: 'NOT_IMPLEMENTED', message: 'This endpoint is not implemented yet.' },
-  })
-}
-
 const QUEUE_SORTABLE_FIELDS = [
   'createdAt',
   'updatedAt',
@@ -1338,15 +1329,285 @@ app.post(
   },
 )
 
-// §5 (FR-20..23): every Admin User Management endpoint is Administrator only.
-app.get('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
-app.post('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
-app.patch('/api/admin/users/:id', ...requireAuth, requireRole('ADMINISTRATOR'), notImplemented)
+// api-spec.md §5 (FR-20..23, FR-25..27): every Admin User Management endpoint is
+// Administrator only (Issue #4 guard). Admin scope is user accounts only
+// (BR-40); nothing here touches Tickets.
+const USER_ROLES = ['REQUESTER', 'IT_STAFF', 'ADMINISTRATOR'] as const
+type AdminUserRole = (typeof USER_ROLES)[number]
+const isUserRole = (v: unknown): v is AdminUserRole =>
+  typeof v === 'string' && (USER_ROLES as readonly string[]).includes(v)
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const WEAK_PASSWORD_MESSAGE =
+  'Password must be at least 8 characters with an uppercase letter, a lowercase letter, a number, and a special character.'
+
+const adminUserShape = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  isActive: true,
+} as const
+
+const fieldError = (code: string, message: string, field: string) => ({
+  error: { code, message, field },
+})
+const duplicateEmail = {
+  error: {
+    code: 'DUPLICATE_EMAIL',
+    message: 'A user with this email already exists.',
+    field: 'email',
+  },
+}
+
+// Thrown inside a transaction to abort it with a ready-made response.
+class AdminRuleError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super('admin rule')
+  }
+}
+
+const isUniqueViolation = (err: unknown) =>
+  err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+
+// api-spec.md §5.1 (FR-20, BR-38, BR-39): name/email partial match AND an
+// optional role filter, name ascending, never paginated.
+app.get('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), async (req, res) => {
+  const { search, role } = req.query
+  if (role !== undefined && role !== '' && !isUserRole(role)) {
+    return res.status(400).json({
+      error: { code: 'INVALID_FILTER', message: 'Unrecognized role filter.', field: 'role' },
+    })
+  }
+  const term = typeof search === 'string' ? search.trim() : ''
+
+  const data = await prisma.user.findMany({
+    where: {
+      ...(role ? { role: role as AdminUserRole } : {}),
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: 'insensitive' as const } },
+              { email: { contains: term, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    select: adminUserShape,
+  })
+  res.json({ data, totalCount: data.length })
+})
+
+// api-spec.md §5.2 (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29).
+app.post('/api/admin/users', ...requireAuth, requireRole('ADMINISTRATOR'), async (req, res) => {
+  const { name, email, role, isActive, initialPassword } = req.body ?? {}
+
+  if (!isFilled(name)) {
+    return res.status(400).json(fieldError('VALIDATION_ERROR', 'Name is required.', 'name'))
+  }
+  if (!isFilled(email) || !EMAIL_PATTERN.test(email.trim())) {
+    return res
+      .status(400)
+      .json(fieldError('VALIDATION_ERROR', 'Enter a valid email address.', 'email'))
+  }
+  if (!isUserRole(role)) {
+    return res
+      .status(400)
+      .json(
+        fieldError(
+          'VALIDATION_ERROR',
+          'Role must be Requester, IT Staff, or Administrator.',
+          'role',
+        ),
+      )
+  }
+  if (isActive !== undefined && typeof isActive !== 'boolean') {
+    return res
+      .status(400)
+      .json(fieldError('VALIDATION_ERROR', 'Active state must be true or false.', 'isActive'))
+  }
+  if (!isStrongPassword(initialPassword)) {
+    return res
+      .status(400)
+      .json(fieldError('WEAK_PASSWORD', WEAK_PASSWORD_MESSAGE, 'initialPassword'))
+  }
+
+  const normalizedEmail = email.trim().toLowerCase()
+  if (await prisma.user.findUnique({ where: { email: normalizedEmail } })) {
+    return res.status(409).json(duplicateEmail)
+  }
+
+  try {
+    const created = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: normalizedEmail,
+        role,
+        isActive: isActive ?? true,
+        passwordHash: await hashPassword(initialPassword),
+        mustChangePassword: true,
+      },
+      select: adminUserShape,
+    })
+    res.status(201).json(created)
+  } catch (err) {
+    // Two concurrent creates can both pass the pre-check; the unique index decides.
+    if (isUniqueViolation(err)) return res.status(409).json(duplicateEmail)
+    throw err
+  }
+})
+
+// api-spec.md §5.3 (FR-22, FR-25, FR-26, BR-34..36, AC-31, AC-32). The acting
+// identity is req.user from the session, never an id in the body (BR-35). The
+// last-Administrator check reads then writes, so it runs Serializable.
+app.patch(
+  '/api/admin/users/:id',
+  ...requireAuth,
+  requireRole('ADMINISTRATOR'),
+  async (req, res) => {
+    const targetId = Number(req.params.id)
+    const notFound = { error: { code: 'NOT_FOUND', message: 'User not found.' } }
+    if (!Number.isInteger(targetId)) return res.status(404).json(notFound)
+
+    const { name, email, role, isActive } = req.body ?? {}
+    const data: { name?: string; email?: string; role?: AdminUserRole; isActive?: boolean } = {}
+
+    if (name !== undefined) {
+      if (!isFilled(name)) {
+        return res.status(400).json(fieldError('VALIDATION_ERROR', 'Name is required.', 'name'))
+      }
+      data.name = name.trim()
+    }
+    if (email !== undefined) {
+      if (!isFilled(email) || !EMAIL_PATTERN.test(email.trim())) {
+        return res
+          .status(400)
+          .json(fieldError('VALIDATION_ERROR', 'Enter a valid email address.', 'email'))
+      }
+      data.email = email.trim().toLowerCase()
+    }
+    if (role !== undefined) {
+      if (!isUserRole(role)) {
+        return res
+          .status(400)
+          .json(
+            fieldError(
+              'VALIDATION_ERROR',
+              'Role must be Requester, IT Staff, or Administrator.',
+              'role',
+            ),
+          )
+      }
+      data.role = role
+    }
+    if (isActive !== undefined) {
+      if (typeof isActive !== 'boolean') {
+        return res
+          .status(400)
+          .json(fieldError('VALIDATION_ERROR', 'Active state must be true or false.', 'isActive'))
+      }
+      data.isActive = isActive
+    }
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Provide at least one field to update.' },
+      })
+    }
+
+    try {
+      const updated = await withSerializableRetry(prisma, async (tx) => {
+        const target = await tx.user.findUnique({ where: { id: targetId } })
+        if (!target) throw new AdminRuleError(404, notFound)
+
+        if (data.email && data.email !== target.email) {
+          const clash = await tx.user.findUnique({ where: { email: data.email } })
+          if (clash && clash.id !== target.id) throw new AdminRuleError(409, duplicateEmail)
+        }
+
+        if (target.id === req.user!.id && data.isActive === false) {
+          throw new AdminRuleError(409, {
+            error: {
+              code: 'SELF_DEACTIVATION',
+              message: "You can't deactivate your own account.",
+              field: 'isActive',
+            },
+          })
+        }
+
+        const staysActiveAdmin =
+          (data.isActive ?? target.isActive) && (data.role ?? target.role) === 'ADMINISTRATOR'
+        if (target.role === 'ADMINISTRATOR' && target.isActive && !staysActiveAdmin) {
+          const activeAdmins = await tx.user.count({
+            where: { role: 'ADMINISTRATOR', isActive: true },
+          })
+          if (activeAdmins <= 1) {
+            throw new AdminRuleError(409, {
+              error: {
+                code: 'LAST_ADMINISTRATOR',
+                message: 'At least one active Administrator is required.',
+              },
+            })
+          }
+        }
+
+        const saved = await tx.user.update({
+          where: { id: target.id },
+          data,
+          select: adminUserShape,
+        })
+        // BR-34: a deactivation or role change takes effect on the very next request.
+        if (
+          (data.isActive === false && target.isActive) ||
+          (data.role !== undefined && data.role !== target.role)
+        ) {
+          await tx.session.deleteMany({ where: { userId: target.id } })
+        }
+        return saved
+      })
+      res.json(updated)
+    } catch (err) {
+      if (err instanceof AdminRuleError) return res.status(err.status).json(err.body)
+      if (isUniqueViolation(err)) return res.status(409).json(duplicateEmail)
+      throw err
+    }
+  },
+)
+
+// api-spec.md §5.4 (FR-23, BR-09, BR-10, BR-11, BR-37, AC-30). Does not need the
+// previous password; the target must change the new one at next login.
 app.patch(
   '/api/admin/users/:id/password',
   ...requireAuth,
   requireRole('ADMINISTRATOR'),
-  notImplemented,
+  async (req, res) => {
+    const targetId = Number(req.params.id)
+    if (!Number.isInteger(targetId)) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found.' } })
+    }
+    const { newPassword } = req.body ?? {}
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json(fieldError('WEAK_PASSWORD', WEAK_PASSWORD_MESSAGE, 'newPassword'))
+    }
+
+    const passwordHash = await hashPassword(newPassword)
+    const updated = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({ where: { id: targetId } })
+      if (!target) return null
+      await tx.session.deleteMany({ where: { userId: targetId } })
+      return tx.user.update({
+        where: { id: targetId },
+        data: { passwordHash, mustChangePassword: true },
+        select: { id: true, mustChangePassword: true },
+      })
+    })
+    if (!updated) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found.' } })
+    }
+    res.json(updated)
+  },
 )
 
 // Standard error envelope (api-spec.md §0.2). Never leaks internals.

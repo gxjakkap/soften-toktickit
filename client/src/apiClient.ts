@@ -76,6 +76,16 @@ export function logout(): Promise<void> {
   })
 }
 
+// api-spec.md §1.4 (FR-02, BR-02, BR-10, BR-11): the mandatory first-login
+// password change. Issues a fresh session; the old one is invalidated.
+export function changePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
+  return fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  }).then((res) => parseJsonOrThrow<AuthUser>(res))
+}
+
 export function fetchCategories(): Promise<Category[]> {
   return fetch('/api/categories').then((res) => parseJsonOrThrow<Category[]>(res))
 }

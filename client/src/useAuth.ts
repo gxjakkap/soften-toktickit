@@ -8,6 +8,7 @@ type AuthContextValue = {
   status: AuthStatus
   login: (email: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

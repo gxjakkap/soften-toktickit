@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ApiError,
+  changePassword as apiChangePassword,
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
@@ -32,6 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return u
   }, [])
 
+  // api-spec.md §1.4 (FR-02, BR-02): issues a fresh session and clears
+  // mustChangePassword, unblocking every other protected endpoint.
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const u = await apiChangePassword(currentPassword, newPassword)
+    setUser(u)
+    setStatus('authenticated')
+    return u
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await apiLogout()
@@ -55,7 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sessionInvalidated.removeEventListener('invalidated', handleInvalidated)
   }, [])
 
-  const value = useMemo(() => ({ user, status, login, logout }), [user, status, login, logout])
+  const value = useMemo(
+    () => ({ user, status, login, logout, changePassword }),
+    [user, status, login, logout, changePassword],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -30,9 +30,10 @@ test('an Administrator creates a user, who must change their password at first l
   await expect(page.getByRole('heading', { name: 'Change Your Password' })).toBeVisible()
 })
 
-test('editing a user takes effect immediately, and deactivating one blocks their next login', async ({
+test('editing a user takes effect immediately, deactivating kills their session, and blocks their next login', async ({
   page,
   context,
+  request,
 }) => {
   await loginViaApi(context.request, ADMIN.email)
   const stamp = Date.now()
@@ -44,6 +45,13 @@ test('editing a user takes effect immediately, and deactivating one blocks their
   })
   expect(created.ok()).toBe(true)
 
+  // BR-34 promises the target's *existing* session dies immediately, not
+  // just that a later login is blocked (api-spec.md §5.3) - the `request`
+  // fixture is its own cookie jar, independent of `context`/`page`, so the
+  // fixture user's session survives the Administrator logging in below.
+  await loginViaApi(request, email, TEMP_PASSWORD)
+  expect((await request.get('/api/auth/me')).status()).toBe(200)
+
   await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
 
   // FR-22: edit name/role.
@@ -54,13 +62,18 @@ test('editing a user takes effect immediately, and deactivating one blocks their
   await expect(page.getByText('User updated.')).toBeVisible()
   await expect(page.getByText(renamed).first()).toBeVisible()
 
-  // FR-22/BR-34: deactivate — the account's next request is blocked, not
-  // just at its session's natural expiry.
+  // FR-22/BR-34: deactivate.
   await page.getByRole('button', { name: `Edit ${renamed}`, exact: true }).click()
   await page.getByTestId('user-panel').getByLabel('Active').uncheck()
   await page.getByTestId('user-panel').getByRole('button', { name: 'Save Changes' }).click()
   await expect(page.getByText('User updated.')).toBeVisible()
 
+  // The existing session from before the edit is dead on its very next
+  // request, not just at its natural expiry (BR-34).
+  expect((await request.get('/api/auth/me')).status()).toBe(401)
+
+  // A later login attempt is also rejected, with the inactive-account
+  // message, not the generic one.
   await loginViaUi(page, email, TEMP_PASSWORD, '**/login')
   await expect(page.getByText('This account is inactive. Contact an Administrator.')).toBeVisible()
 })

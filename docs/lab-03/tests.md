@@ -221,7 +221,7 @@ this issue; see §6):
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| SEC-01 | Security | FR-06, FR-24, api-spec.md §0.1 | Direct-API role matrix | Every protected endpoint (22 routes, §4.1b–§5.4) tried as unauthenticated and as each disallowed role: 401 unauthenticated always; 403 `FORBIDDEN` for every role not on that endpoint's allow-list — 65 assertions in one table-driven block | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
+| SEC-01 | Security | FR-06, FR-24, api-spec.md §0.1 | Direct-API role matrix | Every protected endpoint (22 routes, §4.1b–§5.4) tried as unauthenticated, as each disallowed role, and as each allowed role: 401 unauthenticated always; 403 `FORBIDDEN` for every disallowed role; every allowed role actually reaches the handler (not 401/403) — 88 assertions in one table-driven block, the last part added in review (see §6) after it was pointed out that an endpoint allowing every role generated no role assertion at all | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-02 | Security | BR-16, FR-24 | No existence leak, Ticket | `GET /api/tickets/:id` for another Requester's Ticket is 404 with a body of exactly `{error}` — no ticket field leaked | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-03 | Security | BR-16, FR-24 | No existence leak, Attachment download | `GET /api/attachments/:id/download` for another Requester's attachment is 404, no `Content-Disposition` header, body only `{error}` | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-04 | Security | BR-16, FR-24 | No existence leak, Attachment remove | `PATCH /api/attachments/:id/remove` for another Requester's attachment is 404; the row is confirmed unchanged in the database | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
@@ -391,7 +391,7 @@ still `Pass`):
 | E2E-08 | E2E | AC-01, AC-03, AC-09, AC-14-16, AC-23, AC-24 (Lab 2 ACs, unmodified) | Lab 2 Requester regression | Create → find → open, cross-Requester isolation, attachment lifecycle, all still correct now that identity is session-derived rather than client-supplied | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
 | E2E-09 | E2E | FR-13, FR-14, FR-16-19, BR-04 | IT Staff operational flow (new this issue) | Login as IT Staff → find a Ticket by number in the Queue → open it → Claim → set IT Priority → a permitted Status transition → post a Public Comment and an Internal Note → the filing Requester sees the comment but never the note | `e2e/lab-03/staff-ticket-flow.spec.ts` | Pass |
 | E2E-10 | E2E | FR-21, AC-30 | Administrator creates a user (new this issue) | Create via the UI; the new user is routed to Change Password at first login | `e2e/lab-03/user-administration.spec.ts` | Pass |
-| E2E-11 | E2E | FR-22, BR-34 | Edit and deactivate (new this issue) | Edited name takes effect immediately in the list; deactivating a user blocks their very next login with the inactive-account message | `e2e/lab-03/user-administration.spec.ts` | Pass |
+| E2E-11 | E2E | FR-22, BR-34 | Edit and deactivate (new this issue) | Edited name takes effect immediately in the list; deactivating a user kills their existing session (`GET /api/auth/me` 401s on the pre-deactivation session, held in an isolated cookie jar) and blocks their next login with the inactive-account message | `e2e/lab-03/user-administration.spec.ts` | Pass |
 | E2E-12 | E2E | FR-25, FR-26, AC-31, AC-32 | Safety rails on the sole seeded Administrator (new this issue) | Opening their own row disables Active ("You can't deactivate your own account.") and Role ("At least one active Administrator is required.") together | `e2e/lab-03/user-administration.spec.ts` | Pass |
 
 ## 3. Acceptance-Criterion Traceability Matrix
@@ -581,8 +581,24 @@ some real gaps had accumulated. This pass:
 - No other disagreement was found between the implemented code and
   `specification.md`/`api-spec.md` during this pass.
 
+**PR #55 review round 1** (`FakeKase`) found the matrix's deny-only loop
+generated zero role assertions for an endpoint whose `allowed` list is every
+role (`/api/categories`, `/api/related-systems`): restricting either one to
+`REQUESTER`-only still passed the full suite. Fixed by adding a second loop
+asserting every allowed role actually reaches the handler (SEC-01, now 88
+assertions, up from 65). Also found and fixed: the Internal Note leak check
+never confirmed its own setup POST succeeded before asserting the content
+was absent; the deactivation e2e's comment claimed the account's *next
+request* is blocked but only its *next login* was tested (BR-34 promises
+both) — now the test also kills a held-open session through the `request`
+fixture's independent cookie jar (E2E-11); and the E2E suite created
+throwaway `.test.invalid` users with no cleanup, visible as accumulated rows
+in the User Management screenshot — closed with `playwright.config.ts`'s new
+`globalTeardown` (`e2e/global-teardown.ts` → `server/scripts/clean-e2e-fixtures.ts`)
+and a recapture.
+
 ```bash
-pnpm --filter server test   # 344/344 passing
+pnpm --filter server test   # 371/371 passing
 pnpm --filter client test   # 126/126 passing
 pnpm e2e                    # 29/29 passing
 ```
@@ -617,12 +633,14 @@ pnpm e2e                    # 29/29 passing
   as required repository documents, alongside peer review recorded in
   `reviewer.md` for every issue. Out of scope for this issue by explicit
   instruction — not touched here.
-- **The Playwright suite creates real fixture rows (Tickets, Users,
-  Comments) in whatever database it runs against, with no cleanup**, the
-  same pattern Lab 2's screenshot/flow specs already established and the
-  same tradeoff accepted there (`docs/lab-02/tests.md` §7): fine for a
-  local dev Postgres instance that gets reseeded between real submissions,
-  not something a shared CI database should inherit unmodified.
+- **The Playwright suite still creates real fixture Tickets under seeded
+  Requesters with no cleanup** (the Lab 2 flow/screenshot specs' existing
+  pattern, `docs/lab-02/tests.md` §7) — fine for a local dev Postgres
+  instance reseeded between submissions, not something a shared CI database
+  should inherit unmodified. The `.test.invalid` *user* rows this issue's own
+  new specs create are cleaned by the global teardown added in review round 1
+  (above); only the Ticket-under-a-real-seeded-Requester pattern remains
+  unaddressed, and it predates this issue.
 - **`docs/lab-02/tests.md` §2's `STYLE-02/03/04` rows still cite
   `e2e/lab-02/screenshots.spec.ts`**, but that file was moved to
   `e2e/lab-03/screenshots.spec.ts` by Issue #5 (its own header comment

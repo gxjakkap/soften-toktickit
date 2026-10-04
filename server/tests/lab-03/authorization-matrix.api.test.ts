@@ -267,6 +267,24 @@ describe('authorization matrix: every protected endpoint x every role', () => {
         expect(res.body.error.code).toBe('FORBIDDEN')
       })
     }
+
+    // PR #55 review: the loop above only ever generates a case for a
+    // disallowed role, so an endpoint allowing every role (categories,
+    // related-systems) got no role assertion at all beyond the 401 check -
+    // restricting either one to REQUESTER-only still passed the whole file.
+    // This closes that: every allowed role must actually reach the handler
+    // (not get stopped at 401/403), which also catches an over-restrictive
+    // guard the same way the loop above catches an over-permissive one.
+    for (const role of c.allowed) {
+      it(`reaches the handler (not 401/403): ${c.label} as ${role}`, async () => {
+        const res = await (request(app) as any)
+          [c.method](c.path())
+          .set('Cookie', cookies[role])
+          .send({})
+        expect(res.status).not.toBe(401)
+        expect(res.status).not.toBe(403)
+      })
+    }
   }
 })
 
@@ -300,10 +318,13 @@ describe('no existence leak for another Requester’s Ticket/Attachment (BR-16, 
   })
 
   it('an Internal Note is never present in a Requester-role response, even for their own ticket (BR-04, BR-29)', async () => {
-    await request(app)
+    const posted = await request(app)
       .post(`/api/staff/tickets/${ticketId}/comments`)
       .set('Cookie', cookies.IT_STAFF)
       .send({ visibility: 'INTERNAL', content: 'Matrix fixture internal note' })
+    // PR #55 review: without this, a silently-failing POST would make the
+    // "never present" assertion below pass for the wrong reason.
+    expect(posted.status).toBe(201)
 
     const res = await request(app).get(`/api/tickets/${ticketId}`).set('Cookie', cookies.REQUESTER)
     expect(res.status).toBe(200)

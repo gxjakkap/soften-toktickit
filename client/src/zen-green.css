@@ -18,6 +18,10 @@
   --zg-warning-text: #8a5a00;
   --zg-success-bg: var(--zg-pale);
   --zg-success-text: var(--zg-secondary);
+  /* ui-spec.md §6: reserved for the Internal Notes composer/background
+     contrast only — never reused as a generic warning elsewhere. */
+  --zg-internal-notes-bg: #fdf3e7;
+  --zg-internal-notes-text: #8a5a00;
 
   --zg-space-1: 4px;
   --zg-space-2: 8px;
@@ -325,6 +329,38 @@ body {
   border-color: var(--zg-error-border);
 }
 
+/* Login §2 / Change Password §3: the show/hide toggle sits inside the field
+   rather than taking its own column, so the layout matches a plain field. */
+.zg-password-field {
+  position: relative;
+}
+
+.zg-password-field .zg-field {
+  padding-right: calc(var(--zg-space-3) + 28px);
+}
+
+.zg-password-toggle {
+  align-items: center;
+  background: none;
+  border: none;
+  bottom: 0;
+  color: var(--zg-secondary);
+  cursor: pointer;
+  display: flex;
+  padding: 0 var(--zg-space-3);
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.zg-banner-warning {
+  background: var(--zg-warning-bg);
+  border: 1px solid var(--zg-warning-text);
+  border-radius: 6px;
+  color: var(--zg-warning-text);
+  padding: var(--zg-space-3);
+}
+
 .zg-field:disabled,
 .zg-field[aria-disabled='true'] {
   cursor: not-allowed;
@@ -461,6 +497,43 @@ textarea.zg-field {
 .zg-badge-status-cancelled {
   background: #eaeaea;
   color: #5a5a5a;
+}
+
+/* ui-spec.md §8: deliberately distinct from every other status color — a
+   Reopened Ticket signals "needs re-triage," not routine progress. */
+.zg-badge-status-reopened {
+  background: #efe7fb;
+  color: #5b3fa8;
+}
+
+/* ui-spec.md §6: Internal Notes card — visually distinct background so
+   private text can't be mistaken for, or typed into, the Public Comments
+   composer. */
+.zg-internal-notes {
+  background: var(--zg-internal-notes-bg);
+  border-radius: 8px;
+  padding: var(--zg-space-5);
+}
+
+.zg-internal-notes-label {
+  color: var(--zg-internal-notes-text);
+  font-weight: 600;
+}
+
+/* Role badges — Lab 3 ui-spec §8. */
+.zg-badge-role-requester {
+  background: #e7eef5;
+  color: #33475b;
+}
+
+.zg-badge-role-it-staff {
+  background: var(--zg-pale);
+  color: var(--zg-secondary);
+}
+
+.zg-badge-role-administrator {
+  background: #fceed1;
+  color: #8a5a00;
 }
 
 /* Desktop/tablet table (ui-spec §11.3, §8). */
@@ -663,4 +736,139 @@ textarea.zg-field {
 
 .zg-detail-full {
   grid-column: 1 / -1;
+}
+
+/* Ticket Queue filter panel — ui-spec.md §5. Collapsed behind one Filters
+   control rather than five always-visible dropdowns. */
+.zg-filter-panel {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 8px;
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, 1fr);
+  padding: var(--zg-space-4);
+}
+
+@media (max-width: 991px) {
+  .zg-filter-panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-filter-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zg-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-chip {
+  align-items: center;
+  background: var(--zg-pale);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 999px;
+  color: var(--zg-secondary);
+  display: inline-flex;
+  font-size: 13px;
+  gap: var(--zg-space-1);
+  padding: 2px var(--zg-space-2);
+}
+
+.zg-chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  padding: 0;
+}
+
+/* Full-page Forbidden state — ui-spec.md §5/§6/§7, shared by every
+   role-gated screen a wrong role reaches by direct URL. */
+.zg-forbidden {
+  margin: var(--zg-space-6) auto 0;
+  max-width: 480px;
+  text-align: center;
+}
+
+.zg-sort-indicator {
+  color: var(--zg-text);
+  font-size: 13px;
+}
+
+/* Administrator User Management — ui-spec.md §7, §9. Two panels on desktop and
+   tablet; on mobile the side panel becomes a full-screen sheet over the list. */
+.zg-um-layout {
+  display: grid;
+  gap: var(--zg-space-5);
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--zg-space-4);
+}
+
+.zg-um-layout.has-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+}
+
+.zg-um-panel {
+  align-self: start;
+}
+
+.zg-um-field {
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-um-toggle {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 600;
+  gap: var(--zg-space-2);
+}
+
+.zg-um-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+}
+
+.zg-um-password {
+  border-top: 1px solid var(--zg-field-readonly-border);
+  margin-top: var(--zg-space-5);
+  padding-top: var(--zg-space-4);
+}
+
+.zg-rule-list {
+  color: var(--zg-text);
+  font-size: 13px;
+  list-style: none;
+  margin: var(--zg-space-2) 0;
+  padding: 0;
+}
+
+.zg-rule-list li.is-met {
+  color: var(--zg-success-text);
+}
+
+@media (max-width: 767px) {
+  .zg-um-layout.has-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zg-um-layout.has-panel .zg-um-list {
+    display: none;
+  }
+
+  .zg-um-panel {
+    inset: 0;
+    overflow-y: auto;
+    position: fixed;
+    z-index: 1040;
+    border-radius: 0;
+  }
 }

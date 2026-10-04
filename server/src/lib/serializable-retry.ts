@@ -10,17 +10,23 @@ const SERIALIZATION_FAILURE_CODE = 'P2034'
 const DEFAULT_MAX_ATTEMPTS = 3
 
 function isSerializationFailure(err: unknown): boolean {
-  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === SERIALIZATION_FAILURE_CODE
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === SERIALIZATION_FAILURE_CODE
+  )
 }
 
 export async function withSerializableRetry<T>(
   client: Pick<PrismaClient, '$transaction'>,
-  fn: (tx: Parameters<PrismaClient['$transaction']>[0] extends (tx: infer Tx) => unknown ? Tx : never) => Promise<T>,
+  fn: (
+    tx: Parameters<PrismaClient['$transaction']>[0] extends (tx: infer Tx) => unknown ? Tx : never,
+  ) => Promise<T>,
   maxAttempts = DEFAULT_MAX_ATTEMPTS,
 ): Promise<T> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return await client.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+      return await client.$transaction(fn, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      })
     } catch (err) {
       if (!isSerializationFailure(err) || attempt === maxAttempts) throw err
     }

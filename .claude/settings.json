@@ -1,0 +1,20 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path'); pnpm exec oxlint --fix --no-error-on-unmatched-pattern \"$file\"; pnpm exec oxfmt --no-error-on-unmatched-pattern \"$file\""
+          }
+        ]
+      }
+    ]
+  }
+}

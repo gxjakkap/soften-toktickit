@@ -11,8 +11,15 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, createTicket, fetchCategories, fetchRelatedSystems } from './apiClient'
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, ensureFileName, isAllowedFile } from './lib/attachment-validation'
-import { useRequester } from './RequesterContext'
+import Forbidden from './Forbidden'
+import {
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  ensureFileName,
+  isAllowedFile,
+} from './lib/attachment-validation'
+import { roleHomePath } from './lib/role-routes'
+import { useAuth } from './useAuth'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
 
 const SUMMARY_MIN = 5
@@ -48,8 +55,10 @@ function validate(fields: {
 
   const summary = fields.summary.trim()
   if (!summary) errors.summary = 'Summary is required.'
-  else if (summary.length < SUMMARY_MIN) errors.summary = `Summary must be at least ${SUMMARY_MIN} characters.`
-  else if (summary.length > SUMMARY_MAX) errors.summary = `Summary must be at most ${SUMMARY_MAX} characters.`
+  else if (summary.length < SUMMARY_MIN)
+    errors.summary = `Summary must be at least ${SUMMARY_MIN} characters.`
+  else if (summary.length > SUMMARY_MAX)
+    errors.summary = `Summary must be at most ${SUMMARY_MAX} characters.`
 
   const description = fields.description.trim()
   if (!description) errors.description = 'Description is required.'
@@ -73,8 +82,11 @@ function initialFormState() {
 }
 
 function CreateTicket() {
-  const { requester } = useRequester()
+  const { user } = useAuth()
   const navigate = useNavigate()
+  // !user: the session hasn't resolved yet — defer judgment rather than
+  // flashing Forbidden before the role is even known.
+  const allowed = !user || user.role === 'REQUESTER'
 
   const [refState, setRefState] = useState<RefState>('loading')
   const [categories, setCategories] = useState<Category[]>([])
@@ -92,6 +104,7 @@ function CreateTicket() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadReferenceData = () => {
+    if (!allowed) return
     setRefState('loading')
     Promise.all([fetchCategories(), fetchRelatedSystems()])
       .then(([cats, systems]) => {
@@ -102,7 +115,7 @@ function CreateTicket() {
       .catch(() => setRefState('error'))
   }
 
-  useEffect(loadReferenceData, [])
+  useEffect(loadReferenceData, [allowed])
 
   useEffect(() => {
     function handlePaste(event: ClipboardEvent) {
@@ -167,7 +180,12 @@ function CreateTicket() {
           continue
         }
         if (file.size > MAX_ATTACHMENT_BYTES) {
-          additions.push({ localId, file, status: 'rejected', message: 'File exceeds the 5 MB limit.' })
+          additions.push({
+            localId,
+            file,
+            status: 'rejected',
+            message: 'File exceeds the 5 MB limit.',
+          })
           continue
         }
         if (!isAllowedFile(file)) {
@@ -243,7 +261,7 @@ function CreateTicket() {
     setServerError(null)
 
     try {
-      const ticket = await createTicket(requester!.id, {
+      const ticket = await createTicket({
         categoryId: Number(form.categoryId),
         relatedSystemId: Number(form.relatedSystemId),
         requestedPriority: form.requestedPriority as RequestedPriority,
@@ -258,7 +276,9 @@ function CreateTicket() {
         setServerFieldErrors((prev) => ({ ...prev, [field]: message }))
         setTouched((prev) => ({ ...prev, [field]: true }))
       } else {
-        setServerError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+        setServerError(
+          err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+        )
       }
     } finally {
       submittingRef.current = false
@@ -276,6 +296,17 @@ function CreateTicket() {
   }
 
   const disabled = submitting || createdTicket !== null
+
+  // specification.md §12-14: an IT Staff or Administrator reaching this
+  // Requester route directly gets the full-page forbidden state.
+  if (!allowed) {
+    return (
+      <Forbidden
+        testId="create-ticket-forbidden"
+        homeTo={user ? roleHomePath(user.role) : '/login'}
+      />
+    )
+  }
 
   return (
     <div className="zg-card">
@@ -302,7 +333,11 @@ function CreateTicket() {
               id="ticket-date"
               className="zg-field zg-field-readonly"
               readOnly
-              value={createdTicket ? new Date(createdTicket.createdAt).toLocaleString() : 'Generated after submission'}
+              value={
+                createdTicket
+                  ? new Date(createdTicket.createdAt).toLocaleString()
+                  : 'Generated after submission'
+              }
             />
           </div>
           <div>
@@ -313,7 +348,7 @@ function CreateTicket() {
               id="requester"
               className="zg-field zg-field-readonly"
               readOnly
-              value={requester?.name ?? ''}
+              value={user?.name ?? ''}
             />
           </div>
         </div>
@@ -359,7 +394,9 @@ function CreateTicket() {
                   </option>
                 ))}
               </select>
-              {fieldError('categoryId') && <p className="zg-error-message">{fieldError('categoryId')}</p>}
+              {fieldError('categoryId') && (
+                <p className="zg-error-message">{fieldError('categoryId')}</p>
+              )}
             </div>
 
             <div>
@@ -383,7 +420,9 @@ function CreateTicket() {
                   </option>
                 ))}
               </select>
-              {fieldError('relatedSystemId') && <p className="zg-error-message">{fieldError('relatedSystemId')}</p>}
+              {fieldError('relatedSystemId') && (
+                <p className="zg-error-message">{fieldError('relatedSystemId')}</p>
+              )}
             </div>
 
             <div>
@@ -458,14 +497,15 @@ function CreateTicket() {
               {form.description.length}/{DESCRIPTION_MAX} characters
             </p>
           )}
-          {fieldError('description') && <p className="zg-error-message">{fieldError('description')}</p>}
+          {fieldError('description') && (
+            <p className="zg-error-message">{fieldError('description')}</p>
+          )}
         </div>
 
         <div style={{ marginTop: 'var(--zg-space-5)' }}>
           {createdTicket ? (
             <AttachmentSection
               bare
-              requesterId={requester!.id}
               ticketId={createdTicket.id}
               initialAttachments={[]}
               initialFiles={attachments.filter((a) => a.status === 'pending').map((a) => a.file)}
@@ -473,7 +513,11 @@ function CreateTicket() {
           ) : (
             <>
               <h2 className="zg-section-heading">Attachments</h2>
-              <label className="zg-label" htmlFor="attachments" style={{ marginTop: 'var(--zg-space-4)' }}>
+              <label
+                className="zg-label"
+                htmlFor="attachments"
+                style={{ marginTop: 'var(--zg-space-4)' }}
+              >
                 Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
               </label>
               <div
@@ -524,7 +568,9 @@ function CreateTicket() {
                       <span>
                         {item.file.name} ({Math.ceil(item.file.size / 1024)} KB)
                       </span>
-                      {item.status === 'rejected' && <span className="zg-error-message">{item.message}</span>}
+                      {item.status === 'rejected' && (
+                        <span className="zg-error-message">{item.message}</span>
+                      )}
                       <button
                         type="button"
                         className="zg-btn zg-btn-tertiary"
@@ -547,13 +593,25 @@ function CreateTicket() {
         )}
 
         {createdTicket ? (
-          <div className="zg-success-banner" role="status" style={{ marginTop: 'var(--zg-space-5)' }}>
+          <div
+            className="zg-success-banner"
+            role="status"
+            style={{ marginTop: 'var(--zg-space-5)' }}
+          >
             <p style={{ margin: 0, fontWeight: 600 }}>
-              <i className="bi bi-check-circle-fill" aria-hidden="true" style={{ marginRight: 'var(--zg-space-2)' }} />
+              <i
+                className="bi bi-check-circle-fill"
+                aria-hidden="true"
+                style={{ marginRight: 'var(--zg-space-2)' }}
+              />
               Ticket created: {createdTicket.ticketNumber}
             </p>
             <div className="zg-actions" style={{ marginTop: 'var(--zg-space-4)' }}>
-              <button type="button" className="zg-btn zg-btn-secondary" onClick={handleCreateAnother}>
+              <button
+                type="button"
+                className="zg-btn zg-btn-secondary"
+                onClick={handleCreateAnother}
+              >
                 Create Another
               </button>
               <Link to={`/tickets/${createdTicket.id}`} className="zg-btn zg-btn-primary">
@@ -563,10 +621,19 @@ function CreateTicket() {
           </div>
         ) : (
           <div className="zg-actions" style={{ marginTop: 'var(--zg-space-5)' }}>
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={() => navigate('/tickets')}>
+            <button
+              type="button"
+              className="zg-btn zg-btn-secondary"
+              onClick={() => navigate('/tickets')}
+            >
               Cancel
             </button>
-            <button type="submit" className="zg-btn zg-btn-primary" disabled={submitting} aria-disabled={submitting}>
+            <button
+              type="submit"
+              className="zg-btn zg-btn-primary"
+              disabled={submitting}
+              aria-disabled={submitting}
+            >
               {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Submitting…' : 'Submit'}
             </button>

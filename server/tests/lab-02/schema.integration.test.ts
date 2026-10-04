@@ -15,7 +15,7 @@ async function wipe() {
   await prisma.ticket.deleteMany({ where: { summary: { contains: TAG } } })
   await prisma.category.deleteMany({ where: { name: { contains: TAG } } })
   await prisma.relatedSystem.deleteMany({ where: { name: { contains: TAG } } })
-  await prisma.requesterUser.deleteMany({ where: { email: { contains: TAG } } })
+  await prisma.user.deleteMany({ where: { email: { contains: TAG } } })
 }
 
 function newTicket(overrides: Record<string, unknown> = {}) {
@@ -25,6 +25,7 @@ function newTicket(overrides: Record<string, unknown> = {}) {
     categoryId,
     relatedSystemId,
     requestedPriority: 'MEDIUM' as const,
+    itPriority: 'MEDIUM' as const,
     summary: `Fixture ticket ${TAG}`,
     description: 'A description long enough to look like a real ticket body.',
     ...overrides,
@@ -36,8 +37,13 @@ beforeAll(async () => {
   categoryId = (await prisma.category.create({ data: { name: `Category ${TAG}` } })).id
   relatedSystemId = (await prisma.relatedSystem.create({ data: { name: `System ${TAG}` } })).id
   requesterId = (
-    await prisma.requesterUser.create({
-      data: { name: 'Schema Fixture', email: `requester.${TAG}` },
+    await prisma.user.create({
+      data: {
+        passwordHash: 'not-a-real-hash',
+        role: 'REQUESTER',
+        name: 'Schema Fixture',
+        email: `requester.${TAG}`,
+      },
     })
   ).id
 })
@@ -75,11 +81,25 @@ describe('Ticket constraints', () => {
       SELECT column_name, is_nullable FROM information_schema.columns
       WHERE table_name IN ('Ticket', 'Attachment')
     `
-    const nullable = Object.fromEntries(columns.map((c) => [c.column_name, c.is_nullable === 'YES']))
+    const nullable = Object.fromEntries(
+      columns.map((c) => [c.column_name, c.is_nullable === 'YES']),
+    )
 
-    for (const required of ['ticketNumber', 'summary', 'description', 'requesterId', 'categoryId',
-      'relatedSystemId', 'requestedPriority', 'currentStatus', 'originalFileName',
-      'storedFileName', 'mimeType', 'sizeBytes', 'isRemoved']) {
+    for (const required of [
+      'ticketNumber',
+      'summary',
+      'description',
+      'requesterId',
+      'categoryId',
+      'relatedSystemId',
+      'requestedPriority',
+      'currentStatus',
+      'originalFileName',
+      'storedFileName',
+      'mimeType',
+      'sizeBytes',
+      'isRemoved',
+    ]) {
       expect(nullable[required], `${required} should be NOT NULL`).toBe(false)
     }
     for (const optional of ['removedAt', 'removedReason']) {
@@ -93,7 +113,13 @@ describe('Ticket constraints', () => {
     `
     const defs = indexes.map((i) => i.indexdef).join('\n')
 
-    for (const column of ['requesterId', 'categoryId', 'relatedSystemId', 'currentStatus', 'createdAt']) {
+    for (const column of [
+      'requesterId',
+      'categoryId',
+      'relatedSystemId',
+      'currentStatus',
+      'createdAt',
+    ]) {
       expect(defs, `expected an index covering ${column}`).toContain(`"${column}"`)
     }
   })
@@ -130,9 +156,9 @@ describe('delete behaviour', () => {
     await expect(
       prisma.relatedSystem.delete({ where: { id: relatedSystemId } }),
     ).rejects.toMatchObject({ code: 'P2003' })
-    await expect(
-      prisma.requesterUser.delete({ where: { id: requesterId } }),
-    ).rejects.toMatchObject({ code: 'P2003' })
+    await expect(prisma.user.delete({ where: { id: requesterId } })).rejects.toMatchObject({
+      code: 'P2003',
+    })
 
     await prisma.ticket.delete({ where: { id: ticket.id } })
   })

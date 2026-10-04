@@ -1,21 +1,23 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useRequester } from './RequesterContext'
+import { useAuth } from './useAuth'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'zg-navlink is-active' : 'zg-navlink'
 
+const ROLE_LABEL = { REQUESTER: 'Requester', IT_STAFF: 'IT Staff', ADMINISTRATOR: 'Administrator' }
+
 function AppShell({ children }: { children: ReactNode }) {
-  const { requester, clearRequester } = useRequester()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  // BR-11: available at all times; clears the previous context and returns to
-  // the selection screen.
-  const changeRequester = () => {
+  // ui-spec.md §1: available at all times from the Profile menu; ends the
+  // session and returns to Login (replaces Lab 2's Change Requester action).
+  const handleLogout = async () => {
     setMenuOpen(false)
-    clearRequester()
-    navigate('/select-requester')
+    await logout()
+    navigate('/login')
   }
 
   return (
@@ -40,22 +42,55 @@ function AppShell({ children }: { children: ReactNode }) {
             <i className={`bi ${menuOpen ? 'bi-x-lg' : 'bi-list'}`} aria-hidden="true" />
           </button>
 
-          <div id="zg-header-collapsible" className={`zg-header-collapsible${menuOpen ? ' is-open' : ''}`}>
+          <div
+            id="zg-header-collapsible"
+            className={`zg-header-collapsible${menuOpen ? ' is-open' : ''}`}
+          >
+            {/* ui-spec.md §1: nav is role-scoped — a role only ever sees its
+                own destinations; hiding a link is UX, not the authorization
+                mechanism (FR-06 enforces the real boundary server-side). */}
             <nav className="zg-nav" aria-label="Main">
-              <NavLink to="/tickets" className={navClass} end onClick={() => setMenuOpen(false)}>
-                My Tickets
-              </NavLink>
-              <NavLink to="/tickets/new" className={navClass} onClick={() => setMenuOpen(false)}>
-                Create Ticket
-              </NavLink>
+              {user?.role === 'REQUESTER' && (
+                <>
+                  <NavLink
+                    to="/tickets"
+                    className={navClass}
+                    end
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My Tickets
+                  </NavLink>
+                  <NavLink
+                    to="/tickets/new"
+                    className={navClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Create Ticket
+                  </NavLink>
+                </>
+              )}
+              {user?.role === 'IT_STAFF' && (
+                <NavLink
+                  to="/staff/tickets"
+                  className={navClass}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Ticket Queue
+                </NavLink>
+              )}
+              {user?.role === 'ADMINISTRATOR' && (
+                <NavLink to="/admin/users" className={navClass} onClick={() => setMenuOpen(false)}>
+                  User Management
+                </NavLink>
+              )}
             </nav>
 
             <div className="zg-header-requester">
-              <span data-testid="current-requester">
-                Testing as <strong>{requester?.name}</strong>
+              <span data-testid="current-user">
+                <strong>{user?.name}</strong> · {user && ROLE_LABEL[user.role]}
               </span>
-              <button type="button" className="zg-btn zg-btn-tertiary" onClick={changeRequester}>
-                Change Requester
+              <button type="button" className="zg-btn zg-btn-tertiary" onClick={handleLogout}>
+                Logout
               </button>
             </div>
           </div>

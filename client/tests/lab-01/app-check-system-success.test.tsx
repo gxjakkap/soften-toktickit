@@ -19,9 +19,14 @@ describe('SystemCheck', () => {
               }),
             )
           : Promise.resolve(
-              new Response(JSON.stringify([{ id: 1, name: 'Hardware', createdAt: '2026-01-01T00:00:00.000Z' }]), {
-                status: 200,
-              }),
+              new Response(
+                JSON.stringify([
+                  { id: 1, name: 'Hardware', createdAt: '2026-01-01T00:00:00.000Z' },
+                ]),
+                {
+                  status: 200,
+                },
+              ),
             ),
       ),
     )

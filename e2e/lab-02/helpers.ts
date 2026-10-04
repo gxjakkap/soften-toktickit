@@ -7,11 +7,17 @@ export const REQUESTERS = {
   jennifer: { name: 'Jennifer Anderson', email: 'jennifer.anderson@example.com' },
   // 3 seeded tickets: a second, distinct owner for cross-Requester isolation.
   michael: { name: 'Michael Brown', email: 'michael.brown@example.com' },
-  // Zero seeded tickets: the empty-account state (BR-30).
+  // mustChangePassword: true — gated out of every protected route until
+  // changed; not usable for ticket-browsing e2e flows (Issue #5).
   siriporn: { name: 'Siriporn Wattana', email: 'siriporn.wattana@example.com' },
-  // isActive: false — must never appear in the Selection dropdown (AC-22).
+  // Zero seeded tickets, no password gate: the empty-account state (BR-30).
+  emma: { name: 'Emma Watson', email: 'emma.watson@example.com' },
+  // isActive: false — login must be rejected (INACTIVE_ACCOUNT).
   patricia: { name: 'Patricia Reyes', email: 'patricia.reyes@example.com' },
 } as const
+
+// server/prisma/seed.ts: shared dev password for every seeded account.
+export const SEED_PASSWORD = 'DevPass123!'
 
 export const VIEWPORTS = {
   desktop: { width: 1280, height: 900 },
@@ -19,32 +25,35 @@ export const VIEWPORTS = {
   mobile: { width: 500, height: 900 },
 } as const
 
-export type Requester = { id: number; name: string; email: string }
-
-export async function findRequester(request: APIRequestContext, email: string): Promise<Requester> {
-  const res = await request.get('/api/dev-requesters')
-  const list = (await res.json()) as Requester[]
-  const match = list.find((r) => r.email === email)
-  if (!match) throw new Error(`Active requester not found for ${email}`)
-  return match
+/** BR-03: identity now comes from a real session, not a client-supplied id.
+ *  `request` can be the shared `request` fixture (a standalone cookie jar,
+ *  for API-only fixture setup) or `page.request` (shares cookies with that
+ *  page's browser context, so a subsequent page.goto() is authenticated). */
+export async function loginViaApi(
+  request: APIRequestContext,
+  email: string,
+  password = SEED_PASSWORD,
+) {
+  const res = await request.post('/api/auth/login', { data: { email, password } })
+  if (!res.ok()) throw new Error(`login failed for ${email}: ${res.status()} ${await res.text()}`)
 }
 
-/** Fast path for tests that don't need to exercise the Selection screen
- *  itself — matches how the app actually persists identity (BR-10). */
-export async function loginViaStorage(page: Page, requester: Requester) {
-  await page.addInitScript((stored) => {
-    window.localStorage.setItem('toktickit.dev-requester', JSON.stringify(stored))
-  }, requester)
-}
-
-/** Drives the real Selection screen UI — used by the screenshot suite so the
- *  screen's own states (loading/active-list/selected-user) are genuine. */
-export async function loginViaUi(page: Page, requester: Requester) {
-  await page.goto('/select-requester')
-  await page.getByLabel(/development requester/i).waitFor({ state: 'visible' })
-  await page.getByLabel(/development requester/i).selectOption(String(requester.id))
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.waitForURL('**/tickets')
+/** Drives the real Login screen UI — used where the test's point is to
+ *  exercise the actual sign-in flow, not just get a session as fast as
+ *  possible. `expectedUrl` defaults to a Requester's landing screen; pass
+ *  the caller's actual role-default (or '**\/change-password') for other
+ *  accounts (ui-spec.md §2). */
+export async function loginViaUi(
+  page: Page,
+  email: string,
+  password = SEED_PASSWORD,
+  expectedUrl = '**/tickets',
+) {
+  await page.goto('/login')
+  await page.getByLabel(/email address/i).fill(email)
+  await page.getByLabel(/^password/i).fill(password)
+  await page.getByRole('button', { name: 'Sign In' }).click()
+  await page.waitForURL(expectedUrl)
 }
 
 /** Create Ticket's Category/Related System selects render as soon as the
@@ -67,9 +76,11 @@ export async function referenceData(request: APIRequestContext) {
   return { categories, relatedSystems }
 }
 
+/** `request` must already be authenticated (via loginViaApi) as the intended
+ *  owner — the Ticket's Requester is the session identity, never a body
+ *  field (BR-03). */
 export async function createTicketViaApi(
   request: APIRequestContext,
-  requesterId: number,
   overrides: Partial<{
     categoryId: number
     relatedSystemId: number
@@ -81,7 +92,6 @@ export async function createTicketViaApi(
   const { categories, relatedSystems } = await referenceData(request)
   const res = await request.post('/api/tickets', {
     data: {
-      requesterId,
       categoryId: overrides.categoryId ?? categories[0].id,
       relatedSystemId: overrides.relatedSystemId ?? relatedSystems[0].id,
       requestedPriority: overrides.requestedPriority ?? 'MEDIUM',

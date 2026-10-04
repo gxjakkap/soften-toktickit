@@ -49,7 +49,10 @@ afterEach(() => {
 describe('UI-15 (AC-14, AC-15): active vs removed attachment presentation', () => {
   it('shows a Download action for an active attachment and none for a removed one', () => {
     render(
-      <AttachmentSection requesterId={7} ticketId={101} initialAttachments={[activeAttachment, removedAttachment]} />,
+      <AttachmentSection
+        ticketId={101}
+        initialAttachments={[activeAttachment, removedAttachment]}
+      />,
     )
 
     const activeRow = screen.getByText(/battery-report\.pdf/).closest('li')!
@@ -61,23 +64,23 @@ describe('UI-15 (AC-14, AC-15): active vs removed attachment presentation', () =
   })
 
   it('does not offer a Remove action for an already-removed attachment', () => {
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[removedAttachment]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[removedAttachment]} />)
 
     const removedRow = screen.getByText(/screenshot\.png/).closest('li')!
     expect(within(removedRow).queryByRole('button', { name: /remove/i })).toBeNull()
   })
 
-  it('points the Download link at the attachment download endpoint with the current requesterId', () => {
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[activeAttachment]} />)
+  it('points the Download link at the attachment download endpoint', () => {
+    render(<AttachmentSection ticketId={101} initialAttachments={[activeAttachment]} />)
 
     const link = screen.getByRole('link', { name: /download/i }) as HTMLAnchorElement
-    expect(link.getAttribute('href')).toBe('/api/attachments/501/download?requesterId=7')
+    expect(link.getAttribute('href')).toBe('/api/attachments/501/download')
   })
 })
 
 describe('UI-16 (AC-10): upload control at the 5-active-attachment cap', () => {
   it('disables the upload control and explains the limit once 5 active attachments exist', () => {
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={makeFiveActive()} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={makeFiveActive()} />)
 
     expect(screen.getByText(/5-attachment limit reached/i)).toBeTruthy()
     const dropzone = screen.getByTestId('attachment-dropzone')
@@ -87,7 +90,6 @@ describe('UI-16 (AC-10): upload control at the 5-active-attachment cap', () => {
   it('does not count a removed attachment toward the 5-active cap', () => {
     render(
       <AttachmentSection
-        requesterId={7}
         ticketId={101}
         initialAttachments={[...makeFiveActive().slice(0, 4), removedAttachment]}
       />,
@@ -118,7 +120,7 @@ describe('AttachmentSection: uploading a new file', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[]} />)
 
     const file = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' })
     await user.upload(screen.getByLabelText(/attachments/i), file)
@@ -131,9 +133,11 @@ describe('AttachmentSection: uploading a new file', () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error('should not be called')))
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[]} />)
 
-    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' })
+    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', {
+      type: 'application/pdf',
+    })
     await user.upload(screen.getByLabelText(/attachments/i), bigFile)
 
     expect(await screen.findByText(/exceeds the 5 mb limit/i)).toBeTruthy()
@@ -147,7 +151,10 @@ describe('AttachmentSection: uploading a new file', () => {
       if (/^\/api\/tickets\/101\/attachments$/.test(url) && options?.method === 'POST') {
         attempts += 1
         if (attempts === 1) {
-          return jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Upload failed. Please retry.' } }, 500)
+          return jsonResponse(
+            { error: { code: 'INTERNAL_ERROR', message: 'Upload failed. Please retry.' } },
+            500,
+          )
         }
         return jsonResponse({
           id: 901,
@@ -163,7 +170,7 @@ describe('AttachmentSection: uploading a new file', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[]} />)
 
     const file = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' })
     await user.upload(screen.getByLabelText(/attachments/i), file)
@@ -182,13 +189,18 @@ describe('AttachmentSection: removing an attachment with confirmation', () => {
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
       if (url === '/api/attachments/501/remove' && options?.method === 'PATCH') {
         const body = JSON.parse(String(options.body))
-        return jsonResponse({ ...activeAttachment, isRemoved: true, removedAt: '2026-09-03T00:00:00.000Z', removedReason: body.reason || null })
+        return jsonResponse({
+          ...activeAttachment,
+          isRemoved: true,
+          removedAt: '2026-09-03T00:00:00.000Z',
+          removedReason: body.reason || null,
+        })
       }
       return Promise.reject(new Error(`unexpected fetch: ${url}`))
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[activeAttachment]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[activeAttachment]} />)
 
     await user.click(screen.getByRole('button', { name: /remove/i }))
 
@@ -209,7 +221,7 @@ describe('AttachmentSection: removing an attachment with confirmation', () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error('should not be called')))
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[activeAttachment]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[activeAttachment]} />)
 
     await user.click(screen.getByRole('button', { name: /remove/i }))
     const dialog = await screen.findByRole('dialog')
@@ -223,7 +235,7 @@ describe('AttachmentSection: removing an attachment with confirmation', () => {
 
 describe('AttachmentSection: loading/empty states', () => {
   it('shows an empty-state message when there are no attachments', () => {
-    render(<AttachmentSection requesterId={7} ticketId={101} initialAttachments={[]} />)
+    render(<AttachmentSection ticketId={101} initialAttachments={[]} />)
 
     expect(screen.getByText(/no attachments/i)).toBeTruthy()
   })

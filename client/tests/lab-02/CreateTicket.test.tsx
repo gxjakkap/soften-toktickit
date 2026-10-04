@@ -1,11 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../../src/App'
-import { REQUESTER_STORAGE_KEY, RequesterProvider } from '../../src/RequesterContext'
+import { AuthProvider } from '../../src/AuthContext'
+import { testUser } from '../helpers/auth'
 
-const requester = { id: 7, name: 'Priya Shah', email: 'priya.shah@example.com' }
 const categories = [
   { id: 1, name: 'Hardware' },
   { id: 2, name: 'Software' },
@@ -19,14 +19,17 @@ function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
 }
 
-function mockApi(overrides: {
-  createTicketStatus?: number
-  createTicketBody?: unknown
-  onCreateTicket?: (body: unknown) => void
-  attachmentStatus?: number
-  attachmentBody?: unknown
-} = {}) {
+function mockApi(
+  overrides: {
+    createTicketStatus?: number
+    createTicketBody?: unknown
+    onCreateTicket?: (body: unknown) => void
+    attachmentStatus?: number
+    attachmentBody?: unknown
+  } = {},
+) {
   const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+    if (url === '/api/auth/me') return jsonResponse(testUser)
     if (url === '/api/categories') return jsonResponse(categories)
     if (url === '/api/related-systems') return jsonResponse(relatedSystems)
     if (url === '/api/tickets' && options?.method === 'POST') {
@@ -35,7 +38,7 @@ function mockApi(overrides: {
         overrides.createTicketBody ?? {
           id: 101,
           ticketNumber: 'TKT-2026-000101',
-          requesterId: requester.id,
+          requesterId: testUser.id,
           categoryId: 1,
           relatedSystemId: 5,
           requestedPriority: 'MEDIUM',
@@ -69,12 +72,11 @@ function mockApi(overrides: {
 }
 
 function renderCreateTicket() {
-  localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
   return render(
     <MemoryRouter initialEntries={['/tickets/new']}>
-      <RequesterProvider>
+      <AuthProvider>
         <AppRoutes />
-      </RequesterProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -84,21 +86,19 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText(/related system/i), '5')
   await user.selectOptions(screen.getByLabelText(/requested priority/i), 'MEDIUM')
   await user.type(screen.getByLabelText(/^summary/i), 'Laptop battery drains quickly')
-  await user.type(screen.getByLabelText(/^description/i), 'My laptop battery drains much faster than usual now.')
+  await user.type(
+    screen.getByLabelText(/^description/i),
+    'My laptop battery drains much faster than usual now.',
+  )
 }
 
 function submitButton() {
   return screen.getByRole('button', { name: /^submit$/i }) as HTMLButtonElement
 }
 
-beforeEach(() => {
-  localStorage.clear()
-})
-
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
-  localStorage.clear()
 })
 
 describe('Create Ticket initial state', () => {
@@ -112,7 +112,7 @@ describe('Create Ticket initial state', () => {
 
     expect(ticketNumber.value).toMatch(/generated after submission/i)
     expect(ticketDate.value).toMatch(/generated after submission/i)
-    expect(requesterField.value).toBe(requester.name)
+    expect(requesterField.value).toBe(testUser.name)
     expect(ticketNumber.readOnly).toBe(true)
     expect(ticketDate.readOnly).toBe(true)
     expect(requesterField.readOnly).toBe(true)
@@ -142,7 +142,13 @@ describe('Create Ticket initial state', () => {
     renderCreateTicket()
     await screen.findByLabelText(/category/i)
 
-    const requiredLabels = ['Category', 'Related System', 'Requested Priority', 'Summary', 'Description']
+    const requiredLabels = [
+      'Category',
+      'Related System',
+      'Requested Priority',
+      'Summary',
+      'Description',
+    ]
     for (const text of requiredLabels) {
       const label = screen.getByText(new RegExp(`^${text}`, 'i'))
       expect(within(label).getByText('*')).toBeTruthy()
@@ -159,13 +165,21 @@ describe('UI-05 (AC-04, AC-26): blank Summary', () => {
     await user.selectOptions(await screen.findByLabelText(/category/i), '1')
     await user.selectOptions(screen.getByLabelText(/related system/i), '5')
     await user.selectOptions(screen.getByLabelText(/requested priority/i), 'MEDIUM')
-    await user.type(screen.getByLabelText(/^description/i), 'My laptop battery drains much faster than usual now.')
+    await user.type(
+      screen.getByLabelText(/^description/i),
+      'My laptop battery drains much faster than usual now.',
+    )
     await user.click(submitButton())
 
     const summaryField = screen.getByLabelText(/^summary/i)
     const error = await screen.findByText(/summary is required/i)
-    expect(summaryField.closest('div')?.contains(error) || error.previousElementSibling === summaryField).toBeTruthy()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/tickets', expect.objectContaining({ method: 'POST' }))
+    expect(
+      summaryField.closest('div')?.contains(error) || error.previousElementSibling === summaryField,
+    ).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/tickets',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 
   it('clears the error once the Requester fills the field in, without a second submit', async () => {
@@ -173,6 +187,7 @@ describe('UI-05 (AC-04, AC-26): blank Summary', () => {
     mockApi()
     renderCreateTicket()
 
+    await screen.findByLabelText(/category/i)
     await user.click(submitButton())
     await screen.findByText(/summary is required/i)
 
@@ -196,7 +211,10 @@ describe('AC-05: Description under 10 characters', () => {
     await user.click(submitButton())
 
     expect(await screen.findByText(/description must be at least 10 characters/i)).toBeTruthy()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/tickets', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/tickets',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 })
 
@@ -209,11 +227,17 @@ describe('AC-06: no Requested Priority chosen', () => {
     await user.selectOptions(await screen.findByLabelText(/category/i), '1')
     await user.selectOptions(screen.getByLabelText(/related system/i), '5')
     await user.type(screen.getByLabelText(/^summary/i), 'Laptop battery drains quickly')
-    await user.type(screen.getByLabelText(/^description/i), 'My laptop battery drains much faster than usual now.')
+    await user.type(
+      screen.getByLabelText(/^description/i),
+      'My laptop battery drains much faster than usual now.',
+    )
     await user.click(submitButton())
 
     expect(await screen.findByText(/requested priority is required/i)).toBeTruthy()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/tickets', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/tickets',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 
   it('has no priority pre-selected', async () => {
@@ -229,6 +253,7 @@ describe('UI-06 (AC-07): double-submit', () => {
     const user = userEvent.setup()
     let resolveCreate: (() => void) | undefined
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
@@ -239,7 +264,7 @@ describe('UI-06 (AC-07): double-submit', () => {
                 JSON.stringify({
                   id: 101,
                   ticketNumber: 'TKT-2026-000101',
-                  requesterId: requester.id,
+                  requesterId: testUser.id,
                   categoryId: 1,
                   relatedSystemId: 5,
                   requestedPriority: 'MEDIUM',
@@ -268,7 +293,9 @@ describe('UI-06 (AC-07): double-submit', () => {
     await user.click(button)
     resolveCreate?.()
 
-    await waitFor(() => expect(fetchMock.mock.calls.filter((c) => c[0] === '/api/tickets')).toHaveLength(1))
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter((c) => c[0] === '/api/tickets')).toHaveLength(1),
+    )
   })
 })
 
@@ -276,10 +303,14 @@ describe('UI-07 (AC-08): server failure preserves entered values', () => {
   it('shows a safe error message and keeps the form values, creating nothing', async () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
-        return jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' } }, 500)
+        return jsonResponse(
+          { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' } },
+          500,
+        )
       }
       return Promise.reject(new Error(`unexpected fetch: ${url}`))
     })
@@ -290,7 +321,9 @@ describe('UI-07 (AC-08): server failure preserves entered values', () => {
     await user.click(submitButton())
 
     expect(await screen.findByRole('alert')).toBeTruthy()
-    expect((screen.getByLabelText(/^summary/i) as HTMLInputElement).value).toBe('Laptop battery drains quickly')
+    expect((screen.getByLabelText(/^summary/i) as HTMLInputElement).value).toBe(
+      'Laptop battery drains quickly',
+    )
     expect((screen.getByLabelText(/^description/i) as HTMLTextAreaElement).value).toBe(
       'My laptop battery drains much faster than usual now.',
     )
@@ -335,7 +368,9 @@ describe('UI-09 (AC-11): oversized file, client-side', () => {
     renderCreateTicket()
     await screen.findByLabelText(/category/i)
 
-    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' })
+    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', {
+      type: 'application/pdf',
+    })
     const input = screen.getByLabelText(/attachments/i) as HTMLInputElement
     await user.upload(input, bigFile)
 
@@ -372,7 +407,10 @@ describe('AC-10: attachment count cap on Create Ticket', () => {
     await screen.findByLabelText(/category/i)
 
     const input = screen.getByLabelText(/attachments/i) as HTMLInputElement
-    const files = Array.from({ length: 5 }, (_, i) => new File(['x'], `f${i}.png`, { type: 'image/png' }))
+    const files = Array.from(
+      { length: 5 },
+      (_, i) => new File(['x'], `f${i}.png`, { type: 'image/png' }),
+    )
     await user.upload(input, files)
     const sixth = new File(['x'], 'f5.png', { type: 'image/png' })
     await user.upload(input, sixth)
@@ -441,7 +479,7 @@ describe('Attachments dropzone: drag and drop', () => {
     renderCreateTicket()
     await screen.findByLabelText(/category/i)
 
-    const dropzone = screen.getByTestId('attachment-dropzone');
+    const dropzone = screen.getByTestId('attachment-dropzone')
     fireEvent.dragOver(dropzone, { dataTransfer: { files: [] } })
     expect(dropzone.className).toMatch(/is-dragover/)
 
@@ -455,7 +493,9 @@ describe('Attachments dropzone: drag and drop', () => {
     await screen.findByLabelText(/category/i)
 
     const dropzone = screen.getByTestId('attachment-dropzone')
-    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' })
+    const bigFile = new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', {
+      type: 'application/pdf',
+    })
 
     fireEvent.drop(dropzone, { dataTransfer: { files: [bigFile] } })
 
@@ -506,13 +546,14 @@ describe('inline attachment retry after Ticket creation', () => {
     const user = userEvent.setup()
     let attachmentAttempts = 0
     const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse(categories)
       if (url === '/api/related-systems') return jsonResponse(relatedSystems)
       if (url === '/api/tickets' && options?.method === 'POST') {
         return jsonResponse({
           id: 101,
           ticketNumber: 'TKT-2026-000101',
-          requesterId: requester.id,
+          requesterId: testUser.id,
           categoryId: 1,
           relatedSystemId: 5,
           requestedPriority: 'MEDIUM',
@@ -526,7 +567,10 @@ describe('inline attachment retry after Ticket creation', () => {
       if (/^\/api\/tickets\/\d+\/attachments$/.test(url) && options?.method === 'POST') {
         attachmentAttempts += 1
         if (attachmentAttempts === 1) {
-          return jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Upload failed. Please retry.' } }, 500)
+          return jsonResponse(
+            { error: { code: 'INTERNAL_ERROR', message: 'Upload failed. Please retry.' } },
+            500,
+          )
         }
         return jsonResponse(
           {

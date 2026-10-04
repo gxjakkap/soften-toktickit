@@ -2,20 +2,27 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../../src/app.js'
 import { prisma } from '../../src/db.js'
+import { hashPassword } from '../../src/lib/password.js'
+import { loginCookie } from '../helpers/auth.js'
 
 // API-15..18, API-22, API-23 (AC-09..13; BR-24..26, BR-29).
+//
+// Lab 3 (BR-03, BR-16): ownership comes from the session, not a
+// client-supplied requesterId.
 
 const TAG = 'attachments.test.invalid'
+const PASSWORD = 'DevPass123!'
 
 let requesterId: number
 let otherRequesterId: number
 let categoryId: number
 let relatedSystemId: number
 let ticketId: number
+let cookie: string
+let otherCookie: string
 
 async function createTicket() {
-  const created = await request(app).post('/api/tickets').send({
-    requesterId,
+  const created = await request(app).post('/api/tickets').set('Cookie', cookie).send({
     categoryId,
     relatedSystemId,
     requestedPriority: 'MEDIUM',
@@ -26,14 +33,17 @@ async function createTicket() {
 }
 
 beforeAll(async () => {
-  const requester = await prisma.requesterUser.create({
-    data: { name: 'Attachment Fixture', email: `owner.${TAG}`, isActive: true },
+  const passwordHash = await hashPassword(PASSWORD)
+  const requester = await prisma.user.create({
+    data: { passwordHash, role: 'REQUESTER', name: 'Attachment Fixture', email: `owner.${TAG}` },
   })
-  const other = await prisma.requesterUser.create({
-    data: { name: 'Other Fixture', email: `other.${TAG}`, isActive: true },
+  const other = await prisma.user.create({
+    data: { passwordHash, role: 'REQUESTER', name: 'Other Fixture', email: `other.${TAG}` },
   })
   requesterId = requester.id
   otherRequesterId = other.id
+  cookie = await loginCookie(app, `owner.${TAG}`, PASSWORD)
+  otherCookie = await loginCookie(app, `other.${TAG}`, PASSWORD)
 
   const category = await prisma.category.create({ data: { name: `Category ${TAG}` } })
   categoryId = category.id
@@ -42,9 +52,13 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await prisma.attachment.deleteMany({ where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } } })
-  await prisma.ticket.deleteMany({ where: { requesterId: { in: [requesterId, otherRequesterId] } } })
-  await prisma.requesterUser.deleteMany({ where: { email: { contains: TAG } } })
+  await prisma.attachment.deleteMany({
+    where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } },
+  })
+  await prisma.ticket.deleteMany({
+    where: { requesterId: { in: [requesterId, otherRequesterId] } },
+  })
+  await prisma.user.deleteMany({ where: { email: { contains: TAG } } })
   await prisma.category.deleteMany({ where: { name: { contains: TAG } } })
   await prisma.relatedSystem.deleteMany({ where: { name: { contains: TAG } } })
 })
@@ -56,7 +70,7 @@ describe('POST /api/tickets/:id/attachments', () => {
 
     const res = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .field('requesterId', String(requesterId))
+      .set('Cookie', cookie)
       .attach('file', buffer, { filename: 'receipt.jpg', contentType: 'image/jpeg' })
 
     expect(res.status).toBe(201)
@@ -65,7 +79,15 @@ describe('POST /api/tickets/:id/attachments', () => {
     // api-spec.md §7's 201 shape never includes storedFileName (on-disk name)
     // or removedReason (only meaningful once removed).
     expect(Object.keys(res.body).sort()).toEqual(
-      ['id', 'isRemoved', 'mimeType', 'originalFileName', 'sizeBytes', 'ticketId', 'uploadedAt'].sort(),
+      [
+        'id',
+        'isRemoved',
+        'mimeType',
+        'originalFileName',
+        'sizeBytes',
+        'ticketId',
+        'uploadedAt',
+      ].sort(),
     )
 
     const stored = await prisma.attachment.findUnique({ where: { id: res.body.id } })
@@ -78,7 +100,7 @@ describe('POST /api/tickets/:id/attachments', () => {
     for (let i = 0; i < 5; i++) {
       const res = await request(app)
         .post(`/api/tickets/${localTicketId}/attachments`)
-        .field('requesterId', String(requesterId))
+        .set('Cookie', cookie)
         .attach('file', smallFile(), { filename: `file-${i}.png`, contentType: 'image/png' })
       expect(res.status).toBe(201)
     }
@@ -86,7 +108,7 @@ describe('POST /api/tickets/:id/attachments', () => {
     const before = await prisma.attachment.count({ where: { ticketId: localTicketId } })
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(requesterId))
+      .set('Cookie', cookie)
       .attach('file', smallFile(), { filename: 'file-6.png', contentType: 'image/png' })
 
     expect(res.status).toBe(409)
@@ -100,7 +122,7 @@ describe('POST /api/tickets/:id/attachments', () => {
 
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(requesterId))
+      .set('Cookie', cookie)
       .attach('file', buffer, { filename: 'big.pdf', contentType: 'application/pdf' })
 
     expect(res.status).toBe(413)
@@ -113,7 +135,7 @@ describe('POST /api/tickets/:id/attachments', () => {
 
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(requesterId))
+      .set('Cookie', cookie)
       .attach('file', Buffer.from('not an executable, just bytes'), {
         filename: 'virus.exe',
         contentType: 'application/x-msdownload',
@@ -129,7 +151,7 @@ describe('POST /api/tickets/:id/attachments', () => {
 
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(otherRequesterId))
+      .set('Cookie', otherCookie)
       .attach('file', Buffer.from('hello'), { filename: 'note.png', contentType: 'image/png' })
 
     expect(res.status).toBe(404)
@@ -141,8 +163,11 @@ describe('POST /api/tickets/:id/attachments', () => {
 
     const res = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(requesterId))
-      .attach('file', Buffer.from('bad'), { filename: 'virus.exe', contentType: 'application/x-msdownload' })
+      .set('Cookie', cookie)
+      .attach('file', Buffer.from('bad'), {
+        filename: 'virus.exe',
+        contentType: 'application/x-msdownload',
+      })
 
     expect(res.status).toBe(415)
 
@@ -155,8 +180,11 @@ describe('POST /api/tickets/:id/attachments', () => {
 async function uploadAttachment(localTicketId: number, filename = 'download-me.png') {
   const res = await request(app)
     .post(`/api/tickets/${localTicketId}/attachments`)
-    .field('requesterId', String(requesterId))
-    .attach('file', Buffer.from('file bytes for download tests'), { filename, contentType: 'image/png' })
+    .set('Cookie', cookie)
+    .attach('file', Buffer.from('file bytes for download tests'), {
+      filename,
+      contentType: 'image/png',
+    })
   return res.body as { id: number }
 }
 
@@ -166,12 +194,12 @@ describe('GET /api/attachments/:id/download', () => {
     const content = Buffer.from('file bytes for download tests')
     const uploadRes = await request(app)
       .post(`/api/tickets/${localTicketId}/attachments`)
-      .field('requesterId', String(requesterId))
+      .set('Cookie', cookie)
       .attach('file', content, { filename: 'download-me.png', contentType: 'image/png' })
 
     const res = await request(app)
       .get(`/api/attachments/${uploadRes.body.id}/download`)
-      .query({ requesterId })
+      .set('Cookie', cookie)
       .buffer(true)
       .parse((res, callback) => {
         const chunks: Buffer[] = []
@@ -188,9 +216,14 @@ describe('GET /api/attachments/:id/download', () => {
   it('API-20 (AC-15): returns 410 ATTACHMENT_REMOVED for a removed attachment, no file returned', async () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
-    await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+    await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .set('Cookie', cookie)
+      .send()
 
-    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId })
+    const res = await request(app)
+      .get(`/api/attachments/${attachment.id}/download`)
+      .set('Cookie', cookie)
 
     expect(res.status).toBe(410)
     expect(res.body.error.code).toBe('ATTACHMENT_REMOVED')
@@ -200,20 +233,22 @@ describe('GET /api/attachments/:id/download', () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
-    const res = await request(app).get(`/api/attachments/${attachment.id}/download`).query({ requesterId: otherRequesterId })
+    const res = await request(app)
+      .get(`/api/attachments/${attachment.id}/download`)
+      .set('Cookie', otherCookie)
 
     expect(res.status).toBe(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
   })
 
-  it('returns 400 INVALID_REQUESTER when requesterId is missing', async () => {
+  it('returns 401 UNAUTHENTICATED with no session', async () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
     const res = await request(app).get(`/api/attachments/${attachment.id}/download`)
 
-    expect(res.status).toBe(400)
-    expect(res.body.error.code).toBe('INVALID_REQUESTER')
+    expect(res.status).toBe(401)
+    expect(res.body.error.code).toBe('UNAUTHENTICATED')
   })
 })
 
@@ -224,7 +259,8 @@ describe('PATCH /api/attachments/:id/remove', () => {
 
     const res = await request(app)
       .patch(`/api/attachments/${attachment.id}/remove`)
-      .send({ requesterId, reason: 'Wrong file, re-uploading the correct one' })
+      .set('Cookie', cookie)
+      .send({ reason: 'Wrong file, re-uploading the correct one' })
 
     expect(res.status).toBe(200)
     expect(res.body.isRemoved).toBe(true)
@@ -239,7 +275,10 @@ describe('PATCH /api/attachments/:id/remove', () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
-    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .set('Cookie', cookie)
+      .send()
 
     expect(res.status).toBe(200)
     expect(res.body.removedReason).toBeNull()
@@ -248,9 +287,15 @@ describe('PATCH /api/attachments/:id/remove', () => {
   it('is idempotent: removing an already-removed attachment returns 200 with the existing removed state', async () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
-    await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId, reason: 'first' })
+    await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .set('Cookie', cookie)
+      .send({ reason: 'first' })
 
-    const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({ requesterId })
+    const res = await request(app)
+      .patch(`/api/attachments/${attachment.id}/remove`)
+      .set('Cookie', cookie)
+      .send()
 
     expect(res.status).toBe(200)
     expect(res.body.isRemoved).toBe(true)
@@ -263,7 +308,8 @@ describe('PATCH /api/attachments/:id/remove', () => {
 
     const res = await request(app)
       .patch(`/api/attachments/${attachment.id}/remove`)
-      .send({ requesterId: otherRequesterId })
+      .set('Cookie', otherCookie)
+      .send()
 
     expect(res.status).toBe(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
@@ -272,13 +318,13 @@ describe('PATCH /api/attachments/:id/remove', () => {
     expect(stored?.isRemoved).toBe(false)
   })
 
-  it('returns 400 INVALID_REQUESTER when requesterId is missing', async () => {
+  it('returns 401 UNAUTHENTICATED with no session', async () => {
     const localTicketId = await createTicket()
     const attachment = await uploadAttachment(localTicketId)
 
     const res = await request(app).patch(`/api/attachments/${attachment.id}/remove`).send({})
 
-    expect(res.status).toBe(400)
-    expect(res.body.error.code).toBe('INVALID_REQUESTER')
+    expect(res.status).toBe(401)
+    expect(res.body.error.code).toBe('UNAUTHENTICATED')
   })
 })

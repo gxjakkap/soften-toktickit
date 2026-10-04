@@ -31,16 +31,68 @@ model RelatedSystem {
   tickets Ticket[]
 }
 
-// Lab 2 temporary testing identity, not an authenticated user (BR-03).
-// Lab 3 replaces this with a real account model; see specification.md §7.3.
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+enum UserRole {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
 
-  tickets Ticket[]
+// One account per person, exactly one role (BR-33). Evolved in place from the
+// Lab 2 RequesterUser table so existing Ticket.requesterId values stay valid
+// (specification.md §8.3). passwordHash is bcrypt (BR-09), never plaintext.
+// A CHECK constraint added in the migration keeps email lower-case, so the
+// @unique index is effectively case-insensitive (BR-15).
+model User {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String   @unique
+  passwordHash       String
+  role               UserRole
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  ticketsFiled Ticket[]        @relation("TicketRequester")
+  ticketsOwned Ticket[]        @relation("TicketOwner")
+  comments     TicketComment[]
+  sessions     Session[]
+
+  @@index([role])
+}
+
+// Opaque cookie token, stored hashed; logout deletes the row (BR-12, BR-13).
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum CommentVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+// Public Comments and Internal Notes share one append-only table (BR-27);
+// visibility decides who may read a row (BR-04).
+model TicketComment {
+  id         Int               @id @default(autoincrement())
+  ticketId   Int
+  ticket     Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   Int
+  author     User              @relation(fields: [authorId], references: [id])
+  visibility CommentVisibility
+  content    String
+  createdAt  DateTime          @default(now())
+
+  @@index([ticketId])
+  @@index([ticketId, visibility])
 }
 
 enum RequestedPriority {
@@ -49,40 +101,47 @@ enum RequestedPriority {
   HIGH
 }
 
-// Lab 2 only ever writes NEW; the rest exist so seed data can exercise the
-// My Tickets filter/sort/badge paths (specification.md §11-8).
+// WAITING_FOR_REQUESTER replaces Lab 2's PENDING; REOPENED is new (BR-23).
 enum TicketStatus {
   NEW
   OPEN
   IN_PROGRESS
-  PENDING
+  WAITING_FOR_REQUESTER
   RESOLVED
   CLOSED
+  REOPENED
   CANCELLED
 }
 
 model Ticket {
-  id                Int               @id @default(autoincrement())
-  ticketNumber      String            @unique
-  requesterId       Int
-  requester         RequesterUser     @relation(fields: [requesterId], references: [id])
-  categoryId        Int
-  category          Category          @relation(fields: [categoryId], references: [id])
-  relatedSystemId   Int
-  relatedSystem     RelatedSystem     @relation(fields: [relatedSystemId], references: [id])
-  summary           String
-  description       String
-  requestedPriority RequestedPriority
-  currentStatus     TicketStatus      @default(NEW)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                           Int               @id @default(autoincrement())
+  ticketNumber                 String            @unique
+  requesterId                  Int
+  requester                    User              @relation("TicketRequester", fields: [requesterId], references: [id])
+  ownerId                      Int?
+  owner                        User?             @relation("TicketOwner", fields: [ownerId], references: [id])
+  categoryId                   Int
+  category                     Category          @relation(fields: [categoryId], references: [id])
+  relatedSystemId              Int
+  relatedSystem                RelatedSystem     @relation(fields: [relatedSystemId], references: [id])
+  summary                      String
+  description                  String
+  requestedPriority            RequestedPriority
+  itPriority                   RequestedPriority
+  currentStatus                TicketStatus      @default(NEW)
+  requesterConfirmedResolvedAt DateTime?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
 
   attachments Attachment[]
+  comments    TicketComment[]
 
   @@index([requesterId])
+  @@index([ownerId])
   @@index([categoryId])
   @@index([relatedSystemId])
   @@index([currentStatus])
+  @@index([itPriority])
   @@index([createdAt])
 }
 

@@ -1,10 +1,9 @@
 # Lab 3 Sprint Engineering Specification
 
-Status: **Draft — pending student review and approval before implementation.**
-Every interpretive call made while writing this document is called out in
-[§11 Assumptions and Decisions](#11-assumptions-and-decisions). Review that
-section first; correct anything that doesn't match intent before this
-contract is handed to the coding agent.
+Status: **Final — reviewed and implemented.** Every interpretive call made
+while writing this document is recorded in
+[§11 Assumptions and Decisions](#11-assumptions-and-decisions); item 7 also
+records a correction made during review, before implementation began.
 
 ## 1. Sprint Goal
 

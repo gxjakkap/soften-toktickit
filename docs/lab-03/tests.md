@@ -221,7 +221,7 @@ this issue; see §6):
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| SEC-01 | Security | FR-06, FR-24, api-spec.md §0.1 | Direct-API role matrix | Every protected endpoint (22 routes, §4.1b–§5.4) tried as unauthenticated, as each disallowed role, and as each allowed role: 401 unauthenticated always; 403 `FORBIDDEN` for every disallowed role; every allowed role actually reaches the handler (not 401/403) — 88 assertions in one table-driven block, the last part added in review (see §6) after it was pointed out that an endpoint allowing every role generated no role assertion at all | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
+| SEC-01 | Security | FR-06, FR-24, api-spec.md §0.1 | Direct-API role matrix | Every protected endpoint (22 routes, §4.1b–§5.4) tried as unauthenticated, as each disallowed role, and as each allowed role: 401 unauthenticated always; 403 `FORBIDDEN` for every disallowed role; every allowed role actually reaches the handler (not 401/403) — 88 assertions in this one `describe` block (the allowed-role half added in review, see §6, after it was pointed out that an endpoint allowing every role generated no role assertion at all), 92 for the whole file counting SEC-02–05 below | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-02 | Security | BR-16, FR-24 | No existence leak, Ticket | `GET /api/tickets/:id` for another Requester's Ticket is 404 with a body of exactly `{error}` — no ticket field leaked | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-03 | Security | BR-16, FR-24 | No existence leak, Attachment download | `GET /api/attachments/:id/download` for another Requester's attachment is 404, no `Content-Disposition` header, body only `{error}` | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
 | SEC-04 | Security | BR-16, FR-24 | No existence leak, Attachment remove | `PATCH /api/attachments/:id/remove` for another Requester's attachment is 404; the row is confirmed unchanged in the database | `server/tests/lab-03/authorization-matrix.api.test.ts` | Pass |
@@ -586,16 +586,43 @@ generated zero role assertions for an endpoint whose `allowed` list is every
 role (`/api/categories`, `/api/related-systems`): restricting either one to
 `REQUESTER`-only still passed the full suite. Fixed by adding a second loop
 asserting every allowed role actually reaches the handler (SEC-01, now 88
-assertions, up from 65). Also found and fixed: the Internal Note leak check
-never confirmed its own setup POST succeeded before asserting the content
-was absent; the deactivation e2e's comment claimed the account's *next
-request* is blocked but only its *next login* was tested (BR-34 promises
-both) — now the test also kills a held-open session through the `request`
-fixture's independent cookie jar (E2E-11); and the E2E suite created
-throwaway `.test.invalid` users with no cleanup, visible as accumulated rows
-in the User Management screenshot — closed with `playwright.config.ts`'s new
-`globalTeardown` (`e2e/global-teardown.ts` → `server/scripts/clean-e2e-fixtures.ts`)
-and a recapture.
+assertions in that `describe` block). Also found and fixed: the Internal
+Note leak check never confirmed its own setup POST succeeded before
+asserting the content was absent; the deactivation e2e's comment claimed the
+account's *next request* is blocked but only its *next login* was tested
+(BR-34 promises both) — now the test also kills a held-open session through
+the `request` fixture's independent cookie jar (E2E-11); and the E2E suite
+created throwaway `.test.invalid` users with no cleanup, visible as
+accumulated rows in the User Management screenshot — closed with
+`playwright.config.ts`'s new `globalTeardown`
+(`e2e/global-teardown.ts` → `server/scripts/clean-e2e-fixtures.ts`).
+
+**PR #55 review round 2** (`FakeKase`) found the round-1 fix was
+incomplete: the User Management screenshot still had one leftover row
+because `globalTeardown` only runs after the whole suite, and
+`authentication.spec.ts` creates its fixture user earlier in the same run,
+before the screenshot spec. Far more significant: the cleanup only ever
+matched `.test.invalid` *users*, never Tickets filed under a real seeded
+Requester (`jennifer.anderson@example.com` mainly) — the committed
+`my-tickets/desktop.png` showed "Showing 1 to 10 of 325 tickets" with 33
+wrapped pagination buttons, accumulated across unrelated runs over a much
+longer period than this issue. Fixed both:
+
+- `server/scripts/clean-e2e-fixtures.ts` now also deletes every Ticket whose
+  `ticketNumber` falls outside the seed's reserved `900001+` range
+  (`prisma/seed.ts`'s own comment documents that range exists specifically
+  so a non-seed row is identifiable this way) — 318 fixture Tickets were
+  sitting in the dev database at review time, none created by this issue.
+- Added `e2e/global-setup.ts` (cleans before the run starts, so a crashed
+  prior run can't leak into this one either) and a `test.beforeAll` in both
+  screenshot specs (`screenshots.spec.ts`, `staff-and-admin-screenshots.spec.ts`)
+  cleaning immediately before each captures its screenshots, closing the
+  within-run ordering gap `globalTeardown` alone couldn't. All three share
+  `e2e/clean-fixtures.ts`'s one `cleanFixtures()` call.
+
+Recaptured; `my-tickets/desktop.png` now shows "Showing 1 to 10 of 19
+tickets" (14 seeded + 5 this file's own in-run fixtures), two page buttons,
+no wrapping. Confirmed stable over two consecutive full `pnpm e2e` runs.
 
 ```bash
 pnpm --filter server test   # 371/371 passing
@@ -633,14 +660,14 @@ pnpm e2e                    # 29/29 passing
   as required repository documents, alongside peer review recorded in
   `reviewer.md` for every issue. Out of scope for this issue by explicit
   instruction — not touched here.
-- **The Playwright suite still creates real fixture Tickets under seeded
-  Requesters with no cleanup** (the Lab 2 flow/screenshot specs' existing
-  pattern, `docs/lab-02/tests.md` §7) — fine for a local dev Postgres
-  instance reseeded between submissions, not something a shared CI database
-  should inherit unmodified. The `.test.invalid` *user* rows this issue's own
-  new specs create are cleaned by the global teardown added in review round 1
-  (above); only the Ticket-under-a-real-seeded-Requester pattern remains
-  unaddressed, and it predates this issue.
+- **Fixture Tickets and users created *during* a run still exist for the
+  rest of that run** — `global-setup.ts`/`global-teardown.ts` bracket the
+  whole suite, and the two screenshot specs clean immediately before they
+  capture, but a spec between those points can still see an earlier spec's
+  same-run fixtures (e.g. `my-tickets/desktop.png` legitimately shows
+  `screenshots.spec.ts`'s own 5 in-flight fixture Tickets alongside the 14
+  seeded ones). This is expected, not a gap — see review round 2 above for
+  the actual bug (cross-run accumulation) and its fix.
 - **`docs/lab-02/tests.md` §2's `STYLE-02/03/04` rows still cite
   `e2e/lab-02/screenshots.spec.ts`**, but that file was moved to
   `e2e/lab-03/screenshots.spec.ts` by Issue #5 (its own header comment

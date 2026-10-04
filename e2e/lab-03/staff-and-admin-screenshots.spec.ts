@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
+import { cleanFixtures } from '../clean-fixtures'
 import {
   createTicketViaApi,
   loginViaApi,
@@ -8,6 +9,11 @@ import {
   SEED_PASSWORD,
   VIEWPORTS,
 } from '../lab-02/helpers'
+
+// PR #55 review round 2: same reasoning as screenshots.spec.ts — an earlier
+// spec file in this run (authentication.spec.ts) can leave a fixture user
+// behind before this file's User Management screenshot captures it.
+test.beforeAll(cleanFixtures)
 
 // ui-spec.md §11: the four screenshot triads not yet captured by
 // e2e/lab-03/screenshots.spec.ts (which only re-captured the Lab 2 screens).

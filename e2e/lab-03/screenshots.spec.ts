@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
+import { cleanFixtures } from '../clean-fixtures'
 import {
   createTicketViaApi,
   loginViaApi,
@@ -9,6 +10,12 @@ import {
   VIEWPORTS,
   waitForCreateTicketReady,
 } from '../lab-02/helpers'
+
+// PR #55 review round 2: global-setup.ts/global-teardown.ts only bracket
+// the whole run — an earlier spec file in this same run (e.g.
+// requester-ticket-flow.spec.ts) can still leave fixture Tickets behind
+// before this file's My Tickets screenshot captures them.
+test.beforeAll(cleanFixtures)
 
 const PHOTO_FIXTURE = path.join(__dirname, '../lab-02/fixtures/valid-photo.png')
 // Not committed to the repo: an .exe-named fixture with a DOS-header magic

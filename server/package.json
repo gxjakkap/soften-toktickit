@@ -11,7 +11,8 @@
     "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "clean:e2e-fixtures": "tsx scripts/clean-e2e-fixtures.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

@@ -181,7 +181,7 @@ app.post('/api/auth/change-password', async (req, res) => {
 
 // Only active rows, {id, name} shape (api-spec.md §2). isActive/createdAt
 // are never exposed to the client.
-app.get('/api/categories', async (_req, res) => {
+app.get('/api/categories', ...requireAuth, async (_req, res) => {
   const categories = await prisma.category.findMany({
     where: { isActive: true },
     orderBy: { id: 'asc' },
@@ -191,7 +191,7 @@ app.get('/api/categories', async (_req, res) => {
 })
 
 // Mirrors /api/categories (api-spec.md §3).
-app.get('/api/related-systems', async (_req, res) => {
+app.get('/api/related-systems', ...requireAuth, async (_req, res) => {
   const relatedSystems = await prisma.relatedSystem.findMany({
     where: { isActive: true },
     orderBy: { id: 'asc' },

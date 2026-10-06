@@ -1,15 +1,18 @@
 // Edits the PR description in place (idempotent, marker-delimited); if
 // that fails, posts a fresh PR comment instead — no dedup there, by
 // design, so the comment history stays linear.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const { GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, HEAD_SHA } = process.env
 const [owner, repo] = GITHUB_REPOSITORY.split('/')
 const report = readFileSync('report.md', 'utf8')
+const guide = existsSync('review-guide.md')
+  ? `## Review guide\n\n${readFileSync('review-guide.md', 'utf8')}\n`
+  : ''
 
 const START = '<!-- test-results:start -->'
 const END = '<!-- test-results:end -->'
-const block = `${START}\n## Test results (${HEAD_SHA.slice(0, 7)})\n\n${report}\n${END}`
+const block = `${START}\n${guide}## Test results (${HEAD_SHA.slice(0, 7)})\n\n${report}\n${END}`
 
 const api = (path, init) =>
   fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {

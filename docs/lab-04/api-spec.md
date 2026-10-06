@@ -64,13 +64,19 @@ so a test can reach each case deterministically:
 1. `401` / `403` (guards)
 2. `400` body validation that needs no database read
 3. `404` resource lookup
-4. `409 STALE_UPDATE` (version)
-5. `409` state rules (`TICKET_NOT_ACTIONABLE`, `ACTION_LOCKED`,
+4. Action create only: `clientRequestId` replay. If this caller already
+   created an Action with the same key, return it with `200` and stop
+   (specification.md BR-14). This comes before every state rule, so a retry
+   whose first attempt was saved never gets a `409`, even if the Ticket was
+   resolved in between.
+5. `409 STALE_UPDATE` (version)
+6. `409` state rules (`TICKET_NOT_ACTIONABLE`, `ACTION_LOCKED`,
    `INVALID_ACTION_TRANSITION`, `INVALID_TRANSITION`, `RESOLUTION_BLOCKED`)
-6. `400` validation that needs database state (`INVALID_ASSIGNEE`, Action
-   Date/Time not before the Ticket's creation, Result required for Done)
+7. `400` validation that needs database state (`INVALID_ASSIGNEE`, Action
+   Date/Time not before the Ticket's creation minute, Result required for
+   Done)
 
-Steps 3–6 and the write run inside one `withSerializableRetry`
+Steps 3–7 and the write run inside one `withSerializableRetry`
 transaction.
 
 ### 0.5 Shared shapes
@@ -111,7 +117,8 @@ an inactive assignee (specification.md BR-04).
 }
 ```
 
-`fromStatus` is `null` only on the creation entry.
+`fromStatus` is `null` only on the creation entry, whose `toStatus` is
+always `NEW`. Seeded history follows the same rule (specification.md §7.6).
 
 **TicketWorkflowState**, returned by every Ticket workflow write and in
 `details.current` of a Ticket `STALE_UPDATE`:
@@ -188,7 +195,7 @@ An empty Ticket returns `{ "data": [] }`.
 | Field | Required | Rule |
 | --- | --- | --- |
 | `clientRequestId` | no | UUID string; idempotency key (BR-14). Non-UUID → `400`. |
-| `actionAt` | yes | ISO 8601 with offset or `Z` (BR-32); not before the Ticket's `createdAt`; if `status` is `DONE`, not more than 5 minutes after server time (BR-08). |
+| `actionAt` | yes | ISO 8601 with offset or `Z` (BR-32); not before the Ticket's `createdAt` truncated to the minute (BR-05), so a Ticket created at 10:00:30 accepts 10:00:00 and rejects 09:59:59; if `status` is `DONE`, not more than 5 minutes after server time (BR-08). |
 | `description` | yes | 1–2000 chars after trim. |
 | `result` | no | 0–2000 chars after trim; required (non-empty) when `status` is `DONE`. |
 | `status` | no | `PLANNED` (default), `IN_PROGRESS`, or `DONE`. `CANCELLED` is not accepted on create (`400`). |
@@ -203,7 +210,8 @@ its `version` is unchanged (BR-25, BR-27).
 
 **200** (idempotent replay): if this caller already created an Action with
 the same `clientRequestId`, that Action is returned unchanged. The new body
-is not re-validated or applied. If the earlier Action belongs to a different
+is not re-validated or applied, and no state rule runs (§0.4 step 4), so
+the replay succeeds even if the Ticket is no longer active. If the earlier Action belongs to a different
 Ticket than `:id`, the response is `400 VALIDATION_ERROR`,
 `field: "clientRequestId"` ("This request id was already used for another
 ticket.").

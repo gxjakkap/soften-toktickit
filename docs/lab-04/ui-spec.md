@@ -267,7 +267,10 @@ ticket is <status>. Reopen it to record more actions."
   inaccessible modals). Focus moves to the panel heading "New Action".
 - Fields, top to bottom:
   1. **Action Date/Time**: required, `<input type="datetime-local">`,
-     default "now" in Bangkok time, helper "Bangkok time (UTC+7)".
+     default "now" in Bangkok time, helper "Bangkok time (UTC+7)". The
+     input holds minutes only, and the server compares it with the
+     Ticket's creation time to the minute (specification.md BR-05), so the
+     default is always accepted.
   2. **Action Description**: required textarea, 1–2000, live count near
      the limit.
   3. **Status**: select of Planned (default), In Progress, Done.
@@ -334,7 +337,8 @@ History".
   "<from badge> → <to badge> · <name> (<role>) · <date/time>". The creation
   entry reads "Created as <New badge> · <name> · <date/time>".
 - No edit or delete control exists.
-- Empty (legacy Ticket): "History is recorded from 6 Oct 2026 onward."
+- Empty (legacy Ticket): "No status changes recorded yet." No date is
+  shown, because the migration date differs per database.
 - Long histories: show the latest 10 by default with a **Show all
   (n)** toggle that expands the list in place, keeping order.
 

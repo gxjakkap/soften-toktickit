@@ -144,7 +144,7 @@ Also excluded by this contract:
 | BR-02 | The Ticket Owner coordinates the Ticket, but an Action Taken may be performed by, or assigned to, a different IT Staff member or Administrator. Creating or updating an Action Taken never changes the Ticket Owner. |
 | BR-03 | Performed By is set once, at creation, to the authenticated user. Any `performedBy`/`performedById` value in a request body is ignored, and no endpoint can change it afterward. |
 | BR-04 | Assigned To must reference an active user whose role is IT Staff or Administrator. It defaults to the creator when omitted on creation. An inactive, Requester, or nonexistent user is rejected with `400 INVALID_ASSIGNEE`. An update that does not send `assignedToId` keeps the current assignee, even if that user has since been deactivated. |
-| BR-05 | Field limits, after trimming: Action Description is required, 1–2000 characters. Result is optional, 0–2000 characters, stored as `null` when empty. Follow-Up Note is 1–1000 characters when required (BR-06). Attachment Notes is optional, 0–500 characters: free text naming files already attached to the Ticket or stored elsewhere (no file is uploaded with an Action). Action Date/Time is a required ISO 8601 timestamp. |
+| BR-05 | Field limits, after trimming: Action Description is required, 1–2000 characters. Result is optional, 0–2000 characters, stored as `null` when empty. Follow-Up Note is 1–1000 characters when required (BR-06). Attachment Notes is optional, 0–500 characters: free text naming files already attached to the Ticket or stored elsewhere (no file is uploaded with an Action). Action Date/Time is a required ISO 8601 timestamp and must not be earlier than the Ticket's `createdAt` truncated to the minute (`400 VALIDATION_ERROR`, `field: "actionAt"`). The comparison is to the minute because the Action Date/Time input holds minutes only (ui-spec.md §5.2), so its default of "now" on a Ticket created seconds ago must pass. |
 | BR-06 | When Follow-Up Required is true, Follow-Up Note is required (`400 VALIDATION_ERROR`, `field: "followUpNote"`, nothing saved). When Follow-Up Required is false, the server stores Follow-Up Note as `null` regardless of what was sent. |
 | BR-07 | Action Status is one of Planned, In Progress, Done, Cancelled; a new Action defaults to Planned. Permitted changes: Planned → In Progress, Done, or Cancelled; In Progress → Planned, Done, or Cancelled. Done and Cancelled are final. Any other change returns `409 INVALID_ACTION_TRANSITION`. |
 | BR-08 | An Action can be set to Done only when its Result is non-empty (`400 VALIDATION_ERROR`, `field: "result"`), and only when its Action Date/Time is not more than 5 minutes in the future (`400 VALIDATION_ERROR`, `field: "actionAt"`). Planned and In Progress Actions may carry a future Action Date/Time (scheduled work). |
@@ -153,7 +153,7 @@ Also excluded by this contract:
 | BR-11 | Any active IT Staff user or Administrator may create or update an Action on any Ticket. Action writes are not limited to the Ticket Owner, Performed By user, or assignee, consistent with the shared-queue rule (Lab 3 BR-31). |
 | BR-12 | A Requester may read the Actions Taken, with every field, on a Ticket they own, and may never create or update one. Staff Action endpoints return `403 FORBIDDEN` to a Requester. A Requester reading Actions on a Ticket they don't own receives the same `404 NOT_FOUND` as for a nonexistent Ticket (Lab 3 BR-16). |
 | BR-13 | Actions Taken are never deleted. An Action that should not count is set to Cancelled and stays visible. Every list orders Actions by Action Date/Time ascending, then id ascending, so the order is stable across reloads and ties. |
-| BR-14 | Action creation accepts an optional `clientRequestId` (UUID). A second creation with the same `clientRequestId` by the same user returns the first Action (`200`) instead of creating another. Without `clientRequestId`, every request creates a new Action. |
+| BR-14 | Action creation accepts an optional `clientRequestId` (UUID). A second creation with the same `clientRequestId` by the same user returns the first Action (`200`) instead of creating another. The replay lookup runs right after the Ticket lookup and before every state rule, so a retry of a creation that already succeeded still returns the saved Action even if the Ticket has since become non-active (BR-10). Without `clientRequestId`, every request creates a new Action. |
 
 ### 5.2 Ticket Status Workflow
 
@@ -380,9 +380,13 @@ cannot express them):
 - `length(btrim("description")) > 0` (BR-05)
 - `"version" >= 1` on both `Ticket` and `ActionTaken`
 
-Lab 3 timestamp columns stay `timestamp(3)` (UTC by convention). New
-columns use `timestamptz(3)`. Both store a UTC instant, so comparisons
-between them are exact.
+Lab 3 timestamp columns stay `timestamp(3)` and hold UTC wall-clock
+values (Prisma writes them in UTC). New columns use `timestamptz(3)`.
+Postgres converts between the two using the session `TimeZone`, so any SQL
+that mixes them must convert explicitly with `AT TIME ZONE 'UTC'` rather
+than rely on the session being UTC. Dashboard queries compare
+`timestamptz` columns only against `timestamptz` bounds, so they need no
+conversion.
 
 ### 7.3 Design Decisions and Justification
 
@@ -444,8 +448,12 @@ the two backfills.
 2. Add `Ticket.version INTEGER NOT NULL DEFAULT 1`. Every existing Ticket
    gets `version = 1` with no data rewrite needed.
 3. Add `Ticket.resolvedAt TIMESTAMPTZ(3) NULL`. **Backfill:** for every
-   Ticket whose `currentStatus` is `RESOLVED` or `CLOSED`, set `resolvedAt =
-   "updatedAt"`. Lab 3 never recorded the resolution time, and `updatedAt`
+   Ticket whose `currentStatus` is `RESOLVED` or `CLOSED`, set
+   `"resolvedAt" = "updatedAt" AT TIME ZONE 'UTC'`. The explicit
+   conversion reads the `timestamp` column as UTC regardless of the session
+   `TimeZone` (§7.2). A plain assignment would shift every value by the
+   session offset, for example 7 hours early on a server set to
+   Asia/Bangkok. Lab 3 never recorded the resolution time, and `updatedAt`
    is the latest workflow write, which for these statuses is the closest
    available upper bound. Every other Ticket stays `NULL`. This is recorded
    as an approximation in §11-9.
@@ -454,8 +462,9 @@ the two backfills.
 5. **No history backfill.** Lab 3 kept no record of past transitions, and
    inventing entries would put fabricated data in an append-only log. Legacy
    Tickets start with an empty history, and their next status change writes
-   their first entry. The UI shows "History is recorded from
-   6 Oct 2026 onward." when a Ticket has no entries (ui-spec.md §5.4).
+   their first entry. The UI shows "No status changes recorded yet." when a
+   Ticket has no entries (ui-spec.md §5.3). It names no date, because the
+   migration date differs per database.
 
 **Legacy Tickets with zero Actions Taken:**
 
@@ -529,10 +538,12 @@ existence check, and running it twice produces identical rows and ids
   Tickets get `resolvedAt` relative to seed time, with at least one inside
   today's Asia/Bangkok day (BR-50 non-zero) and others spread over the past
   45 days, so BR-42's 30-day window both includes and excludes some.
-- **Status history**: each seeded Ticket gets one entry
-  (`fromStatus = null` → its seeded status, changed by its Owner or
-  Requester) so the History section has content to demo. It is keyed on
-  (ticket, toStatus, fromStatus) for idempotency.
+- **Status history**: each seeded Ticket gets a creation entry
+  (`null` → New, by its Requester, at its `createdAt`). Every Ticket whose
+  seeded status is not New also gets one entry from New to that status, by
+  its Owner or, when unassigned, the first active IT Staff user. This keeps
+  api-spec.md §0.5's rule that `fromStatus` is `null` only on the creation
+  entry. Rows are keyed on (ticket, fromStatus, toStatus) for idempotency.
 - **Zero metrics**: Emma Watson (Requester, zero Tickets) shows the
   Requester empty state. Nattapong Srisuk (active IT Staff) owns Tickets
   but has no open assigned Actions, so his My Open Actions is `0`. Every
@@ -793,3 +804,9 @@ schema or API and are costly to change after Issue #62 starts;
     and Lab 3 relied on label queries alone, but the handout's final
     hardening and grading Part 9 ask for accessibility evidence across
     every major screen. A scan per screen is the cheapest repeatable proof.
+20. **(reversible) An open Action assigned to a deactivated user still
+    blocks resolution, and it appears on nobody's My Open Actions.** This
+    is intended. Deactivation does not finish the work, so the gate
+    (BR-18) keeps reporting `OPEN_ACTIONS`. Staff find the Action from the
+    Ticket, where the assignee carries an "Inactive" badge (ui-spec.md
+    §5.2), and either reassign it to an active user (BR-04) or cancel it.

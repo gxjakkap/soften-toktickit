@@ -1,21 +1,13 @@
-// Edits the PR description in place (idempotent, marker-delimited); if
-// that fails, posts a fresh PR comment instead — no dedup there, by
-// design, so the comment history stays linear.
+// Posts the review guide and the test results as two separate bot comments.
+// Each comment carries a marker; a rerun edits the matching comment in place
+// instead of piling up a new one per push.
 import { existsSync, readFileSync } from 'node:fs'
 
 const { GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, HEAD_SHA } = process.env
-const [owner, repo] = GITHUB_REPOSITORY.split('/')
-const report = readFileSync('report.md', 'utf8')
-const guide = existsSync('review-guide.md')
-  ? `## Review guide\n\n${readFileSync('review-guide.md', 'utf8')}\n`
-  : ''
-
-const START = '<!-- test-results:start -->'
-const END = '<!-- test-results:end -->'
-const block = `${START}\n${guide}## Test results (${HEAD_SHA.slice(0, 7)})\n\n${report}\n${END}`
+const sha = HEAD_SHA.slice(0, 7)
 
 const api = (path, init) =>
-  fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
+  fetch(`https://api.github.com/repos/${GITHUB_REPOSITORY}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -25,22 +17,28 @@ const api = (path, init) =>
     },
   })
 
-const pr = await (await api(`/pulls/${PR_NUMBER}`)).json()
-const body = pr.body ?? ''
+// ponytail: reads the first 100 comments only; page through if a PR ever
+// gets enough discussion to push the bot comments past that.
+const comments = await (await api(`/issues/${PR_NUMBER}/comments?per_page=100`)).json()
 
-const hasMarkers = body.includes(START) && body.includes(END)
-const newBody = hasMarkers
-  ? body.replace(new RegExp(`${START}[\\s\\S]*?${END}`), block)
-  : `${body}\n\n${block}`
-
-const editRes = await api(`/pulls/${PR_NUMBER}`, {
-  method: 'PATCH',
-  body: JSON.stringify({ body: newBody }),
-})
-
-if (!editRes.ok) {
-  await api(`/issues/${PR_NUMBER}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ body: block }),
+async function upsert(marker, body) {
+  const full = `${marker}\n${body}`
+  const existing = comments.find(
+    (c) => c.user?.login === 'github-actions[bot]' && c.body?.startsWith(marker),
+  )
+  await api(existing ? `/issues/comments/${existing.id}` : `/issues/${PR_NUMBER}/comments`, {
+    method: existing ? 'PATCH' : 'POST',
+    body: JSON.stringify({ body: full }),
   })
 }
+
+if (existsSync('review-guide.md')) {
+  await upsert(
+    '<!-- review-guide -->',
+    `## Review guide (${sha})\n\n${readFileSync('review-guide.md', 'utf8')}`,
+  )
+}
+await upsert(
+  '<!-- test-results -->',
+  `## Test results (${sha})\n\n${readFileSync('report.md', 'utf8')}`,
+)

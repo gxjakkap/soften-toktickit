@@ -12,7 +12,7 @@ Earlier labs' acceptance criteria stay in force. A new lab extends the previous 
 
 ## Identity seam
 
-Each side reaches "who is asking?" through one file: `server/src/lib/requester-context.ts` and `client/src/apiClient.ts` (BR-31). Handlers and screens go through these, so an auth change lands in two files.
+Each side reaches "who is asking?" through one file: `server/src/lib/auth-context.ts` and `client/src/apiClient.ts` (BR-31). Handlers and screens go through these, so an auth change lands in two files.
 
 ## Attachment rules live twice
 

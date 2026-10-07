@@ -58,6 +58,11 @@ model User {
   comments     TicketComment[]
   sessions     Session[]
 
+  // specification.md §7.2: Lab 4 back-relations.
+  actionsPerformed ActionTaken[]         @relation("ActionPerformedBy")
+  actionsAssigned  ActionTaken[]         @relation("ActionAssignedTo")
+  statusChanges    TicketStatusHistory[]
+
   @@index([role])
 }
 
@@ -132,9 +137,15 @@ model Ticket {
   requesterConfirmedResolvedAt DateTime?
   createdAt                    DateTime          @default(now())
   updatedAt                    DateTime          @updatedAt
+  // Lab 4 specification.md §7.2: optimistic concurrency token (BR-24) and
+  // the time the Ticket last entered Resolved (BR-21).
+  version                      Int               @default(1)
+  resolvedAt                   DateTime?         @db.Timestamptz(3)
 
-  attachments Attachment[]
-  comments    TicketComment[]
+  attachments   Attachment[]
+  comments      TicketComment[]
+  actionsTaken  ActionTaken[]
+  statusHistory TicketStatusHistory[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -143,6 +154,12 @@ model Ticket {
   @@index([currentStatus])
   @@index([itPriority])
   @@index([createdAt])
+  // Lab 4 dashboard predicates (specification.md §7.3-4).
+  @@index([currentStatus, ownerId])
+  @@index([currentStatus, itPriority])
+  @@index([resolvedAt])
+  @@index([requesterId, currentStatus])
+  @@index([updatedAt])
 }
 
 // Removal is soft (BR-27/BR-28): the row and its metadata survive so Ticket
@@ -162,4 +179,59 @@ model Attachment {
 
   @@index([ticketId])
   @@index([ticketId, isRemoved])
+}
+
+enum ActionStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+// Lab 4 specification.md §7.2 (BR-01..BR-14). Never deleted (BR-13); an
+// Action that should not count is cancelled instead. Every FK is Restrict
+// (§7.3-5) because these rows are audit records. The migration adds CHECK
+// constraints Prisma cannot express: follow-up note required with
+// follow-up (BR-06), result required for DONE (BR-08), non-blank
+// description (BR-05), and version >= 1.
+model ActionTaken {
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  ticket           Ticket       @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  performedById    Int
+  performedBy      User         @relation("ActionPerformedBy", fields: [performedById], references: [id], onDelete: Restrict)
+  assignedToId     Int
+  assignedTo       User         @relation("ActionAssignedTo", fields: [assignedToId], references: [id], onDelete: Restrict)
+  actionAt         DateTime     @db.Timestamptz(3)
+  description      String       @db.VarChar(2000)
+  result           String?      @db.VarChar(2000)
+  status           ActionStatus @default(PLANNED)
+  followUpRequired Boolean      @default(false)
+  followUpNote     String?      @db.VarChar(1000)
+  attachmentNotes  String?      @db.VarChar(500)
+  clientRequestId  String?      @db.Uuid
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+
+  // BR-14: idempotency key scoped per user (§7.3-6).
+  @@unique([performedById, clientRequestId])
+  @@index([ticketId, actionAt, id])
+  @@index([assignedToId, status])
+  @@index([ticketId, status, followUpRequired])
+}
+
+// Lab 4 specification.md §7.2 (BR-22): append-only; no update or delete path
+// exists. fromStatus is null only on the creation entry.
+model TicketStatusHistory {
+  id          Int           @id @default(autoincrement())
+  ticketId    Int
+  ticket      Ticket        @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  fromStatus  TicketStatus?
+  toStatus    TicketStatus
+  changedById Int
+  changedBy   User          @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedAt   DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@index([ticketId, changedAt, id])
 }

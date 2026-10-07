@@ -160,12 +160,12 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| MIG-01 | Migration | AC-38, §7.4 | Forward migration on Lab 3 data | Every Lab 1–3 row count and id preserved; `version = 1` everywhere; zero Actions; empty history | `server/tests/lab-04/migration.integration.test.ts` | Planned |
-| MIG-02 | Migration | AC-38, §7.4 step 3 | `resolvedAt` backfill | Equals `updatedAt` read as UTC for Resolved/Closed; `NULL` for the other six statuses; run once with session `TimeZone = 'Asia/Bangkok'` and the values are still identical (no 7-hour shift) | `server/tests/lab-04/migration.integration.test.ts` | Planned |
-| MIG-03 | Migration | §7.2 | Constraints | CHECKs reject follow-up without note, Done without result, blank description, version 0; FKs Restrict Ticket/User deletion with Actions/history; unique `(performedById, clientRequestId)` | `server/tests/lab-04/migration.integration.test.ts` | Planned |
-| MIG-04 | Migration | §7.3-4 | Indexes exist | Every index in §7.2 is present | `server/tests/lab-04/migration.integration.test.ts` | Planned |
-| MIG-05 | Migration | AC-39, §7.5 | Rollback and re-apply | Down script returns to the Lab 3 schema with every Lab 1–3 row intact (Lab 3 MIG checks pass); forward migration re-applies cleanly | `server/tests/lab-04/migration.integration.test.ts` | Planned |
-| MIG-06 | Migration | AC-40, §7.6 | Seed idempotency and coverage | Two runs, identical rows and ids; Tickets with 0, 1, many Actions; all Action statuses; ≥2 pending follow-ups; resolved-today Ticket; Emma has zero Tickets; Nattapong zero open Actions; history `fromStatus` is `null` only on `→ NEW` creation entries; seeded Resolved/Closed (except the legacy-style one) pass the gate; inactive assignee present | `server/tests/lab-04/schema-seed.integration.test.ts` | Planned |
+| MIG-01 | Migration | AC-38, §7.4 | Forward migration on Lab 3 data | Every Lab 1–3 row count and id preserved; `version = 1` everywhere; zero Actions; empty history | `server/tests/lab-04/migration.integration.test.ts` | Pass |
+| MIG-02 | Migration | AC-38, §7.4 step 3 | `resolvedAt` backfill | Equals `updatedAt` read as UTC for Resolved/Closed; `NULL` for the other six statuses; run once with session `TimeZone = 'Asia/Bangkok'` and the values are still identical (no 7-hour shift) | `server/tests/lab-04/migration.integration.test.ts` | Pass |
+| MIG-03 | Migration | §7.2 | Constraints | CHECKs reject follow-up without note, Done without result, blank description, version 0; FKs Restrict Ticket/User deletion with Actions/history; unique `(performedById, clientRequestId)` | `server/tests/lab-04/migration.integration.test.ts` | Pass |
+| MIG-04 | Migration | §7.3-4 | Indexes exist | Every index in §7.2 is present | `server/tests/lab-04/migration.integration.test.ts` | Pass |
+| MIG-05 | Migration | AC-39, §7.5 | Rollback and re-apply | Down script returns to the Lab 3 schema with every Lab 1–3 row intact (Lab 3 MIG checks pass); forward migration re-applies cleanly | `server/tests/lab-04/migration.integration.test.ts` | Pass |
+| MIG-06 | Migration | AC-40, §7.6 | Seed idempotency and coverage | Two runs, identical rows and ids; Tickets with 0, 1, many Actions; all Action statuses; ≥2 pending follow-ups; resolved-today Ticket; Emma has zero Tickets; Nattapong zero open Actions; history `fromStatus` is `null` only on `→ NEW` creation entries; seeded Resolved/Closed (except the legacy-style one) pass the gate; inactive assignee present | `server/tests/lab-04/schema-seed.integration.test.ts` | Pass |
 | MIG-07 | Regression | AC-43, FR-23 | Lab 1–3 server suites | `server/tests/lab-01..03` pass, changed only per §6 | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
 | MIG-08 | Regression | AC-43, FR-23 | Lab 1–3 client suites | `client/tests/lab-01..03` pass, changed only per §6 | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
 | MIG-09 | Regression | AC-43, FR-23 | Lab 2–3 E2E suites | `e2e/lab-02`, `e2e/lab-03` pass, changed only per §6 | `e2e/lab-02/`, `e2e/lab-03/` | Planned |
@@ -374,6 +374,7 @@ in the test file header. Nothing else in Lab 1–3 may change.
 | UI-32–UI-36 (`StaffTicketDetail.test.tsx`) | BR-24 | Stubbed responses include `version`; request bodies assert it |
 | E2E-01, E2E-02 (`e2e/lab-03/authentication.spec.ts`) | FR-17 | Expect `/dashboard` landing and the new navigation sets |
 | E2E-09 (`e2e/lab-03/staff-ticket-flow.spec.ts`) | BR-18 | If the flow resolves the Ticket, it records a Done Action first |
+| Seeded-owner check in "spreads tickets across owners…" (`server/tests/lab-03/schema-seed.integration.test.ts`) | BR-30 | A seeded Ticket owner may be an active Administrator as well as active IT Staff (the §7.6 seed makes Alex Morgan an owner) |
 
 ## 7. Final Results
 

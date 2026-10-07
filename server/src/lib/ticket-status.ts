@@ -32,3 +32,16 @@ export function canTransition(from: TicketStatus, to: TicketStatus): boolean {
 export function permittedTransitions(from: TicketStatus): TicketStatus[] {
   return TRANSITIONS[from]
 }
+
+// Lab 4 specification.md BR-15: the one definition of "active" used by
+// Action writes (BR-10) and every dashboard metric and filter.
+export const ACTIVE_TICKET_STATUSES: readonly TicketStatus[] = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_FOR_REQUESTER',
+  'REOPENED',
+]
+
+export const isActiveTicketStatus = (status: TicketStatus): boolean =>
+  ACTIVE_TICKET_STATUSES.includes(status)

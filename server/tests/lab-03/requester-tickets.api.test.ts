@@ -47,6 +47,10 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.ticketComment.deleteMany({ where: { ticket: { requesterId: ownerId } } })
   await prisma.attachment.deleteMany({ where: { ticket: { requesterId: ownerId } } })
+  // Lab 4 BR-22: history rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({
+    where: { ticket: { requesterId: { in: [ownerId, otherId] } } },
+  })
   await prisma.ticket.deleteMany({ where: { requesterId: { in: [ownerId, otherId] } } })
   await prisma.user.deleteMany({ where: { email: { endsWith: TAG } } })
   await prisma.category.deleteMany({ where: { name: { endsWith: TAG } } })

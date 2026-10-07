@@ -80,7 +80,10 @@ describe('UI-14 (AC-24): read-only rendering', () => {
     expect(screen.queryByText(/actions taken/i)).toBeNull()
     expect(screen.queryByText(/it priority/i)).toBeNull()
     expect(screen.queryByText(/ticket owner/i)).toBeNull()
-    expect(screen.queryByLabelText(/^status/i)).toBeNull()
+    // Lab 4 (docs/lab-04/tests.md §6): the read-only Status History section
+    // is labelled "Status History", so the no-status-control check now asks
+    // for a control rather than any element labelled "Status...".
+    expect(screen.queryByRole('combobox', { name: /status/i })).toBeNull()
   })
 
   it('shows the attachment section with the ticket’s attachments', async () => {

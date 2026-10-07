@@ -19,6 +19,11 @@ async function main() {
   const userWhere = { email: { endsWith: '.test.invalid' } }
   await prisma.ticketComment.deleteMany({ where: { author: userWhere } })
   await prisma.attachment.deleteMany({ where: { ticket: { requester: userWhere } } })
+  // Lab 4 BR-22: history and Action rows are FK Restrict, so they go first.
+  await prisma.ticketStatusHistory.deleteMany({
+    where: { OR: [{ changedBy: userWhere }, { ticket: { requester: userWhere } }] },
+  })
+  await prisma.actionTaken.deleteMany({ where: { ticket: { requester: userWhere } } })
   await prisma.ticket.deleteMany({ where: { requester: userWhere } })
   const { count: users } = await prisma.user.deleteMany({ where: userWhere })
 
@@ -29,6 +34,8 @@ async function main() {
   const ticketWhere = { id: { in: fixtureTicketIds } }
   await prisma.ticketComment.deleteMany({ where: { ticket: ticketWhere } })
   await prisma.attachment.deleteMany({ where: ticketWhere })
+  await prisma.ticketStatusHistory.deleteMany({ where: { ticket: ticketWhere } })
+  await prisma.actionTaken.deleteMany({ where: { ticket: ticketWhere } })
   const { count: fixtureTickets } = await prisma.ticket.deleteMany({ where: ticketWhere })
 
   console.log(`cleaned ${users} e2e fixture user(s), ${fixtureTickets} fixture ticket(s)`)

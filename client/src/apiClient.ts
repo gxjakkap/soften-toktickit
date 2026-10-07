@@ -11,6 +11,7 @@ import type {
   SortDirection,
   StaffTicketComment,
   StaffTicketDetail,
+  StatusHistoryEntry,
   Ticket,
   TicketComment,
   TicketDetail,
@@ -19,6 +20,7 @@ import type {
   TicketQueueSortField,
   TicketSortField,
   TicketStatus,
+  TicketWorkflowState,
   UserRole,
 } from './types'
 
@@ -29,10 +31,14 @@ import type {
 export class ApiError extends Error {
   field?: string
   code?: string
-  constructor(message: string, field?: string, code?: string) {
+  // Lab 4 api-spec.md §0.2: `details.current` on STALE_UPDATE,
+  // `details.reasons` on RESOLUTION_BLOCKED.
+  details?: { current?: unknown; reasons?: string[] }
+  constructor(message: string, field?: string, code?: string, details?: ApiError['details']) {
     super(message)
     this.field = field
     this.code = code
+    this.details = details
   }
 }
 
@@ -53,6 +59,7 @@ async function parseJsonOrThrow<T>(res: Response): Promise<T> {
       body?.error?.message ?? 'Something went wrong. Please try again.',
       body?.error?.field,
       body?.error?.code,
+      body?.error?.details,
     )
   }
   return body as T
@@ -225,45 +232,46 @@ export function fetchActiveItStaff(): Promise<ActiveStaffUser[]> {
   return fetch('/api/staff/it-staff-users').then((res) => parseJsonOrThrow<ActiveStaffUser[]>(res))
 }
 
-export function claimTicket(
+// Lab 4 api-spec.md §3.1-3.4 (BR-24): every Ticket workflow write sends the
+// version the screen last loaded and gets back the new TicketWorkflowState.
+function patchWorkflow(
   ticketId: number,
-): Promise<{ id: number; ownerId: number; ownerName: string }> {
-  return fetch(`/api/staff/tickets/${ticketId}/claim`, { method: 'PATCH' }).then((res) =>
-    parseJsonOrThrow(res),
-  )
-}
-
-export function reassignTicket(
-  ticketId: number,
-  ownerId: number | null,
-): Promise<{ id: number; ownerId: number | null; ownerName: string | null }> {
-  return fetch(`/api/staff/tickets/${ticketId}/owner`, {
+  action: 'claim' | 'owner' | 'priority' | 'status',
+  body: Record<string, unknown>,
+): Promise<TicketWorkflowState> {
+  return fetch(`/api/staff/tickets/${ticketId}/${action}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerId }),
-  }).then((res) => parseJsonOrThrow(res))
+    body: JSON.stringify(body),
+  }).then((res) => parseJsonOrThrow<TicketWorkflowState>(res))
 }
 
-export function updateItPriority(
+export const claimTicket = (ticketId: number, version: number) =>
+  patchWorkflow(ticketId, 'claim', { version })
+
+export const reassignTicket = (ticketId: number, ownerId: number | null, version: number) =>
+  patchWorkflow(ticketId, 'owner', { ownerId, version })
+
+export const updateItPriority = (
   ticketId: number,
   itPriority: RequestedPriority,
-): Promise<{ id: number; itPriority: RequestedPriority }> {
-  return fetch(`/api/staff/tickets/${ticketId}/priority`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itPriority }),
-  }).then((res) => parseJsonOrThrow(res))
+  version: number,
+) => patchWorkflow(ticketId, 'priority', { itPriority, version })
+
+export const updateTicketStatus = (ticketId: number, status: TicketStatus, version: number) =>
+  patchWorkflow(ticketId, 'status', { status, version })
+
+// Lab 4 api-spec.md §3.6: oldest first; read-only.
+export function fetchStaffStatusHistory(ticketId: number): Promise<StatusHistoryEntry[]> {
+  return fetch(`/api/staff/tickets/${ticketId}/status-history`)
+    .then((res) => parseJsonOrThrow<{ data: StatusHistoryEntry[] }>(res))
+    .then((body) => body.data)
 }
 
-export function updateTicketStatus(
-  ticketId: number,
-  status: TicketStatus,
-): Promise<{ id: number; currentStatus: TicketStatus }> {
-  return fetch(`/api/staff/tickets/${ticketId}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  }).then((res) => parseJsonOrThrow(res))
+export function fetchStatusHistory(ticketId: number): Promise<StatusHistoryEntry[]> {
+  return fetch(`/api/tickets/${ticketId}/status-history`)
+    .then((res) => parseJsonOrThrow<{ data: StatusHistoryEntry[] }>(res))
+    .then((body) => body.data)
 }
 
 export function postStaffComment(

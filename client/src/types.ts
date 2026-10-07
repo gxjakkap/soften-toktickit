@@ -153,10 +153,42 @@ export type StaffTicketComment = TicketComment & { visibility: CommentVisibility
 export type StaffTicketDetail = Omit<TicketDetail, 'comments'> & {
   ownerId: number | null
   comments: StaffTicketComment[]
+  // Lab 4 api-spec.md §3.5.
+  version: number
+  resolvedAt: string | null
+  resolutionGate: ResolutionGate
 }
 
-// api-spec.md §4.1b: the Reassign dropdown's option list.
-export type ActiveStaffUser = { id: number; name: string }
+// Lab 4 specification.md BR-18, in the server's fixed order.
+export type ResolutionBlockReason = 'NO_DONE_ACTION' | 'OPEN_ACTIONS' | 'PENDING_FOLLOW_UPS'
+
+export type ResolutionGate = { canResolve: boolean; reasons: ResolutionBlockReason[] }
+
+// Lab 4 api-spec.md §0.5: returned by every Ticket workflow write and in a
+// STALE_UPDATE's `details.current`.
+export type TicketWorkflowState = {
+  id: number
+  version: number
+  currentStatus: TicketStatus
+  resolvedAt: string | null
+  ownerId: number | null
+  ownerName: string | null
+  itPriority: RequestedPriority
+  updatedAt: string
+}
+
+// Lab 4 api-spec.md §0.5. fromStatus is null only on the creation entry.
+export type StatusHistoryEntry = {
+  id: number
+  fromStatus: TicketStatus | null
+  toStatus: TicketStatus
+  changedBy: { id: number; name: string; role: UserRole }
+  changedAt: string
+}
+
+// api-spec.md §4.1b: the Reassign dropdown's option list. Lab 4 §3.9 adds
+// Administrators and each user's role.
+export type ActiveStaffUser = { id: number; name: string; role: UserRole }
 
 // api-spec.md §5 (Issue #8): Administrator User Management.
 export type AdminUser = {

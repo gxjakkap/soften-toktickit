@@ -872,3 +872,44 @@ textarea.zg-field {
     border-radius: 0;
   }
 }
+
+/* Lab 4 ui-spec.md §5.1, §5.3: resolution-gate callout and Status History. */
+.zg-gate-reasons {
+  margin: var(--zg-space-1) 0 0;
+  padding-left: var(--zg-space-5);
+}
+
+.zg-gate-reasons a {
+  color: var(--zg-text);
+}
+
+.zg-gate-reasons a:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+.zg-history {
+  list-style: none;
+  margin: var(--zg-space-4) 0 0;
+  padding: 0;
+}
+
+.zg-history-entry {
+  align-items: center;
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+  padding: var(--zg-space-2) 0;
+}
+
+.zg-history-entry:last-child {
+  border-bottom: 0;
+}
+
+.zg-history-change {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}

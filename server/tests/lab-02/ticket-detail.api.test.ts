@@ -53,6 +53,10 @@ afterAll(async () => {
   await prisma.attachment.deleteMany({
     where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } },
   })
+  // Lab 4 BR-22: history rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({
+    where: { ticket: { requesterId: { in: [requesterId, otherRequesterId] } } },
+  })
   await prisma.ticket.deleteMany({
     where: { requesterId: { in: [requesterId, otherRequesterId] } },
   })

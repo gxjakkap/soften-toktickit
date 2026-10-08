@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import multer from 'multer'
 import { prisma } from './db.js'
-import { Prisma } from './generated/prisma/client.js'
+import { Prisma, type TicketStatus } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import {
   clearSessionCookie,
@@ -22,7 +22,18 @@ import {
   isAllowedAttachment,
 } from './lib/attachment-validation.js'
 import { withSerializableRetry } from './lib/serializable-retry.js'
-import { TICKET_STATUSES, canTransition } from './lib/ticket-status.js'
+import { TICKET_STATUSES, canTransition, isActiveTicketStatus } from './lib/ticket-status.js'
+import {
+  type ActionFields,
+  actionRuleViolation,
+  canTransitionAction,
+  changedFields,
+  isUuid,
+  lockedFieldChanged,
+  newAction,
+  parseActionBody,
+  resolveAction,
+} from './lib/action-rules.js'
 
 export const app = express()
 
@@ -443,6 +454,16 @@ class AttachmentLimitReachedError extends Error {}
 class TicketNotFoundError extends Error {}
 class TicketAlreadyOwnedError extends Error {}
 class InvalidTransitionError extends Error {}
+// Thrown inside a transaction to abort it with a ready-made response. Shared
+// by Admin User Management and Actions Taken.
+class RuleError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super('rule')
+  }
+}
 
 const uploadSingleFile = upload.single('file')
 
@@ -759,17 +780,21 @@ app.post(
       })
     }
 
-    const comment = await prisma.ticketComment.create({
-      data: { ticketId: ticket.id, authorId: requester.id, visibility: 'PUBLIC', content },
-      select: {
-        id: true,
-        ticketId: true,
-        visibility: true,
-        content: true,
-        createdAt: true,
-        author: { select: { name: true, role: true } },
-      },
-    })
+    // Lab 4 BR-27: posting refreshes the Ticket's updatedAt, never its version.
+    const [comment] = await prisma.$transaction([
+      prisma.ticketComment.create({
+        data: { ticketId: ticket.id, authorId: requester.id, visibility: 'PUBLIC', content },
+        select: {
+          id: true,
+          ticketId: true,
+          visibility: true,
+          content: true,
+          createdAt: true,
+          author: { select: { name: true, role: true } },
+        },
+      }),
+      prisma.ticket.update({ where: { id: ticket.id }, data: { updatedAt: new Date() } }),
+    ])
 
     res.status(201).json({
       id: comment.id,
@@ -1305,17 +1330,21 @@ app.post(
       return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
     }
 
-    const comment = await prisma.ticketComment.create({
-      data: { ticketId: ticket.id, authorId: staff.id, visibility, content },
-      select: {
-        id: true,
-        ticketId: true,
-        visibility: true,
-        content: true,
-        createdAt: true,
-        author: { select: { name: true, role: true } },
-      },
-    })
+    // Lab 4 BR-27: posting refreshes the Ticket's updatedAt, never its version.
+    const [comment] = await prisma.$transaction([
+      prisma.ticketComment.create({
+        data: { ticketId: ticket.id, authorId: staff.id, visibility, content },
+        select: {
+          id: true,
+          ticketId: true,
+          visibility: true,
+          content: true,
+          createdAt: true,
+          author: { select: { name: true, role: true } },
+        },
+      }),
+      prisma.ticket.update({ where: { id: ticket.id }, data: { updatedAt: new Date() } }),
+    ])
 
     res.status(201).json({
       id: comment.id,
@@ -1328,6 +1357,323 @@ app.post(
     })
   },
 )
+
+// Lab 4 api-spec.md §2 (FR-01..06, BR-01..14, BR-25..27): Actions Taken.
+// Display-safe user fields only (§0.5); clientRequestId is never returned.
+const actionSelect = {
+  id: true,
+  ticketId: true,
+  actionAt: true,
+  description: true,
+  result: true,
+  status: true,
+  performedBy: { select: { id: true, name: true, role: true } },
+  assignedTo: { select: { id: true, name: true, role: true, isActive: true } },
+  followUpRequired: true,
+  followUpNote: true,
+  attachmentNotes: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ActionTakenSelect
+
+type ActionRecord = Prisma.ActionTakenGetPayload<{ select: typeof actionSelect }>
+type Tx = Prisma.TransactionClient
+
+const ticketNotFound = { error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }
+const actionNotFound = { error: { code: 'NOT_FOUND', message: 'Action not found.' } }
+const staffRoles = [...requireAuth, requireRole('IT_STAFF', 'ADMINISTRATOR')]
+
+// BR-13: actionAt ascending, then id ascending, Cancelled included.
+const listActions = (ticketId: number) =>
+  prisma.actionTaken.findMany({
+    where: { ticketId },
+    orderBy: [{ actionAt: 'asc' }, { id: 'asc' }],
+    select: actionSelect,
+  })
+
+const toFields = (a: ActionRecord): ActionFields => ({
+  actionAt: a.actionAt,
+  description: a.description,
+  result: a.result,
+  status: a.status,
+  assignedToId: a.assignedTo.id,
+  followUpRequired: a.followUpRequired,
+  followUpNote: a.followUpNote,
+  attachmentNotes: a.attachmentNotes,
+})
+
+// BR-10: Action writes only while the Ticket is active (BR-15).
+function assertTicketActionable(status: TicketStatus) {
+  if (!isActiveTicketStatus(status)) {
+    throw new RuleError(409, {
+      error: {
+        code: 'TICKET_NOT_ACTIONABLE',
+        message: 'Actions can only be recorded on an active Ticket. Reopen it first.',
+      },
+    })
+  }
+}
+
+// BR-04, BR-30: an active IT Staff user or Administrator.
+async function assertAssignable(tx: Tx, userId: number) {
+  const user = await tx.user.findUnique({ where: { id: userId } })
+  if (!user || !user.isActive || user.role === 'REQUESTER') {
+    throw new RuleError(
+      400,
+      fieldError(
+        'INVALID_ASSIGNEE',
+        'Assigned To must be an active IT Staff user or Administrator.',
+        'assignedToId',
+      ),
+    )
+  }
+}
+
+// BR-05: not before the Ticket's creation minute, since the form input holds
+// minutes only.
+function assertNotBeforeTicket(actionAt: Date, ticketCreatedAt: Date) {
+  const creationMinute = Math.floor(ticketCreatedAt.getTime() / 60_000) * 60_000
+  if (actionAt.getTime() < creationMinute) {
+    throw new RuleError(
+      400,
+      fieldError(
+        'VALIDATION_ERROR',
+        'Action date/time cannot be before the Ticket was created.',
+        'actionAt',
+      ),
+    )
+  }
+}
+
+// BR-27: Action activity refreshes the Ticket's updatedAt, never its version.
+const touchTicket = (tx: Tx, ticketId: number) =>
+  tx.ticket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } })
+
+// BR-14: the caller's earlier Action with this key, if any. A key already
+// used on another Ticket is a client bug, not a replay (api-spec.md §2.2).
+async function findReplay(
+  db: Tx,
+  performedById: number,
+  clientRequestId: string,
+  ticketId: number,
+) {
+  const prior = await db.actionTaken.findUnique({
+    where: { performedById_clientRequestId: { performedById, clientRequestId } },
+    select: actionSelect,
+  })
+  if (prior && prior.ticketId !== ticketId) {
+    throw new RuleError(
+      400,
+      fieldError(
+        'VALIDATION_ERROR',
+        'This request id was already used for another ticket.',
+        'clientRequestId',
+      ),
+    )
+  }
+  return prior
+}
+
+// api-spec.md §2.1 (FR-02, BR-13, AC-15).
+app.get('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
+    : null
+  if (!ticket) return res.status(404).json(ticketNotFound)
+  res.json({ data: await listActions(ticket.id) })
+})
+
+// api-spec.md §2.4 (FR-05, BR-12, AC-06, AC-07): read-only, ownership-scoped.
+app.get('/api/tickets/:id/actions', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { requesterId: true } })
+    : null
+  // Lab 3 BR-16: not-owned is indistinguishable from nonexistent.
+  if (!ticket || ticket.requesterId !== req.user!.id) {
+    return res.status(404).json(ticketNotFound)
+  }
+  res.json({ data: await listActions(ticketId) })
+})
+
+// api-spec.md §2.2 (FR-01, FR-04, FR-06, BR-01..06, BR-08, BR-10, BR-14,
+// AC-01, AC-03..05, AC-12, AC-13). Checks run in §0.4 order.
+app.post('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
+  const staff = req.user!
+  const body = req.body ?? {}
+
+  const clientRequestId = body.clientRequestId ?? null
+  if (clientRequestId !== null && !isUuid(clientRequestId)) {
+    return res
+      .status(400)
+      .json(fieldError('VALIDATION_ERROR', 'Request id must be a UUID.', 'clientRequestId'))
+  }
+  const parsed = parseActionBody(body, 'create')
+  if ('problem' in parsed) {
+    const { field, message } = parsed.problem
+    return res.status(400).json(fieldError('VALIDATION_ERROR', message, field))
+  }
+  // BR-03: performedBy comes from the session; the body's copy is never read.
+  const fields = newAction(staff.id, parsed.patch)
+  const violation = actionRuleViolation(fields, new Date())
+  if (violation) {
+    return res.status(400).json(fieldError('VALIDATION_ERROR', violation.message, violation.field))
+  }
+
+  const ticketId = Number(req.params.id)
+  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
+
+  try {
+    const { status, action } = await withSerializableRetry(prisma, async (tx) => {
+      const ticket = await tx.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, currentStatus: true, createdAt: true },
+      })
+      if (!ticket) throw new RuleError(404, ticketNotFound)
+      // BR-14: replay runs before every state rule, so a retry of a saved
+      // create succeeds even if the Ticket has since left the active set.
+      if (clientRequestId) {
+        const prior = await findReplay(tx, staff.id, clientRequestId, ticket.id)
+        if (prior) return { status: 200, action: prior }
+      }
+      assertTicketActionable(ticket.currentStatus)
+      await assertAssignable(tx, fields.assignedToId)
+      assertNotBeforeTicket(fields.actionAt, ticket.createdAt)
+
+      const created = await tx.actionTaken.create({
+        data: { ...fields, ticketId: ticket.id, performedById: staff.id, clientRequestId },
+        select: actionSelect,
+      })
+      await touchTicket(tx, ticket.id)
+      return { status: 201, action: created }
+    })
+    res.status(status).json(action)
+  } catch (err) {
+    if (err instanceof RuleError) return res.status(err.status).json(err.body)
+    // BR-14, §7.3-6: two concurrent first attempts with one key race to the
+    // unique index; the loser returns the winner's Action.
+    if (clientRequestId && isUniqueViolation(err)) {
+      try {
+        const prior = await findReplay(prisma, staff.id, clientRequestId, ticketId)
+        if (prior) return res.status(200).json(prior)
+      } catch (replayErr) {
+        if (replayErr instanceof RuleError) {
+          return res.status(replayErr.status).json(replayErr.body)
+        }
+        throw replayErr
+      }
+    }
+    throw err
+  }
+})
+
+// api-spec.md §2.3 (FR-03, FR-10, BR-04, BR-06..10, BR-25, BR-26, AC-05,
+// AC-08..12). Checks run in §0.4 order.
+app.patch('/api/staff/tickets/:id/actions/:actionId', ...staffRoles, async (req, res) => {
+  const body = req.body ?? {}
+  // BR-25: the version the client last read.
+  if (!Number.isInteger(body.version)) {
+    return res
+      .status(400)
+      .json(fieldError('VALIDATION_ERROR', 'version must be an integer.', 'version'))
+  }
+  const parsed = parseActionBody(body, 'update')
+  if ('problem' in parsed) {
+    const { field, message } = parsed.problem
+    return res.status(400).json(fieldError('VALIDATION_ERROR', message, field))
+  }
+
+  const ticketId = Number(req.params.id)
+  const actionId = Number(req.params.actionId)
+  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
+  if (!Number.isInteger(actionId)) return res.status(404).json(actionNotFound)
+
+  const stale = (current: ActionRecord) =>
+    new RuleError(409, {
+      error: {
+        code: 'STALE_UPDATE',
+        message: 'This action was changed by someone else. Reload to see the latest version.',
+        field: 'version',
+        details: { current },
+      },
+    })
+
+  try {
+    const action = await withSerializableRetry(prisma, async (tx) => {
+      const ticket = await tx.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, currentStatus: true, createdAt: true },
+      })
+      if (!ticket) throw new RuleError(404, ticketNotFound)
+      const stored = await tx.actionTaken.findUnique({
+        where: { id: actionId },
+        select: actionSelect,
+      })
+      if (!stored || stored.ticketId !== ticket.id) throw new RuleError(404, actionNotFound)
+      if (stored.version !== body.version) throw stale(stored)
+      assertTicketActionable(ticket.currentStatus)
+
+      const current = toFields(stored)
+      const next = resolveAction(current, parsed.patch)
+      const locked = lockedFieldChanged(current, next)
+      if (locked) {
+        throw new RuleError(409, {
+          error: {
+            code: 'ACTION_LOCKED',
+            message:
+              current.status === 'DONE'
+                ? 'Only follow-up and attachment notes can change on a Done action.'
+                : 'A Cancelled action cannot be changed.',
+            field: locked,
+          },
+        })
+      }
+      if (next.status !== current.status && !canTransitionAction(current.status, next.status)) {
+        throw new RuleError(409, {
+          error: {
+            code: 'INVALID_ACTION_TRANSITION',
+            message: 'This status change is not permitted from the action’s current status.',
+          },
+        })
+      }
+      // BR-04: only a new assignee is checked, so a kept inactive one still saves.
+      if (next.assignedToId !== current.assignedToId) await assertAssignable(tx, next.assignedToId)
+      if (next.actionAt.getTime() !== current.actionAt.getTime()) {
+        assertNotBeforeTicket(next.actionAt, ticket.createdAt)
+      }
+      const violation = actionRuleViolation(next, new Date())
+      if (violation) {
+        throw new RuleError(400, fieldError('VALIDATION_ERROR', violation.message, violation.field))
+      }
+
+      // api-spec.md §2.3: a no-op keeps the version and returns the record.
+      const changes = changedFields(current, next)
+      if (Object.keys(changes).length === 0) return stored
+
+      // §7.3-3: conditional write, checked for one affected row.
+      const { count } = await tx.actionTaken.updateMany({
+        where: { id: stored.id, version: stored.version },
+        data: { ...changes, version: { increment: 1 } },
+      })
+      if (count !== 1) {
+        throw stale(
+          await tx.actionTaken.findUniqueOrThrow({
+            where: { id: stored.id },
+            select: actionSelect,
+          }),
+        )
+      }
+      await touchTicket(tx, ticket.id)
+      return tx.actionTaken.findUniqueOrThrow({ where: { id: stored.id }, select: actionSelect })
+    })
+    res.json(action)
+  } catch (err) {
+    if (err instanceof RuleError) return res.status(err.status).json(err.body)
+    throw err
+  }
+})
 
 // api-spec.md §5 (FR-20..23, FR-25..27): every Admin User Management endpoint is
 // Administrator only (Issue #4 guard). Admin scope is user accounts only
@@ -1357,16 +1703,6 @@ const duplicateEmail = {
     message: 'A user with this email already exists.',
     field: 'email',
   },
-}
-
-// Thrown inside a transaction to abort it with a ready-made response.
-class AdminRuleError extends Error {
-  constructor(
-    readonly status: number,
-    readonly body: unknown,
-  ) {
-    super('admin rule')
-  }
 }
 
 const isUniqueViolation = (err: unknown) =>
@@ -1520,15 +1856,15 @@ app.patch(
     try {
       const updated = await withSerializableRetry(prisma, async (tx) => {
         const target = await tx.user.findUnique({ where: { id: targetId } })
-        if (!target) throw new AdminRuleError(404, notFound)
+        if (!target) throw new RuleError(404, notFound)
 
         if (data.email && data.email !== target.email) {
           const clash = await tx.user.findUnique({ where: { email: data.email } })
-          if (clash && clash.id !== target.id) throw new AdminRuleError(409, duplicateEmail)
+          if (clash && clash.id !== target.id) throw new RuleError(409, duplicateEmail)
         }
 
         if (target.id === req.user!.id && data.isActive === false) {
-          throw new AdminRuleError(409, {
+          throw new RuleError(409, {
             error: {
               code: 'SELF_DEACTIVATION',
               message: "You can't deactivate your own account.",
@@ -1544,7 +1880,7 @@ app.patch(
             where: { role: 'ADMINISTRATOR', isActive: true },
           })
           if (activeAdmins <= 1) {
-            throw new AdminRuleError(409, {
+            throw new RuleError(409, {
               error: {
                 code: 'LAST_ADMINISTRATOR',
                 message: 'At least one active Administrator is required.',
@@ -1569,7 +1905,7 @@ app.patch(
       })
       res.json(updated)
     } catch (err) {
-      if (err instanceof AdminRuleError) return res.status(err.status).json(err.body)
+      if (err instanceof RuleError) return res.status(err.status).json(err.body)
       if (isUniqueViolation(err)) return res.status(409).json(duplicateEmail)
       throw err
     }

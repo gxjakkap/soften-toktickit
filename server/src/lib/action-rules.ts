@@ -26,7 +26,31 @@ const ATTACHMENT_NOTES_MAX = 500
 // BR-08: absorbs clock skew between client and server (§11-17).
 const DONE_FUTURE_TOLERANCE_MS = 5 * 60 * 1000
 // BR-32: an Action Date/Time must carry an explicit offset or `Z`.
-const ISO_WITH_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/
+// Fractions stop at milliseconds, which is all a Date keeps.
+const ISO_WITH_OFFSET =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-](\d{2}):(\d{2}))$/
+
+// Date.parse rolls an out-of-range day over (2026-02-31 becomes 3 March), so
+// every calendar part is checked before parsing (PR #77 review).
+function parseActionAt(v: unknown): Date | null {
+  const m = typeof v === 'string' ? ISO_WITH_OFFSET.exec(v) : null
+  if (!m) return null
+  const [year, month, day, hour, minute, second = 0, offH = 0, offM = 0] = m
+    .slice(1)
+    .map((part) => (part === undefined ? undefined : Number(part)))
+  const daysInMonth = new Date(Date.UTC(year!, month!, 0)).getUTCDate()
+  const valid =
+    month! >= 1 &&
+    month! <= 12 &&
+    day! >= 1 &&
+    day! <= daysInMonth &&
+    hour! <= 23 &&
+    minute! <= 59 &&
+    second <= 59 &&
+    offM <= 59 &&
+    offH * 60 + offM <= 14 * 60
+  return valid ? new Date(v as string) : null
+}
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v)
@@ -65,14 +89,14 @@ function parse(body: Record<string, unknown>, mode: 'create' | 'update'): Action
   const sent = (key: string) => body[key] !== undefined
 
   if (mode === 'create' || sent('actionAt')) {
-    const v = body.actionAt
-    if (typeof v !== 'string' || !ISO_WITH_OFFSET.test(v) || Number.isNaN(Date.parse(v))) {
+    const actionAt = parseActionAt(body.actionAt)
+    if (!actionAt) {
       throw new Problem(
         'actionAt',
         'Action date/time must be an ISO 8601 timestamp with a time zone offset.',
       )
     }
-    patch.actionAt = new Date(v)
+    patch.actionAt = actionAt
   }
   if (mode === 'create' || sent('description')) {
     const v = typeof body.description === 'string' ? body.description.trim() : ''

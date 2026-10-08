@@ -128,6 +128,33 @@ describe('UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32)', () => {
     expect(field({ actionAt: at, description: 'ok', status: 'CANCELLED' })).toBe('status')
   })
 
+  it('rejects calendar values that do not exist instead of rolling them over', () => {
+    const accepted = (actionAt: string) => 'patch' in parseActionBody({ actionAt }, 'update')
+    for (const bad of [
+      '2026-02-31T10:00Z',
+      '2026-04-31T09:00+07:00',
+      '2026-03-01T24:00Z',
+      '2026-02-29T10:00Z',
+      '2026-03-01T23:60Z',
+      '2026-13-01T10:00Z',
+      '2026-00-10T10:00Z',
+      '2026-03-01T10:00:60Z',
+      '2026-03-01T10:00+14:01',
+      '2026-03-01T10:00+07:60',
+      '2026-03-01T10:00:00.1234Z',
+    ]) {
+      expect(accepted(bad), bad).toBe(false)
+    }
+    for (const good of [
+      '2028-02-29T10:00Z',
+      '2026-12-31T23:59:59.999Z',
+      '2026-03-01T10:00-12:00',
+      '2026-03-01T10:00+14:00',
+    ]) {
+      expect(accepted(good), good).toBe(true)
+    }
+  })
+
   it('rejects a timestamp without an offset', () => {
     const r = parseActionBody({ actionAt: '2026-10-06T06:00:00', description: 'ok' }, 'create')
     expect(r).toMatchObject({ problem: { field: 'actionAt' } })

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import multer from 'multer'
 import { prisma } from './db.js'
-import { Prisma, type UserRole } from './generated/prisma/client.js'
+import { Prisma, type TicketStatus, type UserRole } from './generated/prisma/client.js'
 import { formatTicketNumber } from './lib/ticket-number.js'
 import {
   clearSessionCookie,
@@ -27,6 +27,7 @@ import {
   TICKET_STATUSES,
   canTransition,
   evaluateResolutionGate,
+  isActiveTicketStatus,
   nextResolvedAt,
 } from './lib/ticket-status.js'
 import {
@@ -34,7 +35,18 @@ import {
   isVersion,
   missingVersion,
   updateTicketAtVersion,
-} from './lib/ticket-version.js'
+} from './lib/optimistic-version.js'
+import {
+  type ActionFields,
+  actionRuleViolation,
+  canTransitionAction,
+  changedFields,
+  isUuid,
+  lockedFieldChanged,
+  newAction,
+  parseActionBody,
+  resolveAction,
+} from './lib/action-rules.js'
 
 export const app = express()
 
@@ -463,6 +475,16 @@ app.get('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, re
 class UnsupportedFileTypeError extends Error {}
 class AttachmentLimitReachedError extends Error {}
 class TicketNotFoundError extends Error {}
+// Thrown inside a transaction to abort it with a ready-made response. Shared
+// by Admin User Management, Actions Taken, and the Ticket workflow writes.
+class RuleError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super('rule')
+  }
+}
 
 const uploadSingleFile = upload.single('file')
 
@@ -779,17 +801,21 @@ app.post(
       })
     }
 
-    const comment = await prisma.ticketComment.create({
-      data: { ticketId: ticket.id, authorId: requester.id, visibility: 'PUBLIC', content },
-      select: {
-        id: true,
-        ticketId: true,
-        visibility: true,
-        content: true,
-        createdAt: true,
-        author: { select: { name: true, role: true } },
-      },
-    })
+    // Lab 4 BR-27: posting refreshes the Ticket's updatedAt, never its version.
+    const [comment] = await prisma.$transaction([
+      prisma.ticketComment.create({
+        data: { ticketId: ticket.id, authorId: requester.id, visibility: 'PUBLIC', content },
+        select: {
+          id: true,
+          ticketId: true,
+          visibility: true,
+          content: true,
+          createdAt: true,
+          author: { select: { name: true, role: true } },
+        },
+      }),
+      prisma.ticket.update({ where: { id: ticket.id }, data: { updatedAt: new Date() } }),
+    ])
 
     res.status(201).json({
       id: comment.id,
@@ -855,8 +881,10 @@ const QUEUE_SORTABLE_FIELDS = [
 // Lab 4 specification.md BR-29: every /api/staff/* Ticket route accepts the
 // Administrator as well as IT Staff (supersedes Lab 3 BR-40).
 const STAFF_ROLES: UserRole[] = ['IT_STAFF', 'ADMINISTRATOR']
+const staffRoles = [...requireAuth, requireRole(...STAFF_ROLES)]
+const ticketNotFound = { error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }
 
-app.get('/api/staff/tickets', ...requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+app.get('/api/staff/tickets', ...staffRoles, async (req, res) => {
   const where: Prisma.TicketWhereInput = {}
 
   if (typeof req.query.categoryId === 'string' && req.query.categoryId.trim() !== '') {
@@ -1007,19 +1035,14 @@ app.get('/api/staff/tickets', ...requireAuth, requireRole(...STAFF_ROLES), async
 // Documented as api-spec.md §4.1b / specification.md §8.7.
 // Lab 4 api-spec.md §3.9 (BR-30, §11-15): same path, now active IT Staff and
 // Administrators, each with `role`, feeding the Owner and assignee dropdowns.
-app.get(
-  '/api/staff/it-staff-users',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (_req, res) => {
-    const staff = await prisma.user.findMany({
-      where: { role: { in: STAFF_ROLES }, isActive: true },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, role: true },
-    })
-    res.json(staff)
-  },
-)
+app.get('/api/staff/it-staff-users', ...staffRoles, async (_req, res) => {
+  const staff = await prisma.user.findMany({
+    where: { role: { in: STAFF_ROLES }, isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, role: true },
+  })
+  res.json(staff)
+})
 
 // api-spec.md §4.2 (FR-13, FR-28, BR-04, BR-40): same shape as the Requester
 // detail (§3.3), plus `ownerId` (needed by the client to decide Claim-button
@@ -1027,7 +1050,7 @@ app.get(
 // response shape, but additive) and, unlike §3.3, every Comment/Note
 // regardless of visibility — this is the one place BR-04's Administrator
 // promise is actually reachable.
-app.get('/api/staff/tickets/:id', ...requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+app.get('/api/staff/tickets/:id', ...staffRoles, async (req, res) => {
   const ticketId = Number(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({
@@ -1126,18 +1149,6 @@ async function loadWorkflowState(db: Prisma.TransactionClient, ticketId: number)
 
 type WorkflowTicket = NonNullable<Awaited<ReturnType<typeof loadWorkflowState>>>
 
-// Aborts a workflow transaction with a ready-made 4xx response.
-class WorkflowRuleError extends Error {
-  constructor(
-    readonly httpStatus: number,
-    readonly body: unknown,
-  ) {
-    super('workflow rule')
-  }
-}
-
-const ticketNotFoundBody = { error: { code: 'NOT_FOUND', message: 'Ticket not found.' } }
-
 // Lab 4 api-spec.md §0.4 and §3: the shared shape of claim, reassign, IT
 // Priority, and Current Status. After the guards and the body checks the
 // route already ran, one Serializable transaction does 404 -> 409
@@ -1153,7 +1164,7 @@ async function runWorkflowWrite(
     ticket: WorkflowTicket,
   ) => Promise<Prisma.TicketUncheckedUpdateManyInput | null>,
 ) {
-  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFoundBody)
+  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
   try {
     const state = await withSerializableRetry(prisma, async (tx) => {
       const ticket = await loadWorkflowState(tx, ticketId)
@@ -1166,8 +1177,8 @@ async function runWorkflowWrite(
     })
     res.json(state)
   } catch (err) {
-    if (err instanceof TicketNotFoundError) return res.status(404).json(ticketNotFoundBody)
-    if (err instanceof WorkflowRuleError) return res.status(err.httpStatus).json(err.body)
+    if (err instanceof TicketNotFoundError) return res.status(404).json(ticketNotFound)
+    if (err instanceof RuleError) return res.status(err.status).json(err.body)
     if (err instanceof StaleUpdateError) {
       // BR-26: the current server copy, read after the failed transaction
       // rolled back, so the client can show what changed.
@@ -1187,85 +1198,69 @@ async function runWorkflowWrite(
 // api-spec.md §4.3 (FR-14, BR-19, AC-38); Lab 4 api-spec.md §3.1 (BR-24,
 // BR-29, BR-30): an Administrator may claim, and `version` is required. A
 // repeat claim by the current owner checks `version` but doesn't bump it.
-app.patch(
-  '/api/staff/tickets/:id/claim',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    const staff = req.user!
-    if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
+app.patch('/api/staff/tickets/:id/claim', ...staffRoles, async (req, res) => {
+  const staff = req.user!
+  if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
 
-    await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (_tx, ticket) => {
-      if (ticket.ownerId === staff.id) return null
-      if (ticket.ownerId !== null) {
-        throw new WorkflowRuleError(409, {
-          error: {
-            code: 'ALREADY_OWNED',
-            message:
-              'This Ticket is already owned by another IT Staff member. Use Reassign instead.',
-          },
-        })
-      }
-      return { ownerId: staff.id }
-    })
-  },
-)
+  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (_tx, ticket) => {
+    if (ticket.ownerId === staff.id) return null
+    if (ticket.ownerId !== null) {
+      throw new RuleError(409, {
+        error: {
+          code: 'ALREADY_OWNED',
+          message: 'This Ticket is already owned by another IT Staff member. Use Reassign instead.',
+        },
+      })
+    }
+    return { ownerId: staff.id }
+  })
+})
 
 // api-spec.md §4.4 (FR-15, BR-20); Lab 4 api-spec.md §3.2 (BR-24, BR-30):
 // any active IT Staff user or Administrator (including the caller), or null
 // to clear. The owner check reads the database, so it runs after the
 // version check (§0.4 step 7).
-app.patch(
-  '/api/staff/tickets/:id/owner',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
-    const requested = req.body?.ownerId
+app.patch('/api/staff/tickets/:id/owner', ...staffRoles, async (req, res) => {
+  if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
+  const requested = req.body?.ownerId
 
-    await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx) => {
-      if (requested === null) return { ownerId: null }
-      const candidate = Number(requested)
-      const candidateUser = Number.isInteger(candidate)
-        ? await tx.user.findUnique({ where: { id: candidate } })
-        : null
-      if (!candidateUser?.isActive || candidateUser.role === 'REQUESTER') {
-        throw new WorkflowRuleError(400, {
-          error: {
-            code: 'INVALID_OWNER',
-            message: 'ownerId must reference an active IT Staff user or Administrator, or be null.',
-            field: 'ownerId',
-          },
-        })
-      }
-      return { ownerId: candidateUser.id }
-    })
-  },
-)
-
-// api-spec.md §4.5 (FR-16, BR-21); Lab 4 api-spec.md §3.3 (BR-24, BR-29).
-app.patch(
-  '/api/staff/tickets/:id/priority',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    const itPriority = req.body?.itPriority
-    if (!PRIORITIES.includes(itPriority)) {
-      return res.status(400).json({
+  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx) => {
+    if (requested === null) return { ownerId: null }
+    const candidate = Number(requested)
+    const candidateUser = Number.isInteger(candidate)
+      ? await tx.user.findUnique({ where: { id: candidate } })
+      : null
+    if (!candidateUser?.isActive || candidateUser.role === 'REQUESTER') {
+      throw new RuleError(400, {
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'itPriority must be LOW, MEDIUM, or HIGH.',
-          field: 'itPriority',
+          code: 'INVALID_OWNER',
+          message: 'ownerId must reference an active IT Staff user or Administrator, or be null.',
+          field: 'ownerId',
         },
       })
     }
-    if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
+    return { ownerId: candidateUser.id }
+  })
+})
 
-    await runWorkflowWrite(res, Number(req.params.id), req.body.version, async () => ({
-      itPriority,
-    }))
-  },
-)
+// api-spec.md §4.5 (FR-16, BR-21); Lab 4 api-spec.md §3.3 (BR-24, BR-29).
+app.patch('/api/staff/tickets/:id/priority', ...staffRoles, async (req, res) => {
+  const itPriority = req.body?.itPriority
+  if (!PRIORITIES.includes(itPriority)) {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'itPriority must be LOW, MEDIUM, or HIGH.',
+        field: 'itPriority',
+      },
+    })
+  }
+  if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
+
+  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async () => ({
+    itPriority,
+  }))
+})
 
 // Lab 4 BR-18 reasons in plain words, joined into the safe `message`.
 const GATE_REASON_TEXT: Record<ResolutionBlockReason, string> = {
@@ -1280,66 +1275,61 @@ const GATE_REASON_TEXT: Record<ResolutionBlockReason, string> = {
 // all happen in one Serializable transaction (BR-19), so a gate result the
 // client saw earlier is never trusted and a direct API call gets the same
 // checks as the UI.
-app.patch(
-  '/api/staff/tickets/:id/status',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    const caller = req.user!
-    const status = req.body?.status
-    if (!TICKET_STATUSES.includes(status)) {
-      return res.status(400).json({
+app.patch('/api/staff/tickets/:id/status', ...staffRoles, async (req, res) => {
+  const caller = req.user!
+  const status = req.body?.status
+  if (!TICKET_STATUSES.includes(status)) {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'status is not a recognized Current Status.',
+        field: 'status',
+      },
+    })
+  }
+  if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
+
+  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx, ticket) => {
+    if (!canTransition(ticket.currentStatus, status)) {
+      throw new RuleError(409, {
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'status is not a recognized Current Status.',
-          field: 'status',
+          code: 'INVALID_TRANSITION',
+          message: 'This status change is not permitted from the Ticket’s current status.',
         },
       })
     }
-    if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
-
-    await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx, ticket) => {
-      if (!canTransition(ticket.currentStatus, status)) {
-        throw new WorkflowRuleError(409, {
+    if (status === 'RESOLVED') {
+      const gate = evaluateResolutionGate(
+        await tx.actionTaken.findMany({
+          where: { ticketId: ticket.id },
+          select: { status: true, followUpRequired: true },
+        }),
+      )
+      if (!gate.canResolve) {
+        throw new RuleError(409, {
           error: {
-            code: 'INVALID_TRANSITION',
-            message: 'This status change is not permitted from the Ticket’s current status.',
+            code: 'RESOLUTION_BLOCKED',
+            message: `This ticket can't be resolved yet: ${gate.reasons.map((r) => GATE_REASON_TEXT[r]).join(', ')}.`,
+            details: { reasons: gate.reasons },
           },
         })
       }
-      if (status === 'RESOLVED') {
-        const gate = evaluateResolutionGate(
-          await tx.actionTaken.findMany({
-            where: { ticketId: ticket.id },
-            select: { status: true, followUpRequired: true },
-          }),
-        )
-        if (!gate.canResolve) {
-          throw new WorkflowRuleError(409, {
-            error: {
-              code: 'RESOLUTION_BLOCKED',
-              message: `This ticket can't be resolved yet: ${gate.reasons.map((r) => GATE_REASON_TEXT[r]).join(', ')}.`,
-              details: { reasons: gate.reasons },
-            },
-          })
-        }
-      }
-      // BR-22: one append-only history row per change, in the same
-      // transaction; rolled back with it if the versioned write loses.
-      const now = new Date()
-      await tx.ticketStatusHistory.create({
-        data: {
-          ticketId: ticket.id,
-          fromStatus: ticket.currentStatus,
-          toStatus: status,
-          changedById: caller.id,
-          changedAt: now,
-        },
-      })
-      return { currentStatus: status, resolvedAt: nextResolvedAt(status, now, ticket.resolvedAt) }
+    }
+    // BR-22: one append-only history row per change, in the same
+    // transaction; rolled back with it if the versioned write loses.
+    const now = new Date()
+    await tx.ticketStatusHistory.create({
+      data: {
+        ticketId: ticket.id,
+        fromStatus: ticket.currentStatus,
+        toStatus: status,
+        changedById: caller.id,
+        changedAt: now,
+      },
     })
-  },
-)
+    return { currentStatus: status, resolvedAt: nextResolvedAt(status, now, ticket.resolvedAt) }
+  })
+})
 
 // Lab 4 api-spec.md §0.5 StatusHistoryEntry, ordered changedAt then id (BR-22).
 async function listStatusHistory(ticketId: number) {
@@ -1358,19 +1348,14 @@ async function listStatusHistory(ticketId: number) {
 }
 
 // Lab 4 api-spec.md §3.6 (FR-09, BR-22): read-only; no write route exists.
-app.get(
-  '/api/staff/tickets/:id/status-history',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    const ticketId = Number(req.params.id)
-    const ticket = Number.isInteger(ticketId)
-      ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
-      : null
-    if (!ticket) return res.status(404).json(ticketNotFoundBody)
-    res.json(await listStatusHistory(ticket.id))
-  },
-)
+app.get('/api/staff/tickets/:id/status-history', ...staffRoles, async (req, res) => {
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
+    : null
+  if (!ticket) return res.status(404).json(ticketNotFound)
+  res.json(await listStatusHistory(ticket.id))
+})
 
 // Lab 4 api-spec.md §3.6 (FR-09, BR-31, §11-16): the Requester's own Ticket
 // only; anyone else's is the same 404 as a missing one.
@@ -1387,7 +1372,7 @@ app.get(
         })
       : null
     if (!ticket || ticket.requesterId !== req.user!.id) {
-      return res.status(404).json(ticketNotFoundBody)
+      return res.status(404).json(ticketNotFound)
     }
     res.json(await listStatusHistory(ticket.id))
   },
@@ -1395,44 +1380,42 @@ app.get(
 
 // api-spec.md §4.7 (FR-18, FR-19, BR-26..30). Unlike §3.7, `visibility` is
 // accepted from the client — this is the one caller allowed to write INTERNAL.
-app.post(
-  '/api/staff/tickets/:id/comments',
-  ...requireAuth,
-  requireRole(...STAFF_ROLES),
-  async (req, res) => {
-    const staff = req.user!
-    const ticketId = Number(req.params.id)
+app.post('/api/staff/tickets/:id/comments', ...staffRoles, async (req, res) => {
+  const staff = req.user!
+  const ticketId = Number(req.params.id)
 
-    const visibility = req.body?.visibility
-    if (visibility !== 'PUBLIC' && visibility !== 'INTERNAL') {
-      return res.status(400).json({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'visibility must be PUBLIC or INTERNAL.',
-          field: 'visibility',
-        },
-      })
-    }
+  const visibility = req.body?.visibility
+  if (visibility !== 'PUBLIC' && visibility !== 'INTERNAL') {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'visibility must be PUBLIC or INTERNAL.',
+        field: 'visibility',
+      },
+    })
+  }
 
-    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
-    if (content.length < 1 || content.length > COMMENT_CONTENT_MAX) {
-      return res.status(400).json({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: `Comment must be between 1 and ${COMMENT_CONTENT_MAX} characters.`,
-          field: 'content',
-        },
-      })
-    }
+  const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
+  if (content.length < 1 || content.length > COMMENT_CONTENT_MAX) {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: `Comment must be between 1 and ${COMMENT_CONTENT_MAX} characters.`,
+        field: 'content',
+      },
+    })
+  }
 
-    const ticket = Number.isInteger(ticketId)
-      ? await prisma.ticket.findUnique({ where: { id: ticketId } })
-      : null
-    if (!ticket) {
-      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
-    }
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId } })
+    : null
+  if (!ticket) {
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ticket not found.' } })
+  }
 
-    const comment = await prisma.ticketComment.create({
+  // Lab 4 BR-27: posting refreshes the Ticket's updatedAt, never its version.
+  const [comment] = await prisma.$transaction([
+    prisma.ticketComment.create({
       data: { ticketId: ticket.id, authorId: staff.id, visibility, content },
       select: {
         id: true,
@@ -1442,19 +1425,331 @@ app.post(
         createdAt: true,
         author: { select: { name: true, role: true } },
       },
+    }),
+    prisma.ticket.update({ where: { id: ticket.id }, data: { updatedAt: new Date() } }),
+  ])
+
+  res.status(201).json({
+    id: comment.id,
+    ticketId: comment.ticketId,
+    authorName: comment.author.name,
+    authorRole: comment.author.role,
+    visibility: comment.visibility,
+    content: comment.content,
+    createdAt: comment.createdAt,
+  })
+})
+
+// Lab 4 api-spec.md §2 (FR-01..06, BR-01..14, BR-25..27): Actions Taken.
+// Display-safe user fields only (§0.5); clientRequestId is never returned.
+const actionSelect = {
+  id: true,
+  ticketId: true,
+  actionAt: true,
+  description: true,
+  result: true,
+  status: true,
+  performedBy: { select: { id: true, name: true, role: true } },
+  assignedTo: { select: { id: true, name: true, role: true, isActive: true } },
+  followUpRequired: true,
+  followUpNote: true,
+  attachmentNotes: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ActionTakenSelect
+
+type ActionRecord = Prisma.ActionTakenGetPayload<{ select: typeof actionSelect }>
+type Tx = Prisma.TransactionClient
+
+const actionNotFound = { error: { code: 'NOT_FOUND', message: 'Action not found.' } }
+
+// BR-13: actionAt ascending, then id ascending, Cancelled included.
+const listActions = (ticketId: number) =>
+  prisma.actionTaken.findMany({
+    where: { ticketId },
+    orderBy: [{ actionAt: 'asc' }, { id: 'asc' }],
+    select: actionSelect,
+  })
+
+const toFields = (a: ActionRecord): ActionFields => ({
+  actionAt: a.actionAt,
+  description: a.description,
+  result: a.result,
+  status: a.status,
+  assignedToId: a.assignedTo.id,
+  followUpRequired: a.followUpRequired,
+  followUpNote: a.followUpNote,
+  attachmentNotes: a.attachmentNotes,
+})
+
+// BR-10: Action writes only while the Ticket is active (BR-15).
+function assertTicketActionable(status: TicketStatus) {
+  if (!isActiveTicketStatus(status)) {
+    throw new RuleError(409, {
+      error: {
+        code: 'TICKET_NOT_ACTIONABLE',
+        message: 'Actions can only be recorded on an active Ticket. Reopen it first.',
+      },
+    })
+  }
+}
+
+// BR-04, BR-30: an active IT Staff user or Administrator.
+async function assertAssignable(tx: Tx, userId: number) {
+  const user = await tx.user.findUnique({ where: { id: userId } })
+  if (!user || !user.isActive || user.role === 'REQUESTER') {
+    throw new RuleError(
+      400,
+      fieldError(
+        'INVALID_ASSIGNEE',
+        'Assigned To must be an active IT Staff user or Administrator.',
+        'assignedToId',
+      ),
+    )
+  }
+}
+
+// BR-05: not before the Ticket's creation minute, since the form input holds
+// minutes only.
+function assertNotBeforeTicket(actionAt: Date, ticketCreatedAt: Date) {
+  const creationMinute = Math.floor(ticketCreatedAt.getTime() / 60_000) * 60_000
+  if (actionAt.getTime() < creationMinute) {
+    throw new RuleError(
+      400,
+      fieldError(
+        'VALIDATION_ERROR',
+        'Action date/time cannot be before the Ticket was created.',
+        'actionAt',
+      ),
+    )
+  }
+}
+
+// BR-27: Action activity refreshes the Ticket's updatedAt, never its version.
+const touchTicket = (tx: Tx, ticketId: number) =>
+  tx.ticket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } })
+
+// BR-14: the caller's earlier Action with this key, if any. A key already
+// used on another Ticket is a client bug, not a replay (api-spec.md §2.2).
+async function findReplay(
+  db: Tx,
+  performedById: number,
+  clientRequestId: string,
+  ticketId: number,
+) {
+  const prior = await db.actionTaken.findUnique({
+    where: { performedById_clientRequestId: { performedById, clientRequestId } },
+    select: actionSelect,
+  })
+  if (prior && prior.ticketId !== ticketId) {
+    throw new RuleError(
+      400,
+      fieldError(
+        'VALIDATION_ERROR',
+        'This request id was already used for another ticket.',
+        'clientRequestId',
+      ),
+    )
+  }
+  return prior
+}
+
+// api-spec.md §2.1 (FR-02, BR-13, AC-15).
+app.get('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
+    : null
+  if (!ticket) return res.status(404).json(ticketNotFound)
+  res.json({ data: await listActions(ticket.id) })
+})
+
+// api-spec.md §2.4 (FR-05, BR-12, AC-06, AC-07): read-only, ownership-scoped.
+app.get('/api/tickets/:id/actions', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
+  const ticketId = Number(req.params.id)
+  const ticket = Number.isInteger(ticketId)
+    ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { requesterId: true } })
+    : null
+  // Lab 3 BR-16: not-owned is indistinguishable from nonexistent.
+  if (!ticket || ticket.requesterId !== req.user!.id) {
+    return res.status(404).json(ticketNotFound)
+  }
+  res.json({ data: await listActions(ticketId) })
+})
+
+// api-spec.md §2.2 (FR-01, FR-04, FR-06, BR-01..06, BR-08, BR-10, BR-14,
+// AC-01, AC-03..05, AC-12, AC-13). Checks run in §0.4 order.
+app.post('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
+  const staff = req.user!
+  const body = req.body ?? {}
+
+  const clientRequestId = body.clientRequestId ?? null
+  if (clientRequestId !== null && !isUuid(clientRequestId)) {
+    return res
+      .status(400)
+      .json(fieldError('VALIDATION_ERROR', 'Request id must be a UUID.', 'clientRequestId'))
+  }
+  const parsed = parseActionBody(body, 'create')
+  if ('problem' in parsed) {
+    const { field, message } = parsed.problem
+    return res.status(400).json(fieldError('VALIDATION_ERROR', message, field))
+  }
+  // BR-03: performedBy comes from the session; the body's copy is never read.
+  const fields = newAction(staff.id, parsed.patch)
+  const violation = actionRuleViolation(fields, new Date())
+  if (violation) {
+    return res.status(400).json(fieldError('VALIDATION_ERROR', violation.message, violation.field))
+  }
+
+  const ticketId = Number(req.params.id)
+  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
+
+  try {
+    const { status, action } = await withSerializableRetry(prisma, async (tx) => {
+      const ticket = await tx.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, currentStatus: true, createdAt: true },
+      })
+      if (!ticket) throw new RuleError(404, ticketNotFound)
+      // BR-14: replay runs before every state rule, so a retry of a saved
+      // create succeeds even if the Ticket has since left the active set.
+      if (clientRequestId) {
+        const prior = await findReplay(tx, staff.id, clientRequestId, ticket.id)
+        if (prior) return { status: 200, action: prior }
+      }
+      assertTicketActionable(ticket.currentStatus)
+      await assertAssignable(tx, fields.assignedToId)
+      assertNotBeforeTicket(fields.actionAt, ticket.createdAt)
+
+      const created = await tx.actionTaken.create({
+        data: { ...fields, ticketId: ticket.id, performedById: staff.id, clientRequestId },
+        select: actionSelect,
+      })
+      await touchTicket(tx, ticket.id)
+      return { status: 201, action: created }
+    })
+    res.status(status).json(action)
+  } catch (err) {
+    if (err instanceof RuleError) return res.status(err.status).json(err.body)
+    // BR-14, §7.3-6: two concurrent first attempts with one key race to the
+    // unique index; the loser returns the winner's Action.
+    if (clientRequestId && isUniqueViolation(err)) {
+      try {
+        const prior = await findReplay(prisma, staff.id, clientRequestId, ticketId)
+        if (prior) return res.status(200).json(prior)
+      } catch (replayErr) {
+        if (replayErr instanceof RuleError) {
+          return res.status(replayErr.status).json(replayErr.body)
+        }
+        throw replayErr
+      }
+    }
+    throw err
+  }
+})
+
+// api-spec.md §2.3 (FR-03, FR-10, BR-04, BR-06..10, BR-25, BR-26, AC-05,
+// AC-08..12). Checks run in §0.4 order.
+app.patch('/api/staff/tickets/:id/actions/:actionId', ...staffRoles, async (req, res) => {
+  const body = req.body ?? {}
+  // BR-25: the version the client last read.
+  if (!isVersion(body.version)) return res.status(400).json(missingVersion)
+  const parsed = parseActionBody(body, 'update')
+  if ('problem' in parsed) {
+    const { field, message } = parsed.problem
+    return res.status(400).json(fieldError('VALIDATION_ERROR', message, field))
+  }
+
+  const ticketId = Number(req.params.id)
+  const actionId = Number(req.params.actionId)
+  if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
+  if (!Number.isInteger(actionId)) return res.status(404).json(actionNotFound)
+
+  const stale = (current: ActionRecord) =>
+    new RuleError(409, {
+      error: {
+        code: 'STALE_UPDATE',
+        message: 'This action was changed by someone else. Reload to see the latest version.',
+        field: 'version',
+        details: { current },
+      },
     })
 
-    res.status(201).json({
-      id: comment.id,
-      ticketId: comment.ticketId,
-      authorName: comment.author.name,
-      authorRole: comment.author.role,
-      visibility: comment.visibility,
-      content: comment.content,
-      createdAt: comment.createdAt,
+  try {
+    const action = await withSerializableRetry(prisma, async (tx) => {
+      const ticket = await tx.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, currentStatus: true, createdAt: true },
+      })
+      if (!ticket) throw new RuleError(404, ticketNotFound)
+      const stored = await tx.actionTaken.findUnique({
+        where: { id: actionId },
+        select: actionSelect,
+      })
+      if (!stored || stored.ticketId !== ticket.id) throw new RuleError(404, actionNotFound)
+      if (stored.version !== body.version) throw stale(stored)
+      assertTicketActionable(ticket.currentStatus)
+
+      const current = toFields(stored)
+      const next = resolveAction(current, parsed.patch)
+      const locked = lockedFieldChanged(current, next)
+      if (locked) {
+        throw new RuleError(409, {
+          error: {
+            code: 'ACTION_LOCKED',
+            message:
+              current.status === 'DONE'
+                ? 'Only follow-up and attachment notes can change on a Done action.'
+                : 'A Cancelled action cannot be changed.',
+            field: locked,
+          },
+        })
+      }
+      if (next.status !== current.status && !canTransitionAction(current.status, next.status)) {
+        throw new RuleError(409, {
+          error: {
+            code: 'INVALID_ACTION_TRANSITION',
+            message: 'This status change is not permitted from the action’s current status.',
+          },
+        })
+      }
+      // BR-04: only a new assignee is checked, so a kept inactive one still saves.
+      if (next.assignedToId !== current.assignedToId) await assertAssignable(tx, next.assignedToId)
+      if (next.actionAt.getTime() !== current.actionAt.getTime()) {
+        assertNotBeforeTicket(next.actionAt, ticket.createdAt)
+      }
+      const violation = actionRuleViolation(next, new Date())
+      if (violation) {
+        throw new RuleError(400, fieldError('VALIDATION_ERROR', violation.message, violation.field))
+      }
+
+      // api-spec.md §2.3: a no-op keeps the version and returns the record.
+      const changes = changedFields(current, next)
+      if (Object.keys(changes).length === 0) return stored
+
+      // §7.3-3: conditional write, checked for one affected row.
+      const { count } = await tx.actionTaken.updateMany({
+        where: { id: stored.id, version: stored.version },
+        data: { ...changes, version: { increment: 1 } },
+      })
+      if (count !== 1) {
+        throw stale(
+          await tx.actionTaken.findUniqueOrThrow({
+            where: { id: stored.id },
+            select: actionSelect,
+          }),
+        )
+      }
+      await touchTicket(tx, ticket.id)
+      return tx.actionTaken.findUniqueOrThrow({ where: { id: stored.id }, select: actionSelect })
     })
-  },
-)
+    res.json(action)
+  } catch (err) {
+    if (err instanceof RuleError) return res.status(err.status).json(err.body)
+    throw err
+  }
+})
 
 // api-spec.md §5 (FR-20..23, FR-25..27): every Admin User Management endpoint is
 // Administrator only (Issue #4 guard). Admin scope is user accounts only
@@ -1484,16 +1779,6 @@ const duplicateEmail = {
     message: 'A user with this email already exists.',
     field: 'email',
   },
-}
-
-// Thrown inside a transaction to abort it with a ready-made response.
-class AdminRuleError extends Error {
-  constructor(
-    readonly status: number,
-    readonly body: unknown,
-  ) {
-    super('admin rule')
-  }
 }
 
 const isUniqueViolation = (err: unknown) =>
@@ -1647,15 +1932,15 @@ app.patch(
     try {
       const updated = await withSerializableRetry(prisma, async (tx) => {
         const target = await tx.user.findUnique({ where: { id: targetId } })
-        if (!target) throw new AdminRuleError(404, notFound)
+        if (!target) throw new RuleError(404, notFound)
 
         if (data.email && data.email !== target.email) {
           const clash = await tx.user.findUnique({ where: { email: data.email } })
-          if (clash && clash.id !== target.id) throw new AdminRuleError(409, duplicateEmail)
+          if (clash && clash.id !== target.id) throw new RuleError(409, duplicateEmail)
         }
 
         if (target.id === req.user!.id && data.isActive === false) {
-          throw new AdminRuleError(409, {
+          throw new RuleError(409, {
             error: {
               code: 'SELF_DEACTIVATION',
               message: "You can't deactivate your own account.",
@@ -1671,7 +1956,7 @@ app.patch(
             where: { role: 'ADMINISTRATOR', isActive: true },
           })
           if (activeAdmins <= 1) {
-            throw new AdminRuleError(409, {
+            throw new RuleError(409, {
               error: {
                 code: 'LAST_ADMINISTRATOR',
                 message: 'At least one active Administrator is required.',
@@ -1696,7 +1981,7 @@ app.patch(
       })
       res.json(updated)
     } catch (err) {
-      if (err instanceof AdminRuleError) return res.status(err.status).json(err.body)
+      if (err instanceof RuleError) return res.status(err.status).json(err.body)
       if (isUniqueViolation(err)) return res.status(409).json(duplicateEmail)
       throw err
     }

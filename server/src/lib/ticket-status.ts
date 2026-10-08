@@ -33,6 +33,19 @@ export function permittedTransitions(from: TicketStatus): TicketStatus[] {
   return TRANSITIONS[from]
 }
 
+// Lab 4 specification.md BR-15: the one definition of "active" used by
+// Action writes (BR-10) and every dashboard metric and filter.
+export const ACTIVE_TICKET_STATUSES: readonly TicketStatus[] = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_FOR_REQUESTER',
+  'REOPENED',
+]
+
+export const isActiveTicketStatus = (status: TicketStatus): boolean =>
+  ACTIVE_TICKET_STATUSES.includes(status)
+
 // Lab 4 specification.md BR-18: the reasons are listed in this fixed order
 // (api-spec.md §3.4), so the UI and tests can rely on it.
 export type ResolutionBlockReason = 'NO_DONE_ACTION' | 'OPEN_ACTIONS' | 'PENDING_FOLLOW_UPS'

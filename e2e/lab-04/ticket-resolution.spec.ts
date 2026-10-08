@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import {
   createTicketViaApi,
@@ -10,28 +9,24 @@ import {
 
 // E2E-03..E2E-07 (AC-16, AC-19, AC-20, AC-23, AC-25, AC-27): docs/lab-04
 // ui-spec.md §5.1, §5.3, §6 and specification.md BR-16..BR-22. Fixture
-// Tickets are filed by a seeded Requester; their Actions Taken are written by
-// server/scripts/e2e-add-action.ts, so nothing here depends on the Actions
-// Taken API or UI (Issues #63, #65). The seeded battery Ticket is only read.
+// Tickets are filed by a seeded Requester, and their Actions Taken are
+// recorded through the Actions Taken API, not the #65 UI. The seeded
+// battery Ticket is only read.
 
 const STAFF = 'sarah.johnson@example.com'
 const OTHER_STAFF = 'ahmed.hassan@example.com'
 
-function addAction(ticketId: number, status: 'DONE' | 'PLANNED') {
-  execFileSync(
-    'pnpm',
-    [
-      '--filter',
-      'server',
-      'exec',
-      'tsx',
-      'scripts/e2e-add-action.ts',
-      String(ticketId),
-      STAFF,
-      status,
-    ],
-    { stdio: 'pipe' },
-  )
+// Records an Action through the Actions Taken API (#63) as IT Staff.
+async function addAction(request: APIRequestContext, ticketId: number, status: 'DONE' | 'PLANNED') {
+  await loginViaApi(request, STAFF)
+  const res = await request.post(`/api/staff/tickets/${ticketId}/actions`, {
+    data: {
+      actionAt: new Date().toISOString(),
+      description: status === 'DONE' ? 'Replaced the faulty part.' : 'Schedule a follow-up visit.',
+      ...(status === 'DONE' ? { status, result: 'Verified working with the requester.' } : {}),
+    },
+  })
+  if (!res.ok()) throw new Error(`addAction failed: ${res.status()} ${await res.text()}`)
 }
 
 async function fileTicket(request: APIRequestContext, label: string) {
@@ -54,7 +49,7 @@ test('E2E-03: a Ticket with a Done Action is worked through to Resolved, then Cl
   request,
 }) => {
   const ticket = await fileTicket(request, 'Resolution happy path')
-  addAction(ticket.id, 'DONE')
+  await addAction(request, ticket.id, 'DONE')
 
   await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
   await page.goto(`/staff/tickets/${ticket.id}`)
@@ -188,7 +183,7 @@ test('E2E-07: Resolved -> Closed -> Reopened, then blocked again by a new Planne
   request,
 }) => {
   const ticket = await fileTicket(request, 'Reopen')
-  addAction(ticket.id, 'DONE')
+  await addAction(request, ticket.id, 'DONE')
 
   await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
   await page.goto(`/staff/tickets/${ticket.id}`)
@@ -198,7 +193,7 @@ test('E2E-07: Resolved -> Closed -> Reopened, then blocked again by a new Planne
   await changeStatus(page, 'REOPENED', 'Reopened')
   await changeStatus(page, 'IN_PROGRESS', 'In Progress')
 
-  addAction(ticket.id, 'PLANNED')
+  await addAction(request, ticket.id, 'PLANNED')
   await page.reload()
   await expect(page.getByRole('option', { name: 'Resolved (blocked)' })).toBeDisabled()
   await expect(page.getByTestId('resolution-gate-callout')).toContainText(

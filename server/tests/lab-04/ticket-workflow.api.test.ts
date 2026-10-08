@@ -7,11 +7,11 @@ import { hashPassword } from '../../src/lib/password.js'
 import { TICKET_STATUSES, canTransition } from '../../src/lib/ticket-status.js'
 import { loginCookie } from '../helpers/auth.js'
 
-// API-20..API-30, API-32..API-35 (AC-16..AC-26, AC-46): docs/lab-04
+// API-20..API-35 (AC-16..AC-26, AC-46): docs/lab-04
 // api-spec.md §3 and specification.md §5.2-5.4 (BR-16..BR-24, BR-26,
 // BR-29, BR-30). Every call goes straight to the API, so nothing here relies
-// on the UI hiding an option. Actions Taken fixtures are written through
-// Prisma, not Issue #63's endpoints.
+// on the UI hiding an option. Most Actions Taken fixtures are written
+// through Prisma; API-31, API-32, and API-34 use the Actions Taken endpoints.
 
 const TAG = 'lab4.ticket-workflow.test.invalid'
 const PASSWORD = 'DevPass123!'
@@ -535,6 +535,31 @@ describe('API-30 (AC-24, BR-22): append-only, ordered history', () => {
   })
 })
 
+describe('API-31 (BR-19): the gate reads Actions inside the status transaction', () => {
+  it('never ends Resolved with an open Action when one is added in parallel (20 runs)', async () => {
+    for (let run = 0; run < 20; run++) {
+      const ticket = await createTicket('IN_PROGRESS')
+      await addAction(ticket.id, 'DONE')
+      const [resolve, create] = await Promise.all([
+        setStatus(cookies.staff, ticket.id, 'RESOLVED'),
+        request(app)
+          .post(`/api/staff/tickets/${ticket.id}/actions`)
+          .set('Cookie', cookies.staffB)
+          .send({ actionAt: new Date().toISOString(), description: 'Parallel planned work.' }),
+      ])
+      const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })
+      const open = await prisma.actionTaken.count({
+        where: { ticketId: ticket.id, status: { in: ['PLANNED', 'IN_PROGRESS'] } },
+      })
+      expect(after.currentStatus === 'RESOLVED' && open > 0).toBe(false)
+      // Exactly one side wins: resolved first (create refused), or created first (resolve blocked).
+      expect([resolve.status, create.status].sort()).toEqual(
+        after.currentStatus === 'RESOLVED' ? [200, 409] : [201, 409],
+      )
+    }
+  })
+})
+
 describe('API-32 (BR-23): cancelling with open Actions', () => {
   it('succeeds and leaves the Actions as they were', async () => {
     const ticket = await createTicket('IN_PROGRESS')
@@ -543,6 +568,14 @@ describe('API-32 (BR-23): cancelling with open Actions', () => {
     expect(res.status).toBe(200)
     const actions = await prisma.actionTaken.findMany({ where: { ticketId: ticket.id } })
     expect(actions.map((a) => [a.status, a.version])).toEqual([['PLANNED', 1]])
+
+    // BR-10: the Action is now read-only.
+    const edit = await request(app)
+      .patch(`/api/staff/tickets/${ticket.id}/actions/${actions[0]!.id}`)
+      .set('Cookie', cookies.staff)
+      .send({ version: 1, description: 'Changed after cancel.' })
+    expect(edit.status).toBe(409)
+    expect(edit.body.error.code).toBe('TICKET_NOT_ACTIONABLE')
   })
 })
 
@@ -602,6 +635,19 @@ describe('API-34 (AC-26, BR-29, BR-30): Administrator parity', () => {
       const res = await asAdmin('post', `${base}/comments`, { visibility, content: 'Admin here.' })
       expect(res.status).toBe(201)
     }
+
+    const action = await asAdmin('post', `${base}/actions`, {
+      actionAt: new Date().toISOString(),
+      description: 'Admin recorded work.',
+    })
+    expect(action.status).toBe(201)
+    expect(action.body.performedBy).toMatchObject({ id: adminId, role: 'ADMINISTRATOR' })
+    const updated = await asAdmin('patch', `${base}/actions/${action.body.id}`, {
+      version: 1,
+      status: 'IN_PROGRESS',
+    })
+    expect(updated.status).toBe(200)
+    expect(updated.body).toMatchObject({ status: 'IN_PROGRESS', version: 2 })
   })
 })
 

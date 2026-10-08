@@ -1,13 +1,14 @@
 import type { Prisma } from '../generated/prisma/client.js'
 
-// Lab 4 specification.md §5.3 (BR-24, BR-26) and §7.3-3: optimistic
-// concurrency for Ticket workflow writes (claim, reassign, IT Priority,
-// Current Status). Issue #63 (Actions Taken API) checks Action versions on
-// its own branch; the two should be folded into one helper once both merge.
+// Lab 4 specification.md §5.3 (BR-24..BR-26) and §7.3-3: optimistic
+// concurrency shared by the Ticket workflow writes (claim, reassign, IT
+// Priority, Current Status) and the Action Taken update. Both check the
+// `version` the client last read, then write with a conditional
+// `UPDATE ... WHERE id = ? AND version = ?`.
 
 export class StaleUpdateError extends Error {}
 
-// BR-24: a missing or non-integer version is a 400, checked before any read.
+// BR-24/BR-25: a missing or non-integer version is a 400, checked before any read.
 export const isVersion = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value)
 

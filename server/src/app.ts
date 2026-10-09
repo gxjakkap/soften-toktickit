@@ -23,6 +23,7 @@ import {
 } from './lib/attachment-validation.js'
 import { withSerializableRetry } from './lib/serializable-retry.js'
 import {
+  ACTIVE_TICKET_STATUSES,
   type ResolutionBlockReason,
   TICKET_STATUSES,
   canTransition,
@@ -38,6 +39,7 @@ import {
 } from './lib/optimistic-version.js'
 import {
   type ActionFields,
+  OPEN_ACTION_STATUSES,
   actionRuleViolation,
   canTransitionAction,
   changedFields,
@@ -47,6 +49,12 @@ import {
   parseActionBody,
   resolveAction,
 } from './lib/action-rules.js'
+import {
+  addDays,
+  bangkokDateString,
+  parseBangkokDate,
+  startOfBangkokDay,
+} from './lib/bangkok-time.js'
 
 export const app = express()
 
@@ -333,6 +341,8 @@ app.post('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, r
 
 const SORTABLE_FIELDS = [
   'createdAt',
+  // Lab 4 api-spec.md §4.2: the "View all" link from Recently Updated (BR-43).
+  'updatedAt',
   'ticketNumber',
   'summary',
   'requestedPriority',
@@ -351,6 +361,85 @@ function clampPageSize(raw: unknown): number {
   const n = Number(raw)
   if (!Number.isInteger(n)) return DEFAULT_PAGE_SIZE
   return Math.min(Math.max(n, 1), MAX_PAGE_SIZE)
+}
+
+// Lab 4 BR-15: "active" for every dashboard metric and drill-down filter.
+const ACTIVE_TICKET = {
+  currentStatus: { in: [...ACTIVE_TICKET_STATUSES] },
+} satisfies Prisma.TicketWhereInput
+// Lab 4 BR-48: a non-Cancelled Action still flagged for follow-up.
+const PENDING_FOLLOW_UP = {
+  status: { not: 'CANCELLED' },
+  followUpRequired: true,
+} satisfies Prisma.ActionTakenWhereInput
+// Lab 4 BR-45: an open Action assigned to `userId`.
+const openActionAssignedTo = (userId: number) =>
+  ({
+    assignedToId: userId,
+    status: { in: OPEN_ACTION_STATUSES },
+  }) satisfies Prisma.ActionTakenWhereInput
+
+// Lab 4 api-spec.md §4 (specification.md §11-13): the drill-down filters
+// added to My Tickets (§4.2) and, with `queue`, the Ticket Queue (§4.1).
+// The dashboards build their counts from the same predicates, so a card and
+// its drill-down list cannot drift apart (BR-38). Returns the extra AND
+// conditions, or the field to reject with 400 INVALID_FILTER.
+function parseDrillDownFilters(
+  query: express.Request['query'],
+  queue: boolean,
+): { and: Prisma.TicketWhereInput[] } | { field: string; message: string } {
+  const and: Prisma.TicketWhereInput[] = []
+
+  if (query.statusGroup !== undefined) {
+    if (query.statusGroup !== 'active') {
+      return { field: 'statusGroup', message: 'statusGroup must be active.' }
+    }
+    and.push(ACTIVE_TICKET)
+  }
+
+  let resolvedFrom: Date | null = null
+  if (query.resolvedFrom !== undefined) {
+    resolvedFrom = parseBangkokDate(query.resolvedFrom)
+    if (!resolvedFrom) {
+      return { field: 'resolvedFrom', message: 'resolvedFrom must be a date (YYYY-MM-DD).' }
+    }
+    and.push({ resolvedAt: { gte: resolvedFrom } })
+  }
+
+  if (!queue) return { and }
+
+  if (query.resolvedTo !== undefined) {
+    const resolvedTo = parseBangkokDate(query.resolvedTo)
+    if (!resolvedTo) {
+      return { field: 'resolvedTo', message: 'resolvedTo must be a date (YYYY-MM-DD).' }
+    }
+    if (resolvedFrom && resolvedTo < resolvedFrom) {
+      return { field: 'resolvedTo', message: 'resolvedTo must not be earlier than resolvedFrom.' }
+    }
+    // Inclusive: everything before 00:00 Bangkok of the next day (BR-34).
+    and.push({ resolvedAt: { lt: addDays(resolvedTo, 1) } })
+  }
+
+  if (query.followUp !== undefined) {
+    if (query.followUp !== 'pending') {
+      return { field: 'followUp', message: 'followUp must be pending.' }
+    }
+    and.push({ actionsTaken: { some: PENDING_FOLLOW_UP } })
+  }
+
+  if (query.openActionAssigneeId !== undefined) {
+    const raw = query.openActionAssigneeId
+    // Digits only, and short enough to stay inside a Postgres integer.
+    if (typeof raw !== 'string' || !/^\d{1,9}$/.test(raw)) {
+      return {
+        field: 'openActionAssigneeId',
+        message: 'openActionAssigneeId must be an integer id.',
+      }
+    }
+    and.push({ actionsTaken: { some: openActionAssignedTo(Number(raw)) } })
+  }
+
+  return { and }
 }
 
 // api-spec.md §3.2 (FR-08, BR-03, BR-14, BR-16..19). Ownership (BR-14) scopes
@@ -413,6 +502,12 @@ app.get('/api/tickets', ...requireAuth, requireRole('REQUESTER'), async (req, re
       { summary: { contains: search, mode: 'insensitive' } },
     ]
   }
+
+  const drillDown = parseDrillDownFilters(req.query, false)
+  if ('field' in drillDown) {
+    return res.status(400).json({ error: { code: 'INVALID_FILTER', ...drillDown } })
+  }
+  where.AND = drillDown.and
 
   const sortBy = req.query.sortBy === undefined ? 'createdAt' : (req.query.sortBy as string)
   if (!(SORTABLE_FIELDS as readonly string[]).includes(sortBy)) {
@@ -871,6 +966,8 @@ const QUEUE_SORTABLE_FIELDS = [
   'requestedPriority',
   'itPriority',
   'currentStatus',
+  // Lab 4 api-spec.md §4.1: nulls last in both directions.
+  'resolvedAt',
 ] as const
 
 // api-spec.md §4.1 (FR-12, BR-31, BR-32, AC-22..26, AC-38 n/a here). The
@@ -970,6 +1067,12 @@ app.get('/api/staff/tickets', ...staffRoles, async (req, res) => {
     ]
   }
 
+  const drillDown = parseDrillDownFilters(req.query, true)
+  if ('field' in drillDown) {
+    return res.status(400).json({ error: { code: 'INVALID_FILTER', ...drillDown } })
+  }
+  where.AND = drillDown.and
+
   const sortBy = req.query.sortBy === undefined ? 'createdAt' : (req.query.sortBy as string)
   if (!(QUEUE_SORTABLE_FIELDS as readonly string[]).includes(sortBy)) {
     return res.status(400).json({
@@ -1001,7 +1104,12 @@ app.get('/api/staff/tickets', ...staffRoles, async (req, res) => {
       where,
       // Tie-break on id in the same direction keeps pagination deterministic
       // when rows tie on sortBy (same precedent as /api/tickets above).
-      orderBy: [{ [sortBy]: sortDir }, { id: sortDir }],
+      orderBy: [
+        sortBy === 'resolvedAt'
+          ? { resolvedAt: { sort: sortDir, nulls: 'last' } }
+          : { [sortBy]: sortDir },
+        { id: sortDir },
+      ],
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: { category: { select: { name: true } }, owner: { select: { name: true } } },
@@ -1773,6 +1881,228 @@ const adminUserShape = {
 const fieldError = (code: string, message: string, field: string) => ({
   error: { code, message, field },
 })
+// Lab 4 api-spec.md §5 (BR-35, BR-36): every dashboard value is counted by
+// the database at request time, and every list holds at most 5 items.
+const DASHBOARD_LIST_SIZE = 5
+const ACTION_DESCRIPTION_PREVIEW = 80 // BR-53, ellipsis included
+const RECENTLY_UPDATED_ORDER = [
+  { updatedAt: 'desc' },
+  { id: 'desc' },
+] satisfies Prisma.TicketOrderByWithRelationInput[]
+
+const previewDescription = (text: string) =>
+  text.length > ACTION_DESCRIPTION_PREVIEW
+    ? `${text.slice(0, ACTION_DESCRIPTION_PREVIEW - 1)}…`
+    : text
+
+// api-spec.md §5.1 (FR-12, BR-39..BR-44, AC-02, AC-32). Every query carries
+// requesterId = caller; no query param is read, so `?requesterId=` does
+// nothing (BR-31).
+app.get('/api/dashboard/requester', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
+  const now = new Date()
+  const mine = { requesterId: req.user!.id }
+  // BR-42: a 30-day window including today, from 00:00 Bangkok 29 days ago.
+  const windowStart = addDays(startOfBangkokDay(now), -29)
+  const windowStartDate = bangkokDateString(windowStart)
+
+  const [anyTickets, openTickets, waitingForYou, resolvedLast30Days, updated, resolved] =
+    await Promise.all([
+      prisma.ticket.count({ where: mine, take: 1 }),
+      prisma.ticket.count({ where: { ...mine, ...ACTIVE_TICKET } }),
+      prisma.ticket.count({ where: { ...mine, currentStatus: 'WAITING_FOR_REQUESTER' } }),
+      prisma.ticket.count({ where: { ...mine, resolvedAt: { gte: windowStart } } }),
+      prisma.ticket.findMany({
+        where: mine,
+        orderBy: RECENTLY_UPDATED_ORDER,
+        take: DASHBOARD_LIST_SIZE,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.ticket.findMany({
+        where: { ...mine, resolvedAt: { not: null } },
+        orderBy: [{ resolvedAt: 'desc' }, { id: 'desc' }],
+        take: DASHBOARD_LIST_SIZE,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          resolvedAt: true,
+        },
+      }),
+    ])
+
+  res.json({
+    generatedAt: now,
+    hasAnyTickets: anyTickets > 0,
+    metrics: {
+      openTickets: { value: openTickets, drillDown: '/tickets?statusGroup=active' },
+      waitingForYou: {
+        value: waitingForYou,
+        drillDown: '/tickets?status=WAITING_FOR_REQUESTER',
+      },
+      resolvedLast30Days: {
+        value: resolvedLast30Days,
+        windowStart: windowStartDate,
+        drillDown: `/tickets?resolvedFrom=${windowStartDate}`,
+      },
+    },
+    recentlyUpdated: updated,
+    recentlyResolved: resolved,
+  })
+})
+
+// api-spec.md §5.2 (FR-13, FR-14, BR-45..BR-55, AC-28, AC-32, AC-33).
+// "me" is the caller. Each card's `where` is the same predicate its
+// drill-down filter applies on the Queue (parseDrillDownFilters), so the
+// two agree by construction (BR-38).
+app.get('/api/dashboard/staff', ...staffRoles, async (req, res) => {
+  const me = req.user!
+  const now = new Date()
+  const today = bangkokDateString(now)
+  const todayStart = startOfBangkokDay(now)
+  const myOpenAction = { ...openActionAssignedTo(me.id), ticket: ACTIVE_TICKET }
+
+  const [
+    myOpenActions,
+    myOpenActionTickets,
+    unassigned,
+    myActiveTickets,
+    followUpsPending,
+    highPriority,
+    resolvedToday,
+    byStatus,
+    byItPriority,
+    openActions,
+    updated,
+    users,
+  ] = await Promise.all([
+    prisma.actionTaken.count({ where: myOpenAction }),
+    prisma.ticket.count({
+      where: { ...ACTIVE_TICKET, actionsTaken: { some: openActionAssignedTo(me.id) } },
+    }),
+    prisma.ticket.count({ where: { ...ACTIVE_TICKET, ownerId: null } }),
+    prisma.ticket.count({ where: { ...ACTIVE_TICKET, ownerId: me.id } }),
+    prisma.ticket.count({ where: { ...ACTIVE_TICKET, actionsTaken: { some: PENDING_FOLLOW_UP } } }),
+    prisma.ticket.count({ where: { ...ACTIVE_TICKET, itPriority: 'HIGH' } }),
+    // BR-50: today's Bangkok day, [00:00, 24:00) +07:00 (BR-34).
+    prisma.ticket.count({ where: { resolvedAt: { gte: todayStart, lt: addDays(todayStart, 1) } } }),
+    prisma.ticket.groupBy({ by: ['currentStatus'], _count: { _all: true } }),
+    prisma.ticket.groupBy({ by: ['itPriority'], where: ACTIVE_TICKET, _count: { _all: true } }),
+    prisma.actionTaken.findMany({
+      where: myOpenAction,
+      orderBy: [{ actionAt: 'asc' }, { id: 'asc' }],
+      take: DASHBOARD_LIST_SIZE,
+      select: {
+        id: true,
+        ticketId: true,
+        description: true,
+        status: true,
+        actionAt: true,
+        ticket: { select: { ticketNumber: true } },
+      },
+    }),
+    prisma.ticket.findMany({
+      orderBy: RECENTLY_UPDATED_ORDER,
+      take: DASHBOARD_LIST_SIZE,
+      select: {
+        id: true,
+        ticketNumber: true,
+        summary: true,
+        currentStatus: true,
+        updatedAt: true,
+        owner: { select: { name: true } },
+      },
+    }),
+    me.role === 'ADMINISTRATOR'
+      ? prisma.user.groupBy({ by: ['role', 'isActive'], _count: { _all: true } })
+      : null,
+  ])
+
+  const statusCount = new Map(byStatus.map((g) => [g.currentStatus as string, g._count._all]))
+  const priorityCount = new Map(byItPriority.map((g) => [g.itPriority as string, g._count._all]))
+  const userCount = (role: UserRole, isActive: boolean) =>
+    users?.find((g) => g.role === role && g.isActive === isActive)?._count._all ?? 0
+
+  res.json({
+    generatedAt: now,
+    today,
+    metrics: {
+      myOpenActions: {
+        value: myOpenActions,
+        ticketCount: myOpenActionTickets,
+        drillDown: `/staff/tickets?openActionAssigneeId=${me.id}&statusGroup=active`,
+      },
+      unassigned: {
+        value: unassigned,
+        drillDown: '/staff/tickets?ownerId=unassigned&statusGroup=active',
+      },
+      myActiveTickets: {
+        value: myActiveTickets,
+        drillDown: `/staff/tickets?ownerId=${me.id}&statusGroup=active`,
+      },
+      followUpsPending: {
+        value: followUpsPending,
+        drillDown: '/staff/tickets?followUp=pending&statusGroup=active',
+      },
+      highPriority: {
+        value: highPriority,
+        drillDown: '/staff/tickets?itPriority=HIGH&statusGroup=active',
+      },
+      resolvedToday: {
+        value: resolvedToday,
+        drillDown: `/staff/tickets?resolvedFrom=${today}&resolvedTo=${today}`,
+      },
+    },
+    // BR-51/BR-52: every status and priority present, in enum order.
+    byStatus: TICKET_STATUSES.map((status) => ({
+      status,
+      value: statusCount.get(status) ?? 0,
+      drillDown: `/staff/tickets?status=${status}`,
+    })),
+    activeByItPriority: PRIORITIES.map((itPriority) => ({
+      itPriority,
+      value: priorityCount.get(itPriority) ?? 0,
+      drillDown: `/staff/tickets?itPriority=${itPriority}&statusGroup=active`,
+    })),
+    myOpenActionList: openActions.map((a) => ({
+      actionId: a.id,
+      ticketId: a.ticketId,
+      ticketNumber: a.ticket.ticketNumber,
+      description: previewDescription(a.description),
+      status: a.status,
+      actionAt: a.actionAt,
+      drillDown: `/staff/tickets/${a.ticketId}#actions-taken`,
+    })),
+    recentlyUpdated: updated.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      currentStatus: t.currentStatus,
+      ownerName: t.owner?.name ?? null,
+      updatedAt: t.updatedAt,
+    })),
+    // BR-55: Administrator only; the key is absent, not null, for IT Staff.
+    ...(users && {
+      userAccounts: Object.fromEntries(
+        USER_ROLES.map((role) => [
+          role,
+          {
+            active: userCount(role, true),
+            inactive: userCount(role, false),
+            drillDown: `/admin/users?role=${role}`,
+          },
+        ]),
+      ),
+    }),
+  })
+})
+
 const duplicateEmail = {
   error: {
     code: 'DUPLICATE_EMAIL',

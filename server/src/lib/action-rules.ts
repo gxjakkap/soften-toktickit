@@ -6,6 +6,9 @@ import type { ActionStatus } from '../generated/prisma/client.js'
 
 export const ACTION_STATUSES: readonly string[] = ['PLANNED', 'IN_PROGRESS', 'DONE', 'CANCELLED']
 
+// BR-18 (b) and BR-45: the "open" Action statuses, still waiting on work.
+export const OPEN_ACTION_STATUSES: ActionStatus[] = ['PLANNED', 'IN_PROGRESS']
+
 export type ActionFields = {
   actionAt: Date
   description: string

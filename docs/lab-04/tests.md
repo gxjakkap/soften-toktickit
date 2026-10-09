@@ -61,7 +61,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UNIT-02 | Unit | BR-07 | `canTransitionAction(from, to)` | Exactly the 6 permitted pairs are true; all 10 others (incl. from Done/Cancelled and same-status) false | `server/tests/lab-04/action-rules.unit.test.ts` | Pass |
 | UNIT-03 | Unit | BR-09 | `lockedFieldChanged(action, patch)` | Planned/In Progress: none locked; Done: only follow-up fields and attachment notes editable; Cancelled: all locked; unchanged values never count as changes | `server/tests/lab-04/action-rules.unit.test.ts` | Pass |
 | UNIT-04 | Unit | BR-06, BR-05, BR-08 | Action payload validation | Trims; enforces lengths; follow-up note required iff follow-up; note nulled when follow-up false; Result required for Done; future `actionAt` rejected only for Done; offset-less timestamp rejected | `server/tests/lab-04/action-rules.unit.test.ts` | Pass |
-| UNIT-05 | Unit | BR-34, AC-29 | `startOfBangkokDay`, `bangkokDateString` | `2026-10-06T16:59:59.999Z` → `2026-10-06`; `2026-10-06T17:00:00.000Z` → `2026-10-07`; start of `2026-10-07` = `2026-10-06T17:00:00Z`; 30-day window start | `server/tests/lab-04/bangkok-time.unit.test.ts` | Planned |
+| UNIT-05 | Unit | BR-34, AC-29 | `startOfBangkokDay`, `bangkokDateString` | `2026-10-06T16:59:59.999Z` → `2026-10-06`; `2026-10-06T17:00:00.000Z` → `2026-10-07`; start of `2026-10-07` = `2026-10-06T17:00:00Z`; 30-day window start | `server/tests/lab-04/bangkok-time.unit.test.ts` | Pass |
 | UNIT-06 | Unit | BR-21 | `nextResolvedAt(to, now, current)` | Set on →Resolved; kept on Resolved→Closed; cleared on →Reopened; unchanged otherwise | `server/tests/lab-04/ticket-workflow.unit.test.ts` | Pass |
 | UNIT-07 | Unit | BR-33, AC-37 | Client `formatDateTime` / `formatDate` | With `TZ=America/New_York`, renders `2026-10-06T07:05:00Z` as `6 Oct 2026, 14:05`; date-only form; `<time dateTime>` value is the ISO input | `client/tests/lab-04/datetime.test.ts` | Planned |
 | UNIT-08 | Unit | BR-16 | Client and server matrices agree | `client/src/lib/ticket-status.ts` and `server/src/lib/ticket-status.ts` yield identical permitted sets for all 8 statuses | `client/tests/lab-04/ticket-status-parity.test.ts` | Pass |
@@ -117,28 +117,28 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| API-36 | API | AC-02, BR-31 | Ownership | Two Requesters with fixtures; each sees only own counts and list items; `?requesterId=<other>` ignored | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-37 | API | AC-32 | Wrong roles | 401 no session; 403 IT Staff; 403 Administrator | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-38 | API | BR-39, BR-41, BR-42, AC-28 | Metric values | Each equals an independent Prisma count on the fixture; 30-day window includes day −29 at 00:00 +07 and excludes 1 ms before | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-39 | API | BR-43, BR-44, AC-35 | Lists | ≤5 items; `updatedAt desc, id desc` / `resolvedAt desc, id desc`; Reopened Ticket absent from resolved list; only documented fields | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-40 | API | BR-40, AC-31 | Zero data | Requester with no Tickets: `hasAnyTickets: false`, all values `0`, lists `[]`; Requester with Tickets but none waiting: `waitingForYou.value: 0` | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-41 | API | AC-30, BR-38 | Drill-down equals list | For each metric, calling `GET /api/tickets` with the `drillDown` query returns `totalCount` = metric value | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| API-42 | API | api-spec.md §4.2 | My Tickets new filters | `statusGroup=active`, `resolvedFrom`, `sortBy=updatedAt` filter/sort correctly; bad values 400 `INVALID_FILTER` | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
+| API-36 | API | AC-02, BR-31 | Ownership | Two Requesters with fixtures; each sees only own counts and list items; `?requesterId=<other>` ignored | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-37 | API | AC-32 | Wrong roles | 401 no session; 403 IT Staff; 403 Administrator | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-38 | API | BR-39, BR-41, BR-42, AC-28 | Metric values | Each equals an independent Prisma count on the fixture; 30-day window includes day −29 at 00:00 +07 and excludes 1 ms before | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-39 | API | BR-43, BR-44, AC-35 | Lists | ≤5 items; `updatedAt desc, id desc` / `resolvedAt desc, id desc`; Reopened Ticket absent from resolved list; only documented fields | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-40 | API | BR-40, AC-31 | Zero data | Requester with no Tickets: `hasAnyTickets: false`, all values `0`, lists `[]`; Requester with Tickets but none waiting: `waitingForYou.value: 0` | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-41 | API | AC-30, BR-38 | Drill-down equals list | For each metric, calling `GET /api/tickets` with the `drillDown` query returns `totalCount` = metric value | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| API-42 | API | api-spec.md §4.2 | My Tickets new filters | `statusGroup=active`, `resolvedFrom`, `sortBy=updatedAt` filter/sort correctly; bad values 400 `INVALID_FILTER` | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
 
 **Staff dashboard** (`server/tests/lab-04/staff-dashboard.api.test.ts`):
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| API-43 | API | AC-32 | Wrong roles | 401 no session; 403 Requester | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-44 | API | AC-28, BR-45–BR-50 | Card values | Each of the six equals an independent Prisma query on the same DB state; "me" metrics differ correctly between two IT Staff callers | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-45 | API | BR-45, BR-48, BR-23 | Action metric edges | Open Action on a Cancelled/Resolved Ticket not counted; Cancelled Action with follow-up not counted; `ticketCount` counts distinct Tickets | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-46 | API | AC-29, BR-50, BR-34 | Resolved Today boundary | Fixture `resolvedAt` at 16:59:59.999Z (yesterday Bangkok) and 17:00:00.000Z (today Bangkok) with a faked clock: only the latter counts; Reopened-today Ticket not counted | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-47 | API | BR-51, BR-52 | Breakdowns | All 8 statuses and all 3 priorities always present, enum order, zeros included, values match DB | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-48 | API | BR-53, BR-54, AC-35 | Lists | ≤5 items each; documented order; description truncated to 80 chars with `…`; only documented fields | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-49 | API | AC-33, BR-55, FR-14 | Admin user counts | Admin: `userAccounts` matches DB per role/active; IT Staff: key absent | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-50 | API | AC-30, BR-38 | Drill-down equals list | Each ticket-count metric's `drillDown` query on `GET /api/staff/tickets` returns `totalCount` = value; BR-45 returns `ticketCount` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-51 | API | api-spec.md §4.1 | Queue new filters | `statusGroup`, `resolvedFrom`/`resolvedTo` (inclusive Bangkok dates), `followUp=pending`, `openActionAssigneeId`, `sortBy=resolvedAt` (nulls last); invalid values and `resolvedTo < resolvedFrom` → 400 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| API-52 | API | AC-31, BR-37 | Zero metrics | Caller with no owned Tickets and no Actions: `myActiveTickets`, `myOpenActions` = 0, list `[]` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
+| API-43 | API | AC-32 | Wrong roles | 401 no session; 403 Requester | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-44 | API | AC-28, BR-45–BR-50 | Card values | Each of the six equals an independent Prisma query on the same DB state; "me" metrics differ correctly between two IT Staff callers | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-45 | API | BR-45, BR-48, BR-23 | Action metric edges | Open Action on a Cancelled/Resolved Ticket not counted; Cancelled Action with follow-up not counted; `ticketCount` counts distinct Tickets | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-46 | API | AC-29, BR-50, BR-34 | Resolved Today boundary | Fixture `resolvedAt` at 16:59:59.999Z (yesterday Bangkok) and 17:00:00.000Z (today Bangkok) with a faked clock: only the latter counts; Reopened-today Ticket not counted | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-47 | API | BR-51, BR-52 | Breakdowns | All 8 statuses and all 3 priorities always present, enum order, zeros included, values match DB | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-48 | API | BR-53, BR-54, AC-35 | Lists | ≤5 items each; documented order; description truncated to 80 chars with `…`; only documented fields | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-49 | API | AC-33, BR-55, FR-14 | Admin user counts | Admin: `userAccounts` matches DB per role/active; IT Staff: key absent | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-50 | API | AC-30, BR-38 | Drill-down equals list | Each ticket-count metric's `drillDown` query on `GET /api/staff/tickets` returns `totalCount` = value; BR-45 returns `ticketCount` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-51 | API | api-spec.md §4.1 | Queue new filters | `statusGroup`, `resolvedFrom`/`resolvedTo` (inclusive Bangkok dates), `followUp=pending`, `openActionAssigneeId`, `sortBy=resolvedAt` (nulls last); invalid values and `resolvedTo < resolvedFrom` → 400 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-52 | API | AC-31, BR-37 | Zero metrics | Caller with no owned Tickets and no Actions: `myActiveTickets`, `myOpenActions` = 0, list `[]` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
 
 **Health and error envelope** (`server/tests/lab-04/health-and-errors.api.test.ts`):
 
@@ -174,8 +174,8 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| PERF-01 | Performance | BR-35, §7.3-4 | Dashboard latency | With 2,000 extra Tickets and 6,000 Actions, `GET /api/dashboard/staff` and `/requester` median of 10 calls < 300 ms locally | `server/tests/lab-04/performance.smoke.test.ts` | Planned |
-| PERF-02 | Performance | §7.3-4 | Gate and list latency | Status change to Resolved on a Ticket with 50 Actions < 200 ms; Queue with `followUp=pending&statusGroup=active` < 300 ms | `server/tests/lab-04/performance.smoke.test.ts` | Planned |
+| PERF-01 | Performance | BR-35, §7.3-4 | Dashboard latency | With 2,000 extra Tickets and 6,000 Actions, `GET /api/dashboard/staff` and `/requester` median of 10 calls < 300 ms locally | `server/tests/lab-04/performance.smoke.test.ts` | Pass |
+| PERF-02 | Performance | §7.3-4 | Gate and list latency | Status change to Resolved on a Ticket with 50 Actions < 200 ms; Queue with `followUp=pending&statusGroup=active` < 300 ms | `server/tests/lab-04/performance.smoke.test.ts` | Pass |
 
 ### 2.6 UI Component
 

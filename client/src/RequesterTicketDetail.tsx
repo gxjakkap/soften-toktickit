@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ActionsTaken from './ActionsTaken'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
@@ -228,6 +229,9 @@ function RequesterTicketDetail() {
           </div>
 
           <AttachmentSection ticketId={ticket.id} initialAttachments={ticket.attachments} />
+
+          {/* Lab 4 ui-spec.md §6 (FR-05, AC-07): read-only, every field shown. */}
+          <ActionsTaken ticketId={ticket.id} ticketStatus={ticket.currentStatus} />
 
           <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
 

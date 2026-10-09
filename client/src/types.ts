@@ -200,3 +200,25 @@ export type AdminUser = {
 }
 
 export type AdminUserListResponse = { data: AdminUser[]; totalCount: number }
+
+// Lab 4 api-spec.md §0.5 (BR-07): an Action Taken's own status.
+export type ActionStatus = 'PLANNED' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED'
+
+// Lab 4 api-spec.md §0.5: one Action Taken, as both the staff and the
+// Requester endpoints return it.
+export type ActionTaken = {
+  id: number
+  ticketId: number
+  actionAt: string
+  description: string
+  result: string | null
+  status: ActionStatus
+  performedBy: { id: number; name: string; role: UserRole }
+  assignedTo: { id: number; name: string; role: UserRole; isActive: boolean }
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+  version: number
+  createdAt: string
+  updatedAt: string
+}

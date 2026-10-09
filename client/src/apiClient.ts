@@ -1,4 +1,5 @@
 import type {
+  ActionTaken,
   ActiveStaffUser,
   AdminUser,
   AdminUserListResponse,
@@ -272,6 +273,51 @@ export function fetchStatusHistory(ticketId: number): Promise<StatusHistoryEntry
   return fetch(`/api/tickets/${ticketId}/status-history`)
     .then((res) => parseJsonOrThrow<{ data: StatusHistoryEntry[] }>(res))
     .then((body) => body.data)
+}
+
+// Lab 4 api-spec.md §2.1, §2.4 (BR-13): oldest first, Cancelled included.
+// The Requester endpoint is read-only and ownership-scoped (BR-12).
+export function fetchActions(ticketId: number, asStaff: boolean): Promise<ActionTaken[]> {
+  return fetch(`/api${asStaff ? '/staff' : ''}/tickets/${ticketId}/actions`)
+    .then((res) => parseJsonOrThrow<{ data: ActionTaken[] }>(res))
+    .then((body) => body.data)
+}
+
+export type ActionInput = {
+  actionAt: string
+  description: string
+  result: string | null
+  status: ActionTaken['status']
+  assignedToId: number
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+}
+
+// Lab 4 api-spec.md §2.2 (BR-14, BR-28): the form's clientRequestId makes a
+// retried create return the first Action instead of a second one.
+export function createAction(
+  ticketId: number,
+  input: ActionInput & { clientRequestId: string },
+): Promise<ActionTaken> {
+  return fetch(`/api/staff/tickets/${ticketId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).then((res) => parseJsonOrThrow<ActionTaken>(res))
+}
+
+// Lab 4 api-spec.md §2.3 (BR-25): the version last read plus changed fields.
+export function updateAction(
+  ticketId: number,
+  actionId: number,
+  changes: Partial<ActionInput> & { version: number },
+): Promise<ActionTaken> {
+  return fetch(`/api/staff/tickets/${ticketId}/actions/${actionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes),
+  }).then((res) => parseJsonOrThrow<ActionTaken>(res))
 }
 
 export function postStaffComment(

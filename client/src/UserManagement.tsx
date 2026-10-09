@@ -6,7 +6,7 @@ import {
   setAdminUserPassword,
   updateAdminUser,
 } from './apiClient'
-import { RoleBadge } from './badges'
+import { RoleBadge, UserStatusBadge } from './badges'
 import Forbidden from './Forbidden'
 import { isStrongPassword } from './lib/password-rules'
 import { roleHomePath } from './lib/role-routes'
@@ -29,15 +29,6 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'ADMINISTRATOR', label: 'Administrator' },
 ]
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function StatusPill({ active }: { active: boolean }) {
-  return (
-    <span className={`zg-badge ${active ? 'zg-badge-status-resolved' : 'zg-badge-status-closed'}`}>
-      <i className={`bi ${active ? 'bi-check-circle' : 'bi-slash-circle'}`} aria-hidden="true" />
-      {active ? 'Active' : 'Inactive'}
-    </span>
-  )
-}
 
 function UserPanel({
   panel,
@@ -574,7 +565,7 @@ function UserManagement() {
                           <RoleBadge role={u.role} />
                         </td>
                         <td>
-                          <StatusPill active={u.isActive} />
+                          <UserStatusBadge active={u.isActive} />
                         </td>
                         <td>
                           <button
@@ -601,7 +592,7 @@ function UserManagement() {
                     </div>
                     <div className="zg-chip-row" style={{ margin: 'var(--zg-space-2) 0' }}>
                       <RoleBadge role={u.role} />
-                      <StatusPill active={u.isActive} />
+                      <UserStatusBadge active={u.isActive} />
                     </div>
                     <button
                       type="button"

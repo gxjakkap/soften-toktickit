@@ -562,6 +562,8 @@ function ActionForm({
   }
 
   async function save(confirmedCancel = false) {
+    // BR-28: Enter in a text input still submits while Save is disabled.
+    if (saving) return
     const found = validate(values)
     setErrors(found)
     if (Object.keys(found).length > 0) {
@@ -675,7 +677,9 @@ function ActionForm({
       }}
       onKeyDown={(e) => {
         // ui-spec.md §9: Esc is Cancel while focus is inside the form.
-        if (e.key === 'Escape') {
+        // FR-20, BR-14: closing mid-save would drop the input, any error,
+        // and the clientRequestId a retry needs, so Esc waits for the save.
+        if (e.key === 'Escape' && !saving) {
           e.preventDefault()
           onCancel()
         }
@@ -978,7 +982,13 @@ function ActionForm({
         className="zg-actions"
         style={{ marginTop: 'var(--zg-space-4)', justifyContent: 'flex-end' }}
       >
-        <button type="button" className="zg-btn zg-btn-secondary" onClick={onCancel}>
+        <button
+          type="button"
+          className="zg-btn zg-btn-secondary"
+          disabled={saving}
+          aria-disabled={saving}
+          onClick={onCancel}
+        >
           Cancel
         </button>
         <button

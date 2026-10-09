@@ -570,36 +570,52 @@ describe('UI-19 (AC-44, FR-20): server or network failure', () => {
   })
 })
 
-describe('UI-20 (BR-28, BR-14): duplicate protection', () => {
-  it('disables Save while in flight and reuses the clientRequestId on retry', async () => {
-    let release: (reply: Reply) => void = () => {}
-    let attempt = 0
+describe('UI-20 (BR-28, BR-14, AC-44): duplicate protection', () => {
+  it('holds the form open while saving and reuses the clientRequestId on retry', async () => {
+    const pending: { resolve: (reply: Reply) => void; reject: (err: Error) => void }[] = []
     const fetchMock = mockStaffApi({
-      onPost: () => {
-        attempt += 1
-        if (attempt === 1) return Promise.reject(new TypeError('Failed to fetch'))
-        return new Promise<Reply>((resolve) => {
-          release = resolve
-        })
-      },
+      onPost: () => new Promise<Reply>((resolve, reject) => pending.push({ resolve, reject })),
     })
     const { user, area } = await openCreate()
-    await user.type(area.getByLabelText(/action description/i), 'Restarted the dock.')
+    const description = area.getByLabelText(/action description/i) as HTMLTextAreaElement
+    await user.type(description, 'Restarted the dock.')
     await user.click(area.getByRole('button', { name: 'Save Action' }))
-    expect(await area.findByTestId('action-form-error')).toBeTruthy()
 
-    const save = area.getByRole('button', { name: 'Save Action' })
-    await user.dblClick(save)
     const busy = await area.findByRole('button', { name: 'Saving…' })
     expect((busy as HTMLButtonElement).disabled).toBe(true)
     expect(busy.getAttribute('aria-busy')).toBe('true')
-    await user.click(busy)
+
+    // While the request is out, Esc, Cancel, and Enter in a text input must
+    // neither close the form nor send a second request (PR #80 review).
+    const cancel = area.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement
+    expect(cancel.disabled).toBe(true)
+    await user.click(cancel)
+    await user.click(area.getByLabelText(/attachment notes/i))
+    await user.keyboard('{Enter}')
+    await user.keyboard('{Escape}')
+    expect(area.getByRole('heading', { name: 'New Action' })).toBeTruthy()
+    expect(callsTo(fetchMock, 'POST')).toHaveLength(1)
+
+    // The first attempt fails: the form, its text, and the error all remain.
+    pending[0]!.reject(new TypeError('Failed to fetch'))
+    expect((await area.findByTestId('action-form-error')).textContent).toBe(
+      'Something went wrong. Please try again.',
+    )
+    expect(area.getByRole('heading', { name: 'New Action' })).toBeTruthy()
+    expect(description.value).toBe('Restarted the dock.')
+
+    // The retry, double-clicked, sends one request with the same key.
+    await user.dblClick(area.getByRole('button', { name: 'Save Action' }))
+    await area.findByRole('button', { name: 'Saving…' })
     expect(callsTo(fetchMock, 'POST')).toHaveLength(2)
     expect(bodyOf(fetchMock, 'POST', 1).clientRequestId).toBe(
       bodyOf(fetchMock, 'POST', 0).clientRequestId,
     )
 
-    release({ status: 200, body: action({ id: 7001, description: 'Restarted the dock.' }) })
+    pending[1]!.resolve({
+      status: 200,
+      body: action({ id: 7001, description: 'Restarted the dock.' }),
+    })
     expect(await area.findByText('Restarted the dock.')).toBeTruthy()
     expect(rows()).toHaveLength(1)
   })

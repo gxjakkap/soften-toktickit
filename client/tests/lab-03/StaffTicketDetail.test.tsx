@@ -10,6 +10,11 @@ import type { StaffTicketDetail } from '../../src/types'
 // ui-spec.md §6, api-spec.md §4.2-4.7 (FR-13..19, BR-18..22, BR-29, BR-30):
 // the IT Staff Ticket Detail screen — ownership/priority/status controls,
 // Public Comments vs. Internal Notes separation, and every documented state.
+//
+// Lab 4 (docs/lab-04/tests.md §6, BR-24): stubbed details carry `version`,
+// `resolvedAt`, and `resolutionGate`; a successful workflow PATCH answers
+// with the full TicketWorkflowState; request bodies assert `version`; the
+// new Status History read is stubbed empty.
 
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -34,6 +39,9 @@ function detail(overrides: Partial<StaffTicketDetail> = {}): StaffTicketDetail {
     updatedAt: '2026-01-01T09:00:00.000Z',
     attachments: [],
     comments: [],
+    version: 1,
+    resolvedAt: null,
+    resolutionGate: { canResolve: true, reasons: [] },
     ...overrides,
   }
 }
@@ -60,10 +68,16 @@ function mockApi(
       }
       return jsonResponse(ticket, ticketStatus)
     }
+    if (url === '/api/staff/tickets/101/status-history') return jsonResponse({ data: [] })
     if (url.startsWith('/api/staff/tickets/101/') && init?.method === 'PATCH') {
       const path = url.replace('/api/staff/tickets/101/', '')
       const body = init.body ? JSON.parse(init.body as string) : undefined
       const result = onPatch?.(path, body)
+      if (result?.status === 200 && ticket) {
+        const { id, currentStatus, resolvedAt, ownerId, ownerName, itPriority, updatedAt } = ticket
+        const state = { id, currentStatus, resolvedAt, ownerId, ownerName, itPriority, updatedAt }
+        return jsonResponse({ ...state, version: ticket.version + 1, ...(result.body as object) })
+      }
       if (result) return jsonResponse(result.body, result.status)
       return jsonResponse({ error: { code: 'INTERNAL_ERROR', message: 'Unhandled.' } }, 500)
     }
@@ -147,7 +161,9 @@ describe('Ownership', () => {
       expect(
         fetchMock.mock.calls.some(
           ([url, init]: [string, RequestInit?]) =>
-            url === '/api/staff/tickets/101/claim' && init?.method === 'PATCH',
+            url === '/api/staff/tickets/101/claim' &&
+            init?.method === 'PATCH' &&
+            JSON.parse(init.body as string).version === 1,
         ),
       ).toBe(true)
     })
@@ -205,7 +221,9 @@ describe('IT Priority and Status', () => {
       expect(
         fetchMock.mock.calls.some(
           ([url, init]: [string, RequestInit?]) =>
-            url === '/api/staff/tickets/101/priority' && init?.method === 'PATCH',
+            url === '/api/staff/tickets/101/priority' &&
+            init?.method === 'PATCH' &&
+            JSON.parse(init.body as string).version === 1,
         ),
       ).toBe(true)
     })

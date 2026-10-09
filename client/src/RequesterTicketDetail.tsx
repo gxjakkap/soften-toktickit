@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
-import { ApiError, fetchTicket, markResolved, postComment } from './apiClient'
+import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
 import Forbidden from './Forbidden'
+import StatusHistory from './StatusHistory'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
-import type { TicketComment, TicketDetail } from './types'
+import type { StatusHistoryEntry, TicketComment, TicketDetail } from './types'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -28,6 +29,19 @@ function RequesterTicketDetail() {
   const [confirmingResolve, setConfirmingResolve] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
+  const [history, setHistory] = useState<StatusHistoryEntry[] | null>(null)
+  const [historyFailed, setHistoryFailed] = useState(false)
+
+  // Lab 4 ui-spec.md §6 (FR-09): the same read-only Status History as staff.
+  const loadHistory = useCallback(() => {
+    if (!user || !id || !allowed) return
+    setHistoryFailed(false)
+    fetchStatusHistory(Number(id))
+      .then(setHistory)
+      .catch(() => setHistoryFailed(true))
+  }, [user, id, allowed])
+
+  useEffect(loadHistory, [loadHistory])
 
   const load = useCallback(() => {
     if (!user || !id || !allowed) return
@@ -149,16 +163,23 @@ function RequesterTicketDetail() {
                     Marked resolved by you on {new Date(resolvedAt).toLocaleDateString()}
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    className="zg-btn zg-btn-secondary"
-                    onClick={() => {
-                      setResolveError(null)
-                      setConfirmingResolve(true)
-                    }}
-                  >
-                    Problem Appears Resolved
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="zg-btn zg-btn-secondary"
+                      aria-describedby="appears-resolved-hint"
+                      onClick={() => {
+                        setResolveError(null)
+                        setConfirmingResolve(true)
+                      }}
+                    >
+                      Problem Appears Resolved
+                    </button>
+                    {/* Lab 4 BR-20: a request to IT Staff, never a resolution. */}
+                    <span className="zg-helper" id="appears-resolved-hint">
+                      Lets IT Staff know it looks fixed. Only IT Staff can resolve the ticket.
+                    </span>
+                  </>
                 )}
               </div>
             )}
@@ -207,6 +228,8 @@ function RequesterTicketDetail() {
           </div>
 
           <AttachmentSection ticketId={ticket.id} initialAttachments={ticket.attachments} />
+
+          <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
 
           <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
             <h2 className="zg-section-heading">Public Comments</h2>

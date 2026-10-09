@@ -25,6 +25,9 @@ import { loginCookie } from '../helpers/auth.js'
 //     was covered (this issue, reference-data.api.test.ts), but no test
 //     proved IT_STAFF/ADMINISTRATOR sessions — not just REQUESTER's — can
 //     reach them (specification.md §12-12: any authenticated role).
+//
+// Lab 4 (docs/lab-04/tests.md §6): specification.md BR-29 supersedes Lab 3
+// BR-40, so every /api/staff/* row now allows ADMINISTRATOR as well.
 const TAG = 'lab3.authz-matrix.test.invalid'
 const PASSWORD = 'DevPass123!'
 const email = (name: string) => `${name}@${TAG}`
@@ -103,6 +106,10 @@ afterAll(async () => {
   await prisma.attachment.deleteMany({
     where: { ticket: { requester: { email: { endsWith: TAG } } } },
   })
+  // Lab 4 BR-22: history rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({
+    where: { ticket: { requester: { email: { endsWith: TAG } } } },
+  })
   await prisma.ticket.deleteMany({ where: { requester: { email: { endsWith: TAG } } } })
   await prisma.user.deleteMany({ where: { email: { endsWith: TAG } } })
   await prisma.category.deleteMany({ where: { name: { endsWith: TAG } } })
@@ -176,7 +183,7 @@ const CASES: Case[] = [
     label: 'GET /api/staff/tickets',
     method: 'get',
     path: () => '/api/staff/tickets',
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'GET /api/staff/tickets/:id',
@@ -188,37 +195,37 @@ const CASES: Case[] = [
     label: 'GET /api/staff/it-staff-users',
     method: 'get',
     path: () => '/api/staff/it-staff-users',
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'PATCH /api/staff/tickets/:id/claim',
     method: 'patch',
     path: () => `/api/staff/tickets/${ticketId}/claim`,
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'PATCH /api/staff/tickets/:id/owner',
     method: 'patch',
     path: () => `/api/staff/tickets/${ticketId}/owner`,
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'PATCH /api/staff/tickets/:id/priority',
     method: 'patch',
     path: () => `/api/staff/tickets/${ticketId}/priority`,
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'PATCH /api/staff/tickets/:id/status',
     method: 'patch',
     path: () => `/api/staff/tickets/${ticketId}/status`,
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'POST /api/staff/tickets/:id/comments',
     method: 'post',
     path: () => `/api/staff/tickets/${ticketId}/comments`,
-    allowed: ['IT_STAFF'],
+    allowed: ['IT_STAFF', 'ADMINISTRATOR'],
   },
   {
     label: 'GET /api/admin/users',

@@ -28,6 +28,12 @@ let inactiveRelatedSystemId: number
 let cookie: string
 
 async function wipe() {
+  // Lab 4 BR-22: history rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({
+    where: {
+      ticket: { requesterId: { in: [activeRequesterId, otherRequesterId].filter(Boolean) } },
+    },
+  })
   await prisma.ticket.deleteMany({
     where: { requesterId: { in: [activeRequesterId, otherRequesterId].filter(Boolean) } },
   })

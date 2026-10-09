@@ -83,11 +83,14 @@ describe('Ticket Queue access', () => {
     expect(screen.getByRole('link', { name: /back to your home page/i })).toBeTruthy()
   })
 
-  it('AC-37: shows the forbidden state for an Administrator', async () => {
+  // Lab 4 (docs/lab-04/tests.md §6): BR-29 supersedes Lab 3 AC-37, so an
+  // Administrator now sees the Queue instead of the forbidden state.
+  it('Lab 4 BR-29: shows the Queue, not the forbidden state, for an Administrator', async () => {
     mockApi({ ...testUser, role: 'ADMINISTRATOR' })
     renderQueue()
 
-    expect(await screen.findByTestId('queue-forbidden')).toBeTruthy()
+    expect(await screen.findByPlaceholderText(/search by ticket number or summary/i)).toBeTruthy()
+    expect(screen.queryByTestId('queue-forbidden')).toBeNull()
   })
 })
 

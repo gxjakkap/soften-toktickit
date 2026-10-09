@@ -93,15 +93,18 @@ describe('Role-scoped navigation', () => {
     expect(within(nav).queryByRole('link', { name: /user management/i })).toBeFalsy()
   })
 
-  it('shows only User Management for an Administrator', async () => {
+  // Lab 4 (docs/lab-04/tests.md §6): BR-29 gives the Administrator the
+  // Ticket Queue too (ui-spec.md §1). The Dashboard item arrives with the
+  // dashboard issues.
+  it('shows User Management and Ticket Queue for an Administrator', async () => {
     mockApi(testAdminUser)
     renderAt('/admin/users')
     await screen.findByRole('heading', { name: /user management/i })
 
     const nav = screen.getByRole('navigation', { name: /main/i })
     expect(within(nav).getByRole('link', { name: /user management/i })).toBeTruthy()
+    expect(within(nav).getByRole('link', { name: /ticket queue/i })).toBeTruthy()
     expect(within(nav).queryByRole('link', { name: /my tickets/i })).toBeFalsy()
-    expect(within(nav).queryByRole('link', { name: /ticket queue/i })).toBeFalsy()
   })
 })
 

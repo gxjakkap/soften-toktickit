@@ -83,7 +83,8 @@ function StaffTicketQueue() {
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const allowed = user?.role === 'IT_STAFF'
+  // Lab 4 BR-29: the Administrator uses the Queue like IT Staff.
+  const allowed = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
 
   useEffect(() => {
     if (!allowed) return
@@ -207,9 +208,8 @@ function StaffTicketQueue() {
     response && response.totalCount > 0 ? (response.page - 1) * response.pageSize + 1 : 0
   const rangeEnd = response ? Math.min(response.page * response.pageSize, response.totalCount) : 0
 
-  // ui-spec.md §5: a Requester or Administrator reaching this route directly
-  // gets a full-page forbidden state, never a silent redirect — the API
-  // already returns 403 (BR-40/AC-37), so the client has a real reason to show.
+  // ui-spec.md §5: a Requester reaching this route directly gets a full-page
+  // forbidden state, never a silent redirect — the API already returns 403.
   if (!allowed) {
     return <Forbidden testId="queue-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }

@@ -69,7 +69,8 @@ function AppShell({ children }: { children: ReactNode }) {
                   </NavLink>
                 </>
               )}
-              {user?.role === 'IT_STAFF' && (
+              {/* Lab 4 ui-spec.md §1 (BR-29): the Administrator also gets the Queue. */}
+              {(user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR') && (
                 <NavLink
                   to="/staff/tickets"
                   className={navClass}

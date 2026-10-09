@@ -238,3 +238,32 @@ test.describe('AC-41: Actions Taken layout', () => {
     })
   }
 })
+
+test('AC-41, AC-44: an open edit survives crossing the mobile breakpoint', async ({ page }) => {
+  await page.setViewportSize(VIEWPORTS.desktop)
+  await loginViaApi(page.request, REQUESTERS.jennifer.email)
+  const ticket = await createTicketViaApi(page.request, {
+    summary: `Actions Taken rotate ${Date.now()}`,
+  })
+  await loginViaApi(page.request, SARAH)
+  const res = await page.request.post(`/api/staff/tickets/${ticket.id}/actions`, {
+    data: { actionAt: new Date().toISOString(), description: 'Saved description.' },
+  })
+  expect(res.status()).toBe(201)
+
+  await page.goto(`/staff/tickets/${ticket.id}`)
+  await rowWith(page, 'Saved description.').getByRole('button', { name: /^Edit/ }).click()
+  const description = area(page).getByLabel(/action description/i)
+  await description.fill('Typed before rotating.')
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(area(page).locator('table')).toHaveCount(0)
+  await expect(area(page).locator('.zg-ticket-cards form')).toHaveCount(1)
+  await expect(description).toHaveValue('Typed before rotating.')
+
+  await page.setViewportSize(VIEWPORTS.desktop)
+  await expect(area(page).locator('table form')).toHaveCount(1)
+  await expect(description).toHaveValue('Typed before rotating.')
+  await area(page).locator('form').getByRole('button', { name: 'Save Changes' }).click()
+  await expect(rowWith(page, 'Typed before rotating.')).toHaveCount(1)
+})

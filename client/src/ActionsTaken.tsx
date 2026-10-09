@@ -6,6 +6,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { ApiError, createAction, fetchActions, updateAction, type ActionInput } from './apiClient'
 import { ActionStatusBadge, FollowUpBadge, RoleBadge, UserStatusBadge } from './badges'
 import { formatDateTime, fromBangkokInput, toBangkokInput } from './lib/datetime'
@@ -133,6 +134,21 @@ function ActionsTaken({
   const active = ACTIVE_TICKET_STATUSES.includes(ticketStatus)
   const canWrite = asStaff && active
 
+  // The edit form opens in place of its row (table) or card (mobile), and
+  // the two layouts are different element trees. Rendering it there would
+  // remount it whenever the viewport crosses 768px (a phone rotating) and
+  // drop the typed values or an in-flight save (PR #80 review). Instead it
+  // renders once, through a portal, into this node, and whichever row or
+  // card is on screen moves the node into place.
+  const [editHost] = useState(() => document.createElement('div'))
+  const placeEditHost = useCallback(
+    (slot: HTMLElement | null) => {
+      slot?.appendChild(editHost)
+    },
+    [editHost],
+  )
+  const editing = form?.mode === 'edit' ? actions?.find((a) => a.id === form.id) : undefined
+
   const formFor = (action?: ActionTaken) =>
     staff && (
       <ActionForm
@@ -246,7 +262,7 @@ function ActionsTaken({
         <div className="zg-ticket-cards" style={{ marginTop: 'var(--zg-space-4)' }}>
           {actions.map((action) =>
             form?.mode === 'edit' && form.id === action.id ? (
-              <div key={action.id}>{formFor(action)}</div>
+              <div key={action.id} ref={placeEditHost} />
             ) : (
               <article
                 key={action.id}
@@ -317,7 +333,7 @@ function ActionsTaken({
               {actions.map((action) =>
                 form?.mode === 'edit' && form.id === action.id ? (
                   <tr key={action.id}>
-                    <td colSpan={canWrite ? 8 : 7}>{formFor(action)}</td>
+                    <td colSpan={canWrite ? 8 : 7} ref={placeEditHost} />
                   </tr>
                 ) : (
                   <tr key={action.id} className={rowClass(action)} data-testid="action-row">
@@ -349,6 +365,8 @@ function ActionsTaken({
           </table>
         </div>
       )}
+
+      {editing && createPortal(formFor(editing), editHost)}
     </section>
   )
 }

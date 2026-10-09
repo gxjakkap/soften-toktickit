@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -567,6 +567,49 @@ describe('UI-19 (AC-44, FR-20): server or network failure', () => {
       'Order a new dock.',
     )
     expect(area.getByRole('heading', { name: 'New Action' })).toBeTruthy()
+  })
+})
+
+describe('UI-19 (AC-44, AC-41): layout switch while editing', () => {
+  it('keeps the edit form and its input when the viewport crosses 768px', async () => {
+    // A controllable stand-in for the (max-width: 767px) media query.
+    let mobile = false
+    const listeners = new Set<() => void>()
+    vi.stubGlobal('matchMedia', () => ({
+      get matches() {
+        return mobile
+      },
+      addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+      removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+    }))
+    const resize = (next: boolean) =>
+      act(() => {
+        mobile = next
+        listeners.forEach((fn) => fn())
+      })
+
+    mockStaffApi({ actions: [[action(), action({ id: 5002, description: 'Other action.' })]] })
+    const user = userEvent.setup()
+    renderAt('/staff/tickets/101')
+    const area = await section()
+    await user.click(area.getAllByRole('button', { name: /^Edit:/ })[0]!)
+    const description = area.getByLabelText(/action description/i) as HTMLTextAreaElement
+    await user.clear(description)
+    await user.type(description, 'Typed before rotating.')
+    expect(description.closest('td')).toBeTruthy()
+
+    resize(true)
+    const onMobile = area.getByLabelText(/action description/i) as HTMLTextAreaElement
+    expect(area.queryByRole('table')).toBeNull()
+    expect(onMobile.closest('.zg-ticket-cards')).toBeTruthy()
+    // The same element moved; it was not remounted with fresh values.
+    expect(onMobile).toBe(description)
+    expect(onMobile.value).toBe('Typed before rotating.')
+
+    resize(false)
+    expect(area.getByRole('table')).toBeTruthy()
+    expect(description.closest('td')).toBeTruthy()
+    expect(description.value).toBe('Typed before rotating.')
   })
 })
 

@@ -8,6 +8,9 @@
   --zg-bg: #f5f7f6;
   --zg-surface: #ffffff;
   --zg-text: #1c2b24;
+  /* Lab 4 ui-spec.md §5.2: Cancelled Action rows (paired with a badge and
+     strikethrough, never color alone). 5.9:1 on white. */
+  --zg-text-muted: #56655d;
   --zg-field-editable-bg: #ffffff;
   --zg-field-editable-border: #c9d6d0;
   --zg-field-readonly-bg: #edf3ef;
@@ -912,4 +915,174 @@ textarea.zg-field {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--zg-space-1);
+}
+
+/* Lab 4 ui-spec.md §8: Action Status and Follow-Up badges. In Progress and
+   Cancelled reuse the Ticket badge colors. */
+.zg-badge-action-planned {
+  background: var(--zg-field-readonly-bg);
+  color: var(--zg-text);
+}
+
+.zg-badge-action-done {
+  background: var(--zg-success-bg);
+  color: var(--zg-success-text);
+}
+
+.zg-badge-follow-up {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+/* Lab 4 ui-spec.md §5.2: Actions Taken list, cards, and form. */
+.zg-actions-table {
+  /* Fixed widths for the short columns; the text columns share the rest
+     and wrap, so long unbroken strings can't widen the table (§10). */
+  table-layout: fixed;
+}
+
+.zg-actions-table .zg-col-date {
+  width: 6.5rem;
+}
+
+.zg-actions-table .zg-col-status {
+  width: 8.5rem;
+}
+
+.zg-actions-table .zg-col-edit {
+  width: 7rem;
+}
+
+/* Buttons and badges break only between words, never mid-word, and a
+   badge wraps instead of spilling into the next column. */
+.zg-actions-table .zg-btn,
+.zg-actions-table .zg-badge {
+  overflow-wrap: normal;
+}
+
+.zg-actions-table .zg-badge {
+  white-space: normal;
+}
+
+@media (max-width: 991px) {
+  .zg-actions-table th,
+  .zg-actions-table td {
+    padding: var(--zg-space-2);
+  }
+
+  .zg-actions-table .zg-col-date {
+    width: 5.5rem;
+  }
+
+  .zg-actions-table .zg-col-status {
+    width: 7rem;
+  }
+
+  .zg-actions-table .zg-col-edit {
+    width: 6.5rem;
+  }
+}
+
+.zg-actions-table tbody tr {
+  cursor: default;
+}
+
+.zg-actions-table td,
+.zg-action-card dd {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.zg-actions-table tbody tr:hover {
+  background: none;
+}
+
+.zg-actions-table tbody tr.is-new,
+.zg-action-card.is-new {
+  background: var(--zg-pale);
+}
+
+.zg-action-text {
+  white-space: pre-wrap;
+}
+
+.zg-clamp-3 {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.zg-actions-table tr.is-cancelled,
+.zg-action-card.is-cancelled {
+  color: var(--zg-text-muted);
+}
+
+.is-cancelled .zg-action-description {
+  text-decoration: line-through;
+}
+
+.zg-action-card {
+  cursor: default;
+}
+
+.zg-action-card:hover {
+  border-color: var(--zg-field-readonly-border);
+}
+
+.zg-action-card-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+  justify-content: space-between;
+}
+
+.zg-action-card dl {
+  margin: var(--zg-space-3) 0;
+}
+
+.zg-action-card dt {
+  font-weight: 600;
+  margin-top: var(--zg-space-2);
+}
+
+.zg-action-card dd {
+  margin: 0;
+}
+
+.zg-action-form {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 8px;
+  margin: var(--zg-space-4) 0;
+  padding: var(--zg-space-4);
+}
+
+.zg-action-form-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.zg-action-form-grid > .zg-detail-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .zg-action-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.zg-action-form .zg-field-readonly-value {
+  background: var(--zg-field-readonly-bg);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  margin: 0;
+  min-height: 38px;
+  overflow-wrap: anywhere;
+  padding: 6px var(--zg-space-3);
+  white-space: pre-wrap;
 }

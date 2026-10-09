@@ -77,7 +77,9 @@ describe('UI-14 (AC-24): read-only rendering', () => {
     // No editable form controls anywhere on the screen apart from the new
     // Public Comments textarea, and none of the out-of-scope features render.
     expect(screen.queryByText(/internal note/i)).toBeNull()
-    expect(screen.queryByText(/actions taken/i)).toBeNull()
+    // Lab 4 AC-07 supersedes the Lab 2 "no Actions Taken" check: the
+    // Requester now sees them read-only, with no write control.
+    expect(screen.queryByRole('button', { name: /add action|edit/i })).toBeNull()
     expect(screen.queryByText(/it priority/i)).toBeNull()
     expect(screen.queryByText(/ticket owner/i)).toBeNull()
     // Lab 4 (docs/lab-04/tests.md §6): the read-only Status History section

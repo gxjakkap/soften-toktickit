@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ActionsTaken from './ActionsTaken'
 import AttachmentSection from './AttachmentSection'
 import {
   ApiError,
@@ -121,6 +122,17 @@ function StaffTicketDetail() {
   }, [allowed, id, loadHistory])
 
   useEffect(load, [load])
+
+  // Lab 4 ui-spec.md §5.2 (AC-27): an Action save can change the resolution
+  // gate, so the Ticket is refetched quietly, without the loading state, and
+  // the status options follow. A failure keeps the last gate; the status
+  // endpoint re-checks it anyway (BR-19).
+  const refreshTicket = useCallback(() => {
+    if (!id) return
+    fetchStaffTicket(Number(id))
+      .then(setTicket)
+      .catch(() => {})
+  }, [id])
 
   useEffect(() => {
     if (!allowed) return
@@ -524,6 +536,19 @@ function StaffTicketDetail() {
               </div>
             </div>
           </section>
+
+          {user && (
+            <ActionsTaken
+              ticketId={ticket.id}
+              ticketStatus={ticket.currentStatus}
+              staff={{
+                currentUser: user,
+                itStaff,
+                onActionsChanged: refreshTicket,
+                onAnnounce: setAnnouncement,
+              }}
+            />
+          )}
 
           <AttachmentSection
             ticketId={ticket.id}

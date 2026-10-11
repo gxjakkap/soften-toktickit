@@ -101,6 +101,7 @@ function mockStaffApi(
     if (url === '/api/staff/tickets/101/status-history') {
       return jsonResponse({ data: histories[Math.min(historyCalls++, histories.length - 1)] })
     }
+    if (url === '/api/staff/tickets/101/actions') return jsonResponse({ data: [] })
     if (url.startsWith('/api/staff/tickets/101/') && init?.method === 'PATCH' && onPatch) {
       const reply = await onPatch(
         url.replace('/api/staff/tickets/101/', ''),
@@ -488,6 +489,7 @@ describe('Requester Ticket Detail (BR-17, BR-20)', () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/tickets/101') return jsonResponse(requesterDetail)
+      if (url === '/api/tickets/101/actions') return jsonResponse({ data: [] })
       if (url === '/api/tickets/101/status-history') {
         return jsonResponse({ data: [entry(1, null, 'NEW'), entry(2, 'NEW', 'IN_PROGRESS')] })
       }

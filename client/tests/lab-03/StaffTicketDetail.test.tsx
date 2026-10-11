@@ -69,6 +69,7 @@ function mockApi(
       return jsonResponse(ticket, ticketStatus)
     }
     if (url === '/api/staff/tickets/101/status-history') return jsonResponse({ data: [] })
+    if (url === '/api/staff/tickets/101/actions') return jsonResponse({ data: [] })
     if (url.startsWith('/api/staff/tickets/101/') && init?.method === 'PATCH') {
       const path = url.replace('/api/staff/tickets/101/', '')
       const body = init.body ? JSON.parse(init.body as string) : undefined

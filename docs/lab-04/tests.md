@@ -203,19 +203,19 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| UI-11 | UI | FR-02, BR-13 | List mode | Rows in server order; all columns; inactive assignee shows "Inactive" badge; Cancelled row has badge + strikethrough; empty state text | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-12 | UI | AC-01, FR-01 | Create | Opens panel, focus to heading; defaults (now, Planned, me); Save posts exact body incl. `clientRequestId`; row appears; "Action added." announced; focus returns to + Add Action | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-13 | UI | AC-04, BR-06 | Follow-up note | Hidden until checkbox; then required; error under the field; no request sent | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-14 | UI | AC-09, BR-08 | Result required for Done | Choosing Done marks Result required; empty Result blocks submit with field error | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-15 | UI | AC-05 | Server `INVALID_ASSIGNEE` | Error shown under Assigned To; input kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-16 | UI | BR-09, AC-11 | Edit Done Action | Description/Result read-only with reason; follow-up editable; PATCH sends `version` and only changed fields | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-17 | UI | BR-07 | Edit status options | Only permitted next statuses offered; Cancel asks inline confirmation | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-18 | UI | AC-08, AC-44, BR-26 | Stale update | 409 shows conflict banner with latest values; typed input kept; Reload latest refreshes form | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-19 | UI | AC-44, FR-20 | Network/500 failure | Safe banner inside panel; all entered values kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-20 | UI | BR-28, FR-21 | Double click | Two rapid clicks on Save send one request; retry after network error reuses the same `clientRequestId` | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-21 | UI | AC-12, BR-10 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions." | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-22 | UI | AC-07, BR-12 | Requester view | Requester Ticket Detail shows every field read-only; no Add/Edit buttons or form; uses `/api/tickets/:id/actions` | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| UI-23 | UI | AC-42 | Keyboard | Tab order through form; Esc cancels and returns focus to trigger | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
+| UI-11 | UI | FR-02, BR-13 | List mode | Rows in server order; all columns; inactive assignee shows "Inactive" badge; Cancelled row has badge + strikethrough; empty state text | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-12 | UI | AC-01, FR-01 | Create | Opens panel, focus to heading; defaults (now, Planned, me); Save posts exact body incl. `clientRequestId`; row appears; "Action added." announced; focus returns to + Add Action | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-13 | UI | AC-04, BR-06 | Follow-up note | Hidden until checkbox; then required; error under the field; no request sent | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-14 | UI | AC-09, BR-08 | Result required for Done | Choosing Done marks Result required; empty Result blocks submit with field error | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-15 | UI | AC-05 | Server `INVALID_ASSIGNEE` | Error shown under Assigned To; input kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-16 | UI | BR-09, AC-11 | Edit Done Action | Description/Result read-only with reason; follow-up editable; PATCH sends `version` and only changed fields | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-17 | UI | BR-07 | Edit status options | Only permitted next statuses offered; Cancel asks inline confirmation | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-18 | UI | AC-08, AC-44, BR-26 | Stale update | 409 shows conflict banner with latest values; typed input kept; Reload latest refreshes form | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-19 | UI | AC-44, FR-20 | Network/500 failure | Safe banner inside panel; all entered values kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-20 | UI | BR-28, FR-21 | Double click | Two rapid clicks on Save send one request; retry after network error reuses the same `clientRequestId` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-21 | UI | AC-12, BR-10 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions." | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-22 | UI | AC-07, BR-12 | Requester view | Requester Ticket Detail shows every field read-only; no Add/Edit buttons or form; uses `/api/tickets/:id/actions` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-23 | UI | AC-42 | Keyboard | Tab order through form; Esc cancels and returns focus to trigger | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 
 **Ticket workflow** (`client/tests/lab-04/TicketWorkflow.test.tsx`):
 
@@ -256,8 +256,8 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| E2E-01 | E2E | AC-01, AC-14, AC-05, AC-11 | Actions Taken flow | IT Staff A owns Ticket; IT Staff B adds Planned Action assigned to A; Admin adds Done Action with follow-up; inactive assignee rejected; follow-up cleared; three performers visible; Owner still A | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
-| E2E-02 | E2E | AC-07, AC-06 | Requester sees Actions read-only | Requester opens own Ticket, sees every Action field, no Add/Edit controls | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
+| E2E-01 | E2E | AC-01, AC-14, AC-05, AC-11 | Actions Taken flow | IT Staff A owns Ticket; IT Staff B adds Planned Action assigned to A; Admin adds Done Action with follow-up; inactive assignee rejected; follow-up cleared; three performers visible; Owner still A | `e2e/lab-04/actions-taken-flow.spec.ts` | Pass |
+| E2E-02 | E2E | AC-07, AC-06 | Requester sees Actions read-only | Requester opens own Ticket, sees every Action field, no Add/Edit controls | `e2e/lab-04/actions-taken-flow.spec.ts` | Pass |
 | E2E-03 | E2E | AC-16, AC-17, AC-19, AC-27 | Resolution through the UI | Resolved blocked with reasons; finish/cancel Actions; Resolved enabled; resolve; badge and history update | `e2e/lab-04/ticket-resolution.spec.ts` | Pass (Actions recorded through the Actions Taken API, not the #65 UI) |
 | E2E-04 | E2E | AC-16, BR-19 | Gate bypass attempt | `page.request.patch` straight to the status endpoint with a valid version on a gate-failing Ticket → 409; UI still shows old status after reload | `e2e/lab-04/ticket-resolution.spec.ts` | Pass |
 | E2E-05 | E2E | AC-20 | Requester "appears resolved" stays advisory | Requester marks it; IT Staff view still blocked from Resolved until Actions qualify | `e2e/lab-04/ticket-resolution.spec.ts` | Pass |

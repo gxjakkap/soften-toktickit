@@ -109,6 +109,13 @@ function StaffTicketQueue() {
   const page = Number(params.get('page')) || 1
 
   const [searchInput, setSearchInput] = useState(search)
+  // The box follows the URL when something else changes `search` (a nav
+  // link, Back), but not when the debounce below wrote the box's own value.
+  const [syncedSearch, setSyncedSearch] = useState(search)
+  if (search !== syncedSearch) {
+    setSyncedSearch(search)
+    if (search !== searchInput.trim()) setSearchInput(search)
+  }
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   // FR-16: write every change back with replace navigation. A filter change
@@ -185,6 +192,12 @@ function StaffTicketQueue() {
       pageSize: PAGE_SIZE,
     })
       .then((data) => {
+        // FR-16: a reloaded or bookmarked page can sit past the end once
+        // Tickets leave the filter; move to the last page and fetch again.
+        if (data.totalCount > 0 && page > data.totalPages) {
+          updateParams({ page: data.totalPages > 1 ? String(data.totalPages) : '' }, false)
+          return
+        }
         setResponse(data)
         setState('ready')
       })
@@ -210,6 +223,7 @@ function StaffTicketQueue() {
     sortBy,
     sortDir,
     page,
+    updateParams,
   ])
 
   useEffect(load, [load])
@@ -237,21 +251,21 @@ function StaffTicketQueue() {
   if (requestedPriority) {
     activeFilterChips.push({
       key: 'requestedPriority',
-      label: `Req. Priority: ${PRIORITY_LABEL[requestedPriority as RequestedPriority]}`,
+      label: `Req. Priority: ${PRIORITY_LABEL[requestedPriority as RequestedPriority] ?? requestedPriority}`,
       clear: () => setFilter('requestedPriority')(''),
     })
   }
   if (itPriority) {
     activeFilterChips.push({
       key: 'itPriority',
-      label: `IT Priority: ${PRIORITY_LABEL[itPriority as RequestedPriority]}`,
+      label: `IT Priority: ${PRIORITY_LABEL[itPriority as RequestedPriority] ?? itPriority}`,
       clear: () => setFilter('itPriority')(''),
     })
   }
   if (status) {
     activeFilterChips.push({
       key: 'status',
-      label: `Status: ${STATUS_LABEL[status as TicketStatus]}`,
+      label: `Status: ${STATUS_LABEL[status as TicketStatus] ?? status}`,
       clear: () => setFilter('status')(''),
     })
   }

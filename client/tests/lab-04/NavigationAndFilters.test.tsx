@@ -248,6 +248,51 @@ describe('UI-34 Ticket Queue URL filters', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Clear Filters' }))
     await waitFor(() => expect(location()).toBe('/staff/tickets'))
   })
+
+  it('moves a page past the end to the last page and shows its rows', async () => {
+    const fetchMock = mockApi(testStaffUser, {
+      onQueue: (url) =>
+        url.searchParams.get('page') === '5'
+          ? jsonResponse({ ...queueBody(3), data: [], page: 5 })
+          : jsonResponse(queueBody(3)),
+    })
+    renderAt('/staff/tickets?status=OPEN&page=5')
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/staff/tickets?status=OPEN')
+    expect(lastQueueUrl(fetchMock).searchParams.get('page')).toBe('1')
+  })
+
+  it('clears the search box when the nav link drops the search from the URL', async () => {
+    mockApi(testStaffUser)
+    renderAt('/staff/tickets?search=laptop&status=OPEN')
+    await screen.findByText('TKT-2026-000101', { selector: 'a' })
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+
+    await userEvent.click(within(nav).getByRole('link', { name: 'Ticket Queue' }))
+    await waitFor(() => expect(location()).toBe('/staff/tickets'))
+    expect((screen.getByLabelText('Search') as HTMLInputElement).value).toBe('')
+    // The search debounce must not write the old value back.
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(location()).toBe('/staff/tickets')
+  })
+
+  it('shows an unknown filter value as typed in its chip', async () => {
+    mockApi(testStaffUser, {
+      onQueue: () =>
+        jsonResponse(
+          { error: { code: 'INVALID_FILTER', message: 'Invalid filter.', field: 'status' } },
+          400,
+        ),
+    })
+    renderAt('/staff/tickets?status=BOGUS&itPriority=URGENT&resolvedFrom=someday')
+    await screen.findByRole('alert')
+
+    for (const chip of ['Status: BOGUS', 'IT Priority: URGENT', 'Resolved since someday']) {
+      expect(screen.getByRole('button', { name: `Remove filter: ${chip}` })).toBeTruthy()
+    }
+    expect(document.body.textContent).not.toMatch(/undefined/)
+  })
 })
 
 describe('UI-37 invalid URL filter', () => {
@@ -293,5 +338,20 @@ describe('UI-36 User Management URL role', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove filter: Role: IT Staff' }))
     await waitFor(() => expect(location()).toBe('/admin/users'))
+  })
+
+  it('clears the search box when the nav link drops the search from the URL', async () => {
+    mockApi(testAdminUser)
+    renderAt('/admin/users?search=ahmed')
+    await waitFor(() =>
+      expect((screen.getByLabelText('Search') as HTMLInputElement).value).toBe('ahmed'),
+    )
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+
+    await userEvent.click(within(nav).getByRole('link', { name: 'User Management' }))
+    await waitFor(() => expect(location()).toBe('/admin/users'))
+    expect((screen.getByLabelText('Search') as HTMLInputElement).value).toBe('')
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(location()).toBe('/admin/users')
   })
 })

@@ -20,8 +20,12 @@ const dateOnly = new Intl.DateTimeFormat('en-GB', {
 })
 
 // A `YYYY-MM-DD` filter value is a Bangkok calendar day (BR-34): "6 Oct 2026".
-export const formatBangkokDate = (date: string) =>
-  dateOnly.format(new Date(`${date}T00:00:00+07:00`))
+// An unparseable value (a hand-edited URL) comes back as typed, since
+// Intl.DateTimeFormat throws on an invalid Date.
+export const formatBangkokDate = (date: string) => {
+  const parsed = new Date(`${date}T00:00:00+07:00`)
+  return Number.isNaN(parsed.getTime()) ? date : dateOnly.format(parsed)
+}
 
 const timeOnly = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Bangkok',

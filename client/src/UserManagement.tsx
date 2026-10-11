@@ -369,6 +369,13 @@ function UserManagement() {
   const search = params.get('search') ?? ''
   const role = (params.get('role') ?? '') as UserRole | ''
   const [searchInput, setSearchInput] = useState(search)
+  // The box follows the URL when something else changes `search` (a nav
+  // link, Back), but not when the debounce below wrote the box's own value.
+  const [syncedSearch, setSyncedSearch] = useState(search)
+  if (search !== syncedSearch) {
+    setSyncedSearch(search)
+    if (search !== searchInput.trim()) setSearchInput(search)
+  }
   const setFilter = useCallback(
     (key: 'search' | 'role', value: string) =>
       setParams(

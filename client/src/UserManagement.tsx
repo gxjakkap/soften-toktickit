@@ -6,6 +6,7 @@ import {
   setAdminUserPassword,
   updateAdminUser,
 } from './apiClient'
+import { useSearchParams } from 'react-router-dom'
 import { RoleBadge, UserStatusBadge } from './badges'
 import Forbidden from './Forbidden'
 import { isStrongPassword } from './lib/password-rules'
@@ -362,17 +363,36 @@ function UserManagement() {
 
   const [state, setState] = useState<LoadState>('loading')
   const [users, setUsers] = useState<AdminUser[]>([])
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [role, setRole] = useState<UserRole | ''>('')
+  // Lab 4 ui-spec.md §2.5, §7 (FR-16, AC-47): `role` and `search` come from
+  // the URL, so the dashboard User Accounts links open a filtered list.
+  const [params, setParams] = useSearchParams()
+  const search = params.get('search') ?? ''
+  const role = (params.get('role') ?? '') as UserRole | ''
+  const [searchInput, setSearchInput] = useState(search)
+  const setFilter = useCallback(
+    (key: 'search' | 'role', value: string) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          if (value) next.set(key, value)
+          else next.delete(key)
+          return next
+        },
+        { replace: true },
+      ),
+    [setParams],
+  )
+  const setRole = (value: UserRole | '') => setFilter('role', value)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS)
+    const timer = setTimeout(() => {
+      if (searchInput.trim() !== search) setFilter('search', searchInput.trim())
+    }, SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [searchInput])
+  }, [searchInput, search, setFilter])
 
   const load = useCallback(() => {
     if (!allowed) return
@@ -389,8 +409,7 @@ function UserManagement() {
 
   const clearFilters = () => {
     setSearchInput('')
-    setSearch('')
-    setRole('')
+    setParams({}, { replace: true })
   }
 
   const openPanel = (next: Panel) => {

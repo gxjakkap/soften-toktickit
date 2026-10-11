@@ -9,6 +9,8 @@ import { testAdminUser, testStaffUser, testUser } from '../helpers/auth'
 // specification.md §6/§12-14, ui-spec.md §1: the authenticated shell's
 // role-scoped navigation and the client's route guards — unauthenticated
 // redirect, wrong-role forbidden state, and logout clearing access.
+// Lab 4 (docs/lab-04/tests.md §6, FR-17, §11-8): IT Staff and Administrator
+// navigation gains Dashboard, which is now their home page.
 
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -82,12 +84,13 @@ describe('Role-scoped navigation', () => {
     expect(within(nav).queryByRole('link', { name: /user management/i })).toBeFalsy()
   })
 
-  it('shows only the Ticket Queue for IT Staff', async () => {
+  it('shows Dashboard and the Ticket Queue for IT Staff', async () => {
     mockApi(testStaffUser)
     renderAt('/staff/tickets')
     await screen.findByRole('heading', { name: /ticket queue/i })
 
     const nav = screen.getByRole('navigation', { name: /main/i })
+    expect(within(nav).getByRole('link', { name: /dashboard/i })).toBeTruthy()
     expect(within(nav).getByRole('link', { name: /ticket queue/i })).toBeTruthy()
     expect(within(nav).queryByRole('link', { name: /my tickets/i })).toBeFalsy()
     expect(within(nav).queryByRole('link', { name: /user management/i })).toBeFalsy()
@@ -96,12 +99,13 @@ describe('Role-scoped navigation', () => {
   // Lab 4 (docs/lab-04/tests.md §6): BR-29 gives the Administrator the
   // Ticket Queue too (ui-spec.md §1). The Dashboard item arrives with the
   // dashboard issues.
-  it('shows User Management and Ticket Queue for an Administrator', async () => {
+  it('shows Dashboard, Ticket Queue, and User Management for an Administrator', async () => {
     mockApi(testAdminUser)
     renderAt('/admin/users')
     await screen.findByRole('heading', { name: /user management/i })
 
     const nav = screen.getByRole('navigation', { name: /main/i })
+    expect(within(nav).getByRole('link', { name: /dashboard/i })).toBeTruthy()
     expect(within(nav).getByRole('link', { name: /user management/i })).toBeTruthy()
     expect(within(nav).getByRole('link', { name: /ticket queue/i })).toBeTruthy()
     expect(within(nav).queryByRole('link', { name: /my tickets/i })).toBeFalsy()
@@ -122,7 +126,7 @@ describe('Wrong-role direct URL access', () => {
 
     expect(await screen.findByTestId('my-tickets-forbidden')).toBeTruthy()
     const link = screen.getByRole('link', { name: /back to your home page/i })
-    expect(link.getAttribute('href')).toBe('/staff/tickets')
+    expect(link.getAttribute('href')).toBe('/dashboard')
   })
 
   it('shows the forbidden state for a Requester hitting User Management', async () => {

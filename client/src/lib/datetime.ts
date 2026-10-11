@@ -12,6 +12,27 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
 
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso))
 
+const dateOnly = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Bangkok',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
+// A `YYYY-MM-DD` filter value is a Bangkok calendar day (BR-34): "6 Oct 2026".
+export const formatBangkokDate = (date: string) =>
+  dateOnly.format(new Date(`${date}T00:00:00+07:00`))
+
+const timeOnly = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Bangkok',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+// ui-spec.md §3: the dashboard "Updated 14:05" line.
+export const formatTime = (iso: string) => timeOnly.format(new Date(iso))
+
 // BR-33: the Action Date/Time input holds Bangkok wall-clock minutes
 // (`2026-10-06T14:05`). Bangkok has no daylight saving, so a fixed +07:00
 // shift converts both ways.

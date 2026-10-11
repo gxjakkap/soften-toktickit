@@ -6,6 +6,7 @@ import { roleHomePath } from './lib/role-routes'
 import Login from './Login'
 import MyTickets from './MyTickets'
 import RequesterTicketDetail from './RequesterTicketDetail'
+import StaffDashboard from './StaffDashboard'
 import StaffTicketDetail from './StaffTicketDetail'
 import StaffTicketQueue from './StaffTicketQueue'
 import UserManagement from './UserManagement'
@@ -45,6 +46,15 @@ function RequireAuthForPasswordChange() {
   return <ChangePassword />
 }
 
+// Lab 4 ui-spec.md §1: one /dashboard route that renders by role.
+// Until the Requester Dashboard (#68) lands, a Requester is sent to My
+// Tickets instead.
+function Dashboard() {
+  const { user } = useAuth()
+  if (user?.role === 'REQUESTER') return <Navigate to={roleHomePath(user.role)} replace />
+  return <StaffDashboard />
+}
+
 function DefaultRedirect() {
   const { user, status } = useAuth()
   if (status === 'loading') return null
@@ -61,6 +71,7 @@ export function AppRoutes() {
       <Route path="/system-check" element={<SystemCheck />} />
 
       <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />

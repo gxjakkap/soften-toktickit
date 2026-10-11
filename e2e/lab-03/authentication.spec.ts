@@ -49,9 +49,15 @@ test.describe('Role-scoped navigation', () => {
     await expect(nav.getByRole('link', { name: 'User Management' })).toHaveCount(0)
   })
 
-  test('IT Staff sees only Ticket Queue', async ({ page }) => {
-    await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/staff/tickets')
+  // Lab 4 (docs/lab-04/tests.md §6, FR-17): IT Staff and Administrators
+  // land on the Dashboard, which leads their nav.
+  test('IT Staff sees Dashboard and Ticket Queue', async ({ page }) => {
+    await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/dashboard')
     const nav = page.getByRole('navigation', { name: 'Main' })
+    await expect(nav.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     await expect(nav.getByRole('link', { name: 'Ticket Queue' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'My Tickets' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: 'User Management' })).toHaveCount(0)
@@ -59,9 +65,13 @@ test.describe('Role-scoped navigation', () => {
 
   // Lab 4 (docs/lab-04/tests.md §6): BR-29 adds the Ticket Queue to the
   // Administrator nav.
-  test('an Administrator sees User Management and Ticket Queue', async ({ page }) => {
-    await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
+  test('an Administrator sees Dashboard, Ticket Queue, and User Management', async ({ page }) => {
+    await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/dashboard')
     const nav = page.getByRole('navigation', { name: 'Main' })
+    await expect(nav.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     await expect(nav.getByRole('link', { name: 'User Management' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Ticket Queue' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'My Tickets' })).toHaveCount(0)

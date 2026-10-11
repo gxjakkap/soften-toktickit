@@ -22,7 +22,9 @@ test('IT Staff finds, claims, triages and annotates a Ticket; the Requester sees
   await loginViaApi(context.request, REQUESTERS.jennifer.email)
   const ticket = await createTicketViaApi(context.request, { summary })
 
-  await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/staff/tickets')
+  // Lab 4 FR-17 (docs/lab-04/tests.md §6): login lands on the Dashboard.
+  await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/dashboard')
+  await page.goto('/staff/tickets')
 
   // FR-12/AC-22: search the shared Queue by Ticket Number.
   await page.getByPlaceholder(/search by ticket number or summary/i).fill(ticket.ticketNumber)

@@ -51,7 +51,7 @@ test('E2E-03: a Ticket with a Done Action is worked through to Resolved, then Cl
   const ticket = await fileTicket(request, 'Resolution happy path')
   await addAction(request, ticket.id, 'DONE')
 
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   await page.goto(`/staff/tickets/${ticket.id}`)
   await expect(history(page)).toHaveCount(1)
   await expect(history(page).first()).toContainText('Created as')
@@ -84,7 +84,7 @@ test('E2E-03/E2E-04: a Ticket without qualifying Actions is blocked at Resolved,
 }) => {
   const ticket = await fileTicket(request, 'Resolution blocked')
 
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   await page.goto(`/staff/tickets/${ticket.id}`)
   await changeStatus(page, 'IN_PROGRESS', 'In Progress')
 
@@ -107,7 +107,7 @@ test('E2E-03/E2E-04: a Ticket without qualifying Actions is blocked at Resolved,
 })
 
 test('E2E-03: a seeded Ticket with open Actions shows Resolved as blocked', async ({ page }) => {
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   const queue = await (
     await page.request.get('/api/staff/tickets?search=Laptop%20battery%20drains%20within')
   ).json()
@@ -125,7 +125,7 @@ test('E2E-05: the Requester "Problem Appears Resolved" action is advisory only',
 }) => {
   const ticket = await fileTicket(request, 'Advisory resolved')
 
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   await page.goto(`/staff/tickets/${ticket.id}`)
   await changeStatus(page, 'IN_PROGRESS', 'In Progress')
 
@@ -141,7 +141,7 @@ test('E2E-05: the Requester "Problem Appears Resolved" action is advisory only',
   await expect(page.getByTestId('resolved-badge')).toBeVisible()
   await expect(badge(page)).toHaveText('In Progress')
 
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   await page.goto(`/staff/tickets/${ticket.id}`)
   await expect(page.getByText(/requester confirms resolved/i)).toBeVisible()
   await expect(badge(page)).toHaveText('In Progress')
@@ -155,8 +155,8 @@ test('E2E-06: a stale status change shows the conflict banner and Reload latest'
   const ticket = await fileTicket(request, 'Stale status')
   const [first, second] = await Promise.all([browser.newPage(), browser.newPage()])
   try {
-    await loginViaUi(first, STAFF, SEED_PASSWORD, '**/staff/tickets')
-    await loginViaUi(second, OTHER_STAFF, SEED_PASSWORD, '**/staff/tickets')
+    await loginViaUi(first, STAFF, SEED_PASSWORD, '**/dashboard')
+    await loginViaUi(second, OTHER_STAFF, SEED_PASSWORD, '**/dashboard')
     await first.goto(`/staff/tickets/${ticket.id}`)
     await second.goto(`/staff/tickets/${ticket.id}`)
     await expect(badge(second)).toHaveText('New')
@@ -185,7 +185,7 @@ test('E2E-07: Resolved -> Closed -> Reopened, then blocked again by a new Planne
   const ticket = await fileTicket(request, 'Reopen')
   await addAction(request, ticket.id, 'DONE')
 
-  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/staff/tickets')
+  await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
   await page.goto(`/staff/tickets/${ticket.id}`)
   await changeStatus(page, 'IN_PROGRESS', 'In Progress')
   await changeStatus(page, 'RESOLVED', 'Resolved')

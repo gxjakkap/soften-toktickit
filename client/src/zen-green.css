@@ -1086,3 +1086,227 @@ textarea.zg-field {
   padding: 6px var(--zg-space-3);
   white-space: pre-wrap;
 }
+
+/* Lab 4 ui-spec.md §2.4, §3, §4, §10: dashboards. Metric cards 3/2/1 per
+   row, breakdowns and lists side by side on desktop, stacked on mobile. */
+.zg-text-muted {
+  color: var(--zg-text-muted);
+}
+
+.zg-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zg-dashboard-header {
+  align-items: flex-start;
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-dashboard-header p {
+  margin: 0;
+}
+
+.zg-dashboard-error {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-metric-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zg-metric-grid > li {
+  display: flex;
+}
+
+.zg-metric-card {
+  color: var(--zg-text);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--zg-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.zg-metric-card:hover,
+.zg-metric-card:focus-visible {
+  background: var(--zg-pale);
+  color: var(--zg-text);
+}
+
+.zg-metric-card:focus-visible,
+.zg-breakdown a:focus-visible,
+.zg-dashboard-list a:focus-visible,
+.zg-dashboard-footer:focus-visible,
+.zg-user-accounts a:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+.zg-metric-card.is-attention {
+  border-left: 4px solid var(--zg-warning-text);
+}
+
+.zg-metric-value {
+  color: var(--zg-text);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.zg-metric-link {
+  color: var(--zg-secondary);
+  font-size: 13px;
+  margin-top: auto;
+  padding-top: var(--zg-space-2);
+}
+
+.zg-metric-skeleton {
+  min-height: 150px;
+}
+
+.zg-list-skeleton {
+  min-height: 260px;
+}
+
+.zg-dashboard-columns {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--zg-space-4);
+}
+
+.zg-dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
+  margin-top: var(--zg-space-4);
+  min-width: 0;
+}
+
+.zg-dashboard-columns > .zg-dashboard-section {
+  margin-top: 0;
+}
+
+.zg-dashboard-empty {
+  margin: 0;
+}
+
+.zg-dashboard-footer {
+  color: var(--zg-secondary);
+  font-weight: 500;
+  margin-top: auto;
+}
+
+.zg-breakdown,
+.zg-dashboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zg-breakdown a {
+  align-items: center;
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  color: var(--zg-text);
+  display: flex;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  padding: var(--zg-space-2) 0;
+  text-decoration: none;
+}
+
+.zg-breakdown a:hover {
+  background: var(--zg-pale);
+}
+
+.zg-breakdown-value {
+  font-weight: 600;
+}
+
+.zg-dashboard-list > li {
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  min-width: 0;
+  padding: var(--zg-space-3) 0;
+}
+
+.zg-dashboard-list-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.zg-dashboard-list-text {
+  margin: var(--zg-space-1) 0;
+  overflow-wrap: anywhere;
+}
+
+.zg-dashboard-list-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-user-accounts tbody tr {
+  cursor: default;
+}
+
+@media (max-width: 991px) {
+  .zg-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zg-dashboard-lists {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-metric-grid,
+  .zg-dashboard-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* ui-spec.md §10: User Accounts becomes 3 rows of "Active n · Inactive n". */
+  .zg-user-accounts thead {
+    display: none;
+  }
+
+  .zg-user-accounts tr {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--zg-space-2);
+  }
+
+  .zg-user-accounts th,
+  .zg-user-accounts td {
+    border-bottom: 0;
+    padding: var(--zg-space-1);
+  }
+
+  .zg-user-accounts tr {
+    border-bottom: 1px solid var(--zg-field-readonly-border);
+  }
+
+  .zg-user-accounts td::before {
+    content: attr(data-label) ' ';
+  }
+
+  .zg-user-accounts td + td::before {
+    content: '· ' attr(data-label) ' ';
+  }
+}

@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { ApiError, createAction, fetchActions, updateAction, type ActionInput } from './apiClient'
 import { ActionStatusBadge, FollowUpBadge, RoleBadge, UserStatusBadge } from './badges'
 import { formatDateTime, fromBangkokInput, toBangkokInput } from './lib/datetime'
@@ -94,6 +95,19 @@ function ActionsTaken({
   }, [ticketId, asStaff])
 
   useEffect(load, [load])
+
+  // Lab 4 ui-spec.md §4 (BR-53): a dashboard "My Open Actions" row links to
+  // `#actions-taken`; once the list has loaded, scroll to and focus the
+  // section heading. Only on the first load, so a reload doesn't jump.
+  const { hash } = useLocation()
+  const jumped = useRef(false)
+  useEffect(() => {
+    if (jumped.current || actions === null || hash !== '#actions-taken') return
+    jumped.current = true
+    const heading = document.getElementById('actions-taken-heading')
+    heading?.scrollIntoView?.({ block: 'start' })
+    heading?.focus()
+  }, [actions, hash])
 
   // Lab 4 ui-spec.md §9: focus returns to the control that opened the form.
   useEffect(() => {
@@ -206,7 +220,12 @@ function ActionsTaken({
       aria-labelledby="actions-taken-heading"
     >
       <div className="zg-actions" style={{ alignItems: 'center' }}>
-        <h2 className="zg-section-heading" id="actions-taken-heading" style={{ margin: 0 }}>
+        <h2
+          className="zg-section-heading"
+          id="actions-taken-heading"
+          tabIndex={-1}
+          style={{ margin: 0 }}
+        >
           Actions Taken{actions ? ` (${actions.length})` : ''}
         </h2>
         {canWrite && (

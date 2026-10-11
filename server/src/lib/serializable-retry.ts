@@ -5,9 +5,11 @@ import { Prisma } from '../generated/prisma/client.js'
 // access" conflict (SQLSTATE 40001 -> Prisma P2034) even for transactions
 // that never really raced, because predicate locking is page-granular, not
 // row-exact. Postgres' own docs require retrying on this code; it is not
-// optional defensive coding.
+// optional defensive coding. Two transactions that conflict and retry at
+// once tend to conflict again, so each retry waits a random, growing delay.
 const SERIALIZATION_FAILURE_CODE = 'P2034'
-const DEFAULT_MAX_ATTEMPTS = 3
+const DEFAULT_MAX_ATTEMPTS = 5
+const BASE_BACKOFF_MS = 10
 
 function isSerializationFailure(err: unknown): boolean {
   return (
@@ -29,6 +31,9 @@ export async function withSerializableRetry<T>(
       })
     } catch (err) {
       if (!isSerializationFailure(err) || attempt === maxAttempts) throw err
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.random() * BASE_BACKOFF_MS * 2 ** attempt),
+      )
     }
   }
   throw new Error('unreachable')

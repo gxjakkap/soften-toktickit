@@ -143,7 +143,7 @@ describe('UI-07 cards and lists (FR-12, AC-02)', () => {
     expect(screen.getByText(/times shown in bangkok time/i)).toBeTruthy()
   })
 
-  it('marks Waiting for You with a border and an icon while it is above 0', async () => {
+  it('marks Waiting for You with a warning icon while it is above 0', async () => {
     mockApi(testUser, [ok(dashboard())])
     renderAt('/dashboard')
 

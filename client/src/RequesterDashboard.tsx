@@ -99,7 +99,7 @@ function RequesterDashboardBody({ data }: { data: RequesterDashboardData }) {
           </li>
           <li>
             {/* ui-spec.md §3: the one card asking the Requester to act gets
-                a border and an icon (non-color cue) while above 0. */}
+                a warning icon (non-color cue) and warning-colored value while above 0. */}
             <MetricCard
               label="Waiting for You"
               value={m.waitingForYou.value}

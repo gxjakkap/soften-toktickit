@@ -123,8 +123,9 @@ with `replace` navigation (specification.md FR-16):
 - **Cards row**: Open Tickets, Waiting for You, Resolved (Last 30 Days),
   in that order. Labels, calculations, helpers, and links come from
   specification.md BR-39, BR-41, and BR-42. "Waiting for You" gets a
-  `--zg-warning-bg` left border and an icon (non-color cue) when its value
-  is above 0, because it is the one card asking the Requester to act.
+  warning icon beside its label (non-color cue) and its value in
+  `--zg-warning-text` when the value is above 0, because it is the one card
+  asking the Requester to act.
 - **Lists** (two `.zg-card` columns below the cards):
   - **Recently Updated** (BR-43): up to 5 rows, each Ticket Number
     (link to `/tickets/:id`), Summary (single line, ellipsis), Status

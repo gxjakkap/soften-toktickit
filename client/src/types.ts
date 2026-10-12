@@ -222,3 +222,47 @@ export type ActionTaken = {
   createdAt: string
   updatedAt: string
 }
+
+// Lab 4 api-spec.md §5.2: every metric carries the client route it drills
+// down to, so link targets are defined only on the server.
+export type DashboardMetric = { value: number; drillDown: string }
+
+export type StaffDashboardActionItem = {
+  actionId: number
+  ticketId: number
+  ticketNumber: string
+  description: string
+  status: ActionStatus
+  actionAt: string
+  drillDown: string
+}
+
+export type StaffDashboardTicketItem = {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: TicketStatus
+  ownerName: string | null
+  updatedAt: string
+}
+
+export type UserAccountCounts = { active: number; inactive: number; drillDown: string }
+
+export type StaffDashboard = {
+  generatedAt: string
+  today: string
+  metrics: {
+    myOpenActions: DashboardMetric & { ticketCount: number }
+    unassigned: DashboardMetric
+    myActiveTickets: DashboardMetric
+    followUpsPending: DashboardMetric
+    highPriority: DashboardMetric
+    resolvedToday: DashboardMetric
+  }
+  byStatus: (DashboardMetric & { status: TicketStatus })[]
+  activeByItPriority: (DashboardMetric & { itPriority: RequestedPriority })[]
+  myOpenActionList: StaffDashboardActionItem[]
+  recentlyUpdated: StaffDashboardTicketItem[]
+  // BR-55: present only for an Administrator.
+  userAccounts?: Record<UserRole, UserAccountCounts>
+}

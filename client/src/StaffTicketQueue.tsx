@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { fetchCategories, fetchStaffTickets } from './apiClient'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ApiError, fetchActiveItStaff, fetchCategories, fetchStaffTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
 import Forbidden from './Forbidden'
+import { formatBangkokDate } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
+  ActiveStaffUser,
   Category,
   RequestedPriority,
   SortDirection,
@@ -15,10 +17,26 @@ import type {
 } from './types'
 
 type LoadState = 'loading' | 'ready' | 'error'
-type OwnerFilter = '' | 'unassigned' | 'me'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
+
+// Lab 4 ui-spec.md §2.5 (FR-16, AC-47): every filter, the sort, and the page
+// live in the URL query string, so a dashboard drill-down link reproduces
+// the filtered view. Clear Filters removes these and keeps the sort.
+const FILTER_PARAMS = [
+  'search',
+  'categoryId',
+  'requestedPriority',
+  'itPriority',
+  'status',
+  'ownerId',
+  'statusGroup',
+  'resolvedFrom',
+  'resolvedTo',
+  'followUp',
+  'openActionAssigneeId',
+]
 
 const STATUS_OPTIONS: TicketStatus[] = [
   'NEW',
@@ -68,23 +86,61 @@ function StaffTicketQueue() {
   const navigate = useNavigate()
 
   const [state, setState] = useState<LoadState>('loading')
+  const [invalidFilter, setInvalidFilter] = useState(false)
   const [response, setResponse] = useState<TicketQueueResponse | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [staff, setStaff] = useState<ActiveStaffUser[]>([])
 
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [requestedPriority, setRequestedPriority] = useState('')
-  const [itPriority, setItPriority] = useState('')
-  const [status, setStatus] = useState('')
-  const [owner, setOwner] = useState<OwnerFilter>('')
-  const [sortBy, setSortBy] = useState<TicketQueueSortField>('createdAt')
-  const [sortDir, setSortDir] = useState<SortDirection>('asc')
-  const [page, setPage] = useState(1)
+  const [params, setParams] = useSearchParams()
+  const param = (key: string) => params.get(key) ?? ''
+  const search = param('search')
+  const categoryId = param('categoryId')
+  const requestedPriority = param('requestedPriority')
+  const itPriority = param('itPriority')
+  const status = param('status')
+  const ownerId = param('ownerId')
+  const statusGroup = param('statusGroup')
+  const resolvedFrom = param('resolvedFrom')
+  const resolvedTo = param('resolvedTo')
+  const followUp = param('followUp')
+  const openActionAssigneeId = param('openActionAssigneeId')
+  const sortBy = (params.get('sortBy') ?? 'createdAt') as TicketQueueSortField
+  const sortDir = (params.get('sortDir') ?? 'asc') as SortDirection
+  const page = Number(params.get('page')) || 1
+
+  const [searchInput, setSearchInput] = useState(search)
+  // The box follows the URL when something else changes `search` (a nav
+  // link, Back), but not when the debounce below wrote the box's own value.
+  const [syncedSearch, setSyncedSearch] = useState(search)
+  if (search !== syncedSearch) {
+    setSyncedSearch(search)
+    if (search !== searchInput.trim()) setSearchInput(search)
+  }
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // FR-16: write every change back with replace navigation. A filter change
+  // returns to page 1.
+  const updateParams = useCallback(
+    (changes: Record<string, string>, resetPage = true) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          for (const [key, value] of Object.entries(changes)) {
+            if (value) next.set(key, value)
+            else next.delete(key)
+          }
+          if (resetPage) next.delete('page')
+          return next
+        },
+        { replace: true },
+      ),
+    [setParams],
+  )
+  const setFilter = (key: string) => (value: string) => updateParams({ [key]: value })
 
   // Lab 4 BR-29: the Administrator uses the Queue like IT Staff.
   const allowed = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
+  const myId = user ? String(user.id) : ''
 
   useEffect(() => {
     if (!allowed) return
@@ -93,36 +149,63 @@ function StaffTicketQueue() {
       .catch(() => setCategories([]))
   }, [allowed])
 
+  // ui-spec.md §2.5: "Owner: <name>" and "Open actions: <name>" chips need a
+  // name for an id that isn't the caller's, so look it up only then.
+  const needsNames =
+    (ownerId !== '' && ownerId !== 'unassigned' && ownerId !== myId) ||
+    (openActionAssigneeId !== '' && openActionAssigneeId !== myId)
+  useEffect(() => {
+    if (!allowed || !needsNames) return
+    fetchActiveItStaff()
+      .then(setStaff)
+      .catch(() => setStaff([]))
+  }, [allowed, needsNames])
+  const userName = (id: string) => staff.find((s) => String(s.id) === id)?.name ?? `User #${id}`
+
   // AC-22: the Queue narrows as IT Staff types, without a request per keystroke.
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS)
+    const timer = setTimeout(() => {
+      if (searchInput.trim() !== search) updateParams({ search: searchInput.trim() })
+    }, SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, categoryId, requestedPriority, itPriority, status, owner])
+  }, [searchInput, search, updateParams])
 
   const load = useCallback(() => {
     if (!user || !allowed) return
     setState('loading')
+    setInvalidFilter(false)
     fetchStaffTickets({
       search: search || undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       requestedPriority: (requestedPriority || undefined) as never,
       itPriority: (itPriority || undefined) as never,
       status: (status || undefined) as never,
-      ownerId: owner === 'unassigned' ? 'unassigned' : owner === 'me' ? user.id : undefined,
+      ownerId: ownerId === 'unassigned' ? 'unassigned' : ownerId ? (ownerId as never) : undefined,
+      statusGroup: (statusGroup || undefined) as never,
+      resolvedFrom: resolvedFrom || undefined,
+      resolvedTo: resolvedTo || undefined,
+      followUp: (followUp || undefined) as never,
+      openActionAssigneeId: openActionAssigneeId ? (openActionAssigneeId as never) : undefined,
       sortBy,
       sortDir,
       page,
       pageSize: PAGE_SIZE,
     })
       .then((data) => {
+        // FR-16: a reloaded or bookmarked page can sit past the end once
+        // Tickets leave the filter; move to the last page and fetch again.
+        if (data.totalCount > 0 && page > data.totalPages) {
+          updateParams({ page: data.totalPages > 1 ? String(data.totalPages) : '' }, false)
+          return
+        }
         setResponse(data)
         setState('ready')
       })
-      .catch(() => setState('error'))
+      .catch((err) => {
+        // ui-spec.md §2.5: a bad URL param gets a Clear filters action.
+        setInvalidFilter(err instanceof ApiError && err.code === 'INVALID_FILTER')
+        setState('error')
+      })
   }, [
     user,
     allowed,
@@ -131,32 +214,29 @@ function StaffTicketQueue() {
     requestedPriority,
     itPriority,
     status,
-    owner,
+    ownerId,
+    statusGroup,
+    resolvedFrom,
+    resolvedTo,
+    followUp,
+    openActionAssigneeId,
     sortBy,
     sortDir,
     page,
+    updateParams,
   ])
 
   useEffect(load, [load])
 
   const toggleSort = (field: TicketQueueSortField) => {
-    if (field === sortBy) {
-      setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortBy(field)
-      setSortDir('asc')
-    }
+    const nextDir = field === sortBy && sortDir === 'asc' ? 'desc' : 'asc'
+    updateParams({ sortBy: field, sortDir: nextDir }, false)
   }
+  const setPage = (next: number) => updateParams({ page: next > 1 ? String(next) : '' }, false)
 
   const clearFilters = () => {
     setSearchInput('')
-    setSearch('')
-    setCategoryId('')
-    setRequestedPriority('')
-    setItPriority('')
-    setStatus('')
-    setOwner('')
-    setPage(1)
+    updateParams(Object.fromEntries(FILTER_PARAMS.map((key) => [key, ''])))
   }
 
   const activeFilterChips: { key: string; label: string; clear: () => void }[] = []
@@ -165,35 +245,77 @@ function StaffTicketQueue() {
     activeFilterChips.push({
       key: 'category',
       label: `Category: ${name}`,
-      clear: () => setCategoryId(''),
+      clear: () => setFilter('categoryId')(''),
     })
   }
   if (requestedPriority) {
     activeFilterChips.push({
       key: 'requestedPriority',
-      label: `Req. Priority: ${PRIORITY_LABEL[requestedPriority as RequestedPriority]}`,
-      clear: () => setRequestedPriority(''),
+      label: `Req. Priority: ${PRIORITY_LABEL[requestedPriority as RequestedPriority] ?? requestedPriority}`,
+      clear: () => setFilter('requestedPriority')(''),
     })
   }
   if (itPriority) {
     activeFilterChips.push({
       key: 'itPriority',
-      label: `IT Priority: ${PRIORITY_LABEL[itPriority as RequestedPriority]}`,
-      clear: () => setItPriority(''),
+      label: `IT Priority: ${PRIORITY_LABEL[itPriority as RequestedPriority] ?? itPriority}`,
+      clear: () => setFilter('itPriority')(''),
     })
   }
   if (status) {
     activeFilterChips.push({
       key: 'status',
-      label: `Status: ${STATUS_LABEL[status as TicketStatus]}`,
-      clear: () => setStatus(''),
+      label: `Status: ${STATUS_LABEL[status as TicketStatus] ?? status}`,
+      clear: () => setFilter('status')(''),
     })
   }
-  if (owner) {
+  if (ownerId) {
+    const name =
+      ownerId === 'unassigned' ? 'Unassigned' : ownerId === myId ? 'Me' : userName(ownerId)
     activeFilterChips.push({
       key: 'owner',
-      label: `Owner: ${owner === 'unassigned' ? 'Unassigned' : 'Me'}`,
-      clear: () => setOwner(''),
+      label: `Owner: ${name}`,
+      clear: () => setFilter('ownerId')(''),
+    })
+  }
+  // Lab 4 ui-spec.md §2.5: drill-down-only filters appear as chips, not in
+  // the Filters panel.
+  if (statusGroup) {
+    activeFilterChips.push({
+      key: 'statusGroup',
+      label: 'Active only',
+      clear: () => setFilter('statusGroup')(''),
+    })
+  }
+  if (resolvedFrom || resolvedTo) {
+    const label =
+      resolvedFrom && resolvedFrom === resolvedTo
+        ? `Resolved ${formatBangkokDate(resolvedFrom)}`
+        : [
+            resolvedFrom && `Resolved since ${formatBangkokDate(resolvedFrom)}`,
+            resolvedTo && `Resolved until ${formatBangkokDate(resolvedTo)}`,
+          ]
+            .filter(Boolean)
+            .join(', ')
+    activeFilterChips.push({
+      key: 'resolved',
+      label,
+      clear: () => updateParams({ resolvedFrom: '', resolvedTo: '' }),
+    })
+  }
+  if (followUp) {
+    activeFilterChips.push({
+      key: 'followUp',
+      label: 'Follow-up pending',
+      clear: () => setFilter('followUp')(''),
+    })
+  }
+  if (openActionAssigneeId) {
+    const name = openActionAssigneeId === myId ? 'me' : userName(openActionAssigneeId)
+    activeFilterChips.push({
+      key: 'openActionAssigneeId',
+      label: `Open actions: ${name}`,
+      clear: () => setFilter('openActionAssigneeId')(''),
     })
   }
 
@@ -270,7 +392,7 @@ function StaffTicketQueue() {
                   id="queue-category"
                   className="zg-field"
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
+                  onChange={(e) => setFilter('categoryId')(e.target.value)}
                 >
                   <option value="">All Categories</option>
                   {categories.map((c) => (
@@ -288,7 +410,7 @@ function StaffTicketQueue() {
                   id="queue-requested-priority"
                   className="zg-field"
                   value={requestedPriority}
-                  onChange={(e) => setRequestedPriority(e.target.value)}
+                  onChange={(e) => setFilter('requestedPriority')(e.target.value)}
                 >
                   <option value="">All Priorities</option>
                   <option value="LOW">Low</option>
@@ -304,7 +426,7 @@ function StaffTicketQueue() {
                   id="queue-it-priority"
                   className="zg-field"
                   value={itPriority}
-                  onChange={(e) => setItPriority(e.target.value)}
+                  onChange={(e) => setFilter('itPriority')(e.target.value)}
                 >
                   <option value="">All Priorities</option>
                   <option value="LOW">Low</option>
@@ -320,7 +442,7 @@ function StaffTicketQueue() {
                   id="queue-status"
                   className="zg-field"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onChange={(e) => setFilter('status')(e.target.value)}
                 >
                   <option value="">All Statuses</option>
                   {STATUS_OPTIONS.map((s) => (
@@ -337,12 +459,15 @@ function StaffTicketQueue() {
                 <select
                   id="queue-owner"
                   className="zg-field"
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value as OwnerFilter)}
+                  value={ownerId}
+                  onChange={(e) => setFilter('ownerId')(e.target.value)}
                 >
                   <option value="">All Owners</option>
                   <option value="unassigned">Unassigned</option>
-                  <option value="me">Assigned to me</option>
+                  <option value={myId}>Assigned to me</option>
+                  {ownerId && ownerId !== 'unassigned' && ownerId !== myId && (
+                    <option value={ownerId}>{userName(ownerId)}</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -376,11 +501,19 @@ function StaffTicketQueue() {
       {state === 'error' && (
         <div style={{ marginTop: 'var(--zg-space-4)' }}>
           <p className="zg-error" role="alert">
-            Unable to load the Ticket Queue. Please try again.
+            {invalidFilter
+              ? 'This link has a filter the Ticket Queue does not recognize.'
+              : 'Unable to load the Ticket Queue. Please try again.'}
           </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
+          {invalidFilter ? (
+            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
+              Clear filters
+            </button>
+          ) : (
+            <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
+              Retry
+            </button>
+          )}
         </div>
       )}
 
@@ -505,7 +638,7 @@ function StaffTicketQueue() {
               type="button"
               className="zg-btn zg-btn-secondary"
               disabled={response.page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => setPage(response.page - 1)}
             >
               Previous
             </button>
@@ -529,7 +662,7 @@ function StaffTicketQueue() {
               type="button"
               className="zg-btn zg-btn-secondary"
               disabled={response.page >= response.totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setPage(response.page + 1)}
             >
               Next
             </button>

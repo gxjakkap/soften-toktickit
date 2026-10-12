@@ -9,7 +9,7 @@ import { testStaffUser, testUser } from '../helpers/auth'
 import type { ActionTaken, StaffTicketDetail, TicketDetail } from '../../src/types'
 
 // UI-11..UI-23 (AC-01, AC-04, AC-05, AC-07..AC-09, AC-11, AC-12, AC-27,
-// AC-42, AC-44): docs/lab-04 ui-spec.md §2.2, §2.3, §5.2, §6, §9 — the
+// AC-42, AC-44): docs/lab-04 ui-spec.md §2.2, §2.3, §4, §5.2, §6, §9 — the
 // Actions Taken section on both Ticket Detail screens.
 
 function jsonResponse(body: unknown, status = 200) {
@@ -789,5 +789,25 @@ describe('UI-23 (AC-42): keyboard', () => {
       expect(document.activeElement).toBe(area.getByRole('button', { name: 'Add Action' })),
     )
     expect(callsTo(fetchMock, 'POST')).toHaveLength(0)
+  })
+})
+
+// Lab 4 ui-spec.md §4 (BR-53, Issue #67): a dashboard "My Open Actions" row
+// links to `#actions-taken`; Ticket Detail focuses that section's heading.
+describe('Dashboard drill-down anchor', () => {
+  it('focuses the Actions Taken heading when opened at #actions-taken', async () => {
+    mockStaffApi({ actions: [[action()]] })
+    renderAt('/staff/tickets/101#actions-taken')
+
+    const heading = await screen.findByRole('heading', { name: 'Actions Taken (1)' })
+    await waitFor(() => expect(document.activeElement).toBe(heading))
+  })
+
+  it('leaves focus alone without the anchor', async () => {
+    mockStaffApi({ actions: [[action()]] })
+    renderAt('/staff/tickets/101')
+
+    const heading = await screen.findByRole('heading', { name: 'Actions Taken (1)' })
+    expect(document.activeElement).not.toBe(heading)
   })
 })

@@ -60,7 +60,9 @@ test.describe('STYLE: responsive screenshots — authentication, staff queue, st
       })
 
       // IT Staff Ticket Queue (ui-spec.md §5).
-      await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/staff/tickets')
+      // Lab 4 FR-17 (docs/lab-04/tests.md §6): login lands on the Dashboard.
+      await loginViaUi(page, STAFF.email, SEED_PASSWORD, '**/dashboard')
+      await page.goto('/staff/tickets')
       await expect(page.getByRole('heading', { name: 'Ticket Queue' })).toBeVisible()
       await assertNoHorizontalScroll()
       await page.screenshot({ path: shot('staff-queue', `${viewportName}.png`), fullPage: true })
@@ -75,7 +77,8 @@ test.describe('STYLE: responsive screenshots — authentication, staff queue, st
       })
 
       // Administrator User Management (ui-spec.md §7).
-      await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
+      await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/dashboard')
+      await page.goto('/admin/users')
       await expect(page.getByRole('heading', { name: 'User Management' })).toBeVisible()
       await assertNoHorizontalScroll()
       await page.screenshot({

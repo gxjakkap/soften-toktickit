@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -24,7 +25,8 @@ function AppShell({ children }: { children: ReactNode }) {
     <>
       <header className="zg-header">
         <div className="zg-header-inner">
-          <NavLink to="/tickets" className="zg-wordmark">
+          {/* Lab 4 ui-spec.md §1: the wordmark goes to the role's landing screen. */}
+          <NavLink to={user ? roleHomePath(user.role) : '/login'} className="zg-wordmark">
             TokTickIT
           </NavLink>
 
@@ -69,15 +71,28 @@ function AppShell({ children }: { children: ReactNode }) {
                   </NavLink>
                 </>
               )}
-              {/* Lab 4 ui-spec.md §1 (BR-29): the Administrator also gets the Queue. */}
+              {/* Lab 4 ui-spec.md §1 (BR-29, FR-17): Dashboard first, and the
+                  Administrator also gets the Queue. NavLink sets
+                  aria-current="page"; `end` keeps Dashboard active only on
+                  /dashboard itself. */}
               {(user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR') && (
-                <NavLink
-                  to="/staff/tickets"
-                  className={navClass}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Ticket Queue
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/dashboard"
+                    className={navClass}
+                    end
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/staff/tickets"
+                    className={navClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Ticket Queue
+                  </NavLink>
+                </>
               )}
               {user?.role === 'ADMINISTRATOR' && (
                 <NavLink to="/admin/users" className={navClass} onClick={() => setMenuOpen(false)}>

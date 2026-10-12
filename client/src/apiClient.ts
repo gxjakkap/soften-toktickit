@@ -10,6 +10,7 @@ import type {
   RelatedSystem,
   RequestedPriority,
   SortDirection,
+  StaffDashboard,
   StaffTicketComment,
   StaffTicketDetail,
   StatusHistoryEntry,
@@ -154,6 +155,12 @@ export type TicketQueueParams = {
   itPriority?: RequestedPriority
   status?: TicketStatus
   ownerId?: number | 'unassigned'
+  // Lab 4 api-spec.md §4.1: drill-down filters from the dashboard.
+  statusGroup?: 'active'
+  resolvedFrom?: string
+  resolvedTo?: string
+  followUp?: 'pending'
+  openActionAssigneeId?: number
   sortBy?: TicketQueueSortField
   sortDir?: SortDirection
   page?: number
@@ -169,6 +176,12 @@ export function fetchStaffTickets(params: TicketQueueParams = {}): Promise<Ticke
   if (params.itPriority) query.set('itPriority', params.itPriority)
   if (params.status) query.set('status', params.status)
   if (params.ownerId !== undefined) query.set('ownerId', String(params.ownerId))
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
+  if (params.resolvedFrom) query.set('resolvedFrom', params.resolvedFrom)
+  if (params.resolvedTo) query.set('resolvedTo', params.resolvedTo)
+  if (params.followUp) query.set('followUp', params.followUp)
+  if (params.openActionAssigneeId !== undefined)
+    query.set('openActionAssigneeId', String(params.openActionAssigneeId))
   if (params.sortBy) query.set('sortBy', params.sortBy)
   if (params.sortDir) query.set('sortDir', params.sortDir)
   if (params.page) query.set('page', String(params.page))
@@ -381,4 +394,9 @@ export function setAdminUserPassword(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ newPassword }),
   }).then((res) => parseJsonOrThrow(res))
+}
+
+// Lab 4 api-spec.md §5.2 (FR-13, FR-14): IT Staff and Administrator only.
+export function fetchStaffDashboard(): Promise<StaffDashboard> {
+  return fetch('/api/dashboard/staff').then((res) => parseJsonOrThrow<StaffDashboard>(res))
 }

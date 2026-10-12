@@ -117,7 +117,7 @@ with `replace` navigation (specification.md FR-16):
 
 ## 3. Requester Dashboard (`/dashboard`, Requester)
 
-- Page header: title "Dashboard", subtitle "Your tickets at a glance",
+- Page header: title "Dashboard", subtitle "Welcome back, <name>.",
   the Bangkok-time hint (§2.1), "Updated 14:05" from `generatedAt`, and a
   tertiary **Refresh** button.
 - **Cards row**: Open Tickets, Waiting for You, Resolved (Last 30 Days),

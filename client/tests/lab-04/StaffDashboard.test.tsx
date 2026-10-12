@@ -355,7 +355,7 @@ describe('Navigation and access (AC-36)', () => {
     mockApi(testUser, [])
     renderAt('/dashboard')
 
-    expect(await screen.findByText(/your tickets at a glance/i)).toBeTruthy()
+    expect(await screen.findByText(`Welcome back, ${testUser.name}.`)).toBeTruthy()
     const nav = screen.getByRole('navigation', { name: /main/i })
     expect(within(nav).getByRole('link', { name: 'Dashboard' }).getAttribute('aria-current')).toBe(
       'page',

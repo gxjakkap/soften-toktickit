@@ -299,7 +299,7 @@ test.describe('Requester dashboard', () => {
     await loginViaUi(page, STAFF, SEED_PASSWORD, '**/dashboard')
     await page.goto('/dashboard')
     await expect(page.getByText(/operational overview/i)).toBeVisible()
-    await expect(page.getByText(/your tickets at a glance/i)).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Recently Resolved' })).toHaveCount(0)
     // The API stays the authority (AC-32).
     expect((await page.request.get('/api/dashboard/requester')).status()).toBe(403)
   })

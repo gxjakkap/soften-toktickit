@@ -43,7 +43,7 @@ function RequesterDashboard() {
   return (
     <div>
       <DashboardHeader
-        subtitle={`Welcome back, ${user?.name}. Your tickets at a glance.`}
+        subtitle={`Welcome back, ${user?.name}.`}
         generatedAt={data?.generatedAt}
         refreshing={loading}
         onRefresh={refresh}

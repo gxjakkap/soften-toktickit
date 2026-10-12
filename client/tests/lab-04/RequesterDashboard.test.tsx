@@ -139,7 +139,7 @@ describe('UI-07 cards and lists (FR-12, AC-02)', () => {
     renderAt('/dashboard')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
-    expect(screen.getByText(`Welcome back, ${testUser.name}. Your tickets at a glance.`))
+    expect(screen.getByText(`Welcome back, ${testUser.name}.`))
     expect(screen.getByText(/times shown in bangkok time/i)).toBeTruthy()
   })
 
@@ -369,7 +369,7 @@ describe('UI-10 loading, failure, and forbidden (AC-34)', () => {
     renderAt('/dashboard')
 
     expect(await screen.findByText(/operational overview/i)).toBeTruthy()
-    expect(screen.queryByText(/your tickets at a glance/i)).toBeNull()
+    expect(screen.queryByText(`Welcome back, ${user.name}.`)).toBeNull()
     expect(requested(fetchMock)).not.toContain('/api/dashboard/requester')
   })
 })

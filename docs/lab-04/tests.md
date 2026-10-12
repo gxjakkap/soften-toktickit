@@ -194,10 +194,10 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| UI-07 | UI | FR-12, AC-02 | Cards and lists | Three cards with exact labels; both lists with Ticket links to `/tickets/:id` | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| UI-08 | UI | AC-31, BR-40 | No Tickets at all | Whole-dashboard empty state with Create Ticket link to `/tickets/new`; no cards | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| UI-09 | UI | AC-30 | Drill-down links | Card `href`s match documented routes | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| UI-10 | UI | AC-34 | Loading / failure | Skeleton; safe banner with Retry | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
+| UI-07 | UI | FR-12, AC-02 | Cards and lists | Three cards with exact labels; both lists with Ticket links to `/tickets/:id` | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
+| UI-08 | UI | AC-31, BR-40 | No Tickets at all | Whole-dashboard empty state with Create Ticket link to `/tickets/new`; no cards | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
+| UI-09 | UI | AC-30 | Drill-down links | Card `href`s match documented routes | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
+| UI-10 | UI | AC-34 | Loading / failure | Skeleton; safe banner with Retry | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
 
 **Actions Taken** (`client/tests/lab-04/ActionsTaken.test.tsx`):
 
@@ -234,10 +234,10 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| UI-32 | UI | AC-36, FR-17 | Nav per role | Requester: Dashboard, My Tickets, Create Ticket; IT Staff: Dashboard, Ticket Queue; Admin: Dashboard, Ticket Queue, User Management; `aria-current` on active | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Partial (IT Staff and Administrator pass; Requester with #68) |
-| UI-33 | UI | AC-36, §11-8 | Landing | Login success and `/` redirect go to `/dashboard` for each role; correct dashboard variant renders | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Partial (IT Staff and Administrator pass, including the password-change redirect; Requester with #68) |
+| UI-32 | UI | AC-36, FR-17 | Nav per role | Requester: Dashboard, My Tickets, Create Ticket; IT Staff: Dashboard, Ticket Queue; Admin: Dashboard, Ticket Queue, User Management; `aria-current` on active | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
+| UI-33 | UI | AC-36, §11-8 | Landing | Login success and `/` redirect go to `/dashboard` for each role; correct dashboard variant renders | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-34 | UI | AC-47, FR-16 | Queue URL filters | `/staff/tickets?followUp=pending&statusGroup=active` requests those params and shows chips; removing a chip updates URL and request | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
-| UI-35 | UI | AC-47 | My Tickets URL filters | `/tickets?statusGroup=active` and `resolvedFrom` applied with chips | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Planned |
+| UI-35 | UI | AC-47 | My Tickets URL filters | `/tickets?statusGroup=active` and `resolvedFrom` applied with chips | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-36 | UI | AC-47 | User Management URL role | `/admin/users?role=IT_STAFF` applies role filter chip | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-37 | UI | ui-spec.md §2.5 | Invalid URL filter | 400 `INVALID_FILTER` shows safe banner with Clear filters | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-38 | UI | AC-37 | Bangkok times on screens | With `TZ` ≠ Bangkok, My Tickets, both Ticket Details, and dashboards render Bangkok times | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Planned |
@@ -246,7 +246,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` | Partial (staff dashboard 3/2/1 columns and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
+| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` | Partial (both dashboards' 3/2/1 card columns, list columns, and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
 | STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` | Planned |
 | STYLE-03 | Visual/Responsive | AC-43 | Lab 2/3 screens still clean | Re-run Lab 3 screenshot specs; no new overflow | `e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts` | Planned |
 | A11Y-01 | Accessibility | AC-42, ui-spec.md §9 | Automated scan | `@axe-core/playwright` on both dashboards, both Ticket Detail screens (Actions open), Queue, My Tickets: zero serious/critical violations | `e2e/lab-04/accessibility.spec.ts` | Planned |
@@ -264,9 +264,9 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | E2E-06 | E2E | AC-23 | Two browser contexts, stale update | Both open the Ticket; first changes status; second's change gets the conflict banner; Reload latest shows the first's status | `e2e/lab-04/ticket-resolution.spec.ts` | Pass |
 | E2E-07 | E2E | AC-25 | Reopen | Resolved → Closed → Reopened; Resolved blocked again after adding a Planned Action | `e2e/lab-04/ticket-resolution.spec.ts` | Pass (the Planned Action is recorded through the Actions Taken API) |
 | E2E-08 | E2E | AC-28, AC-30 | Staff dashboard drill-down | Each card's value equals the destination list's "Showing … of N" | `e2e/lab-04/dashboards.spec.ts` | Pass |
-| E2E-09 | E2E | AC-02, AC-30, AC-31 | Requester dashboard | Jennifer sees own metrics and drill-down matches; Emma sees empty state and Create Ticket | `e2e/lab-04/dashboards.spec.ts` | Planned |
+| E2E-09 | E2E | AC-02, AC-30, AC-31 | Requester dashboard | Jennifer sees own metrics and drill-down matches; Emma sees empty state and Create Ticket | `e2e/lab-04/dashboards.spec.ts` | Pass |
 | E2E-10 | E2E | AC-33, AC-26 | Administrator | Admin lands on dashboard with User Accounts; drill to User Management filtered; opens Queue and records an Action | `e2e/lab-04/dashboards.spec.ts` | Partial (dashboard landing, User Accounts, and User Management drill-down pass; Queue and Action steps are covered by E2E-01/E2E-03) |
-| E2E-11 | E2E | AC-36 | Landing per role | Each seeded role lands on `/dashboard` after login | `e2e/lab-04/dashboards.spec.ts` | Partial (IT Staff and Administrator pass; Requester with #68) |
+| E2E-11 | E2E | AC-36 | Landing per role | Each seeded role lands on `/dashboard` after login | `e2e/lab-04/dashboards.spec.ts` | Pass |
 | E2E-12 | E2E | AC-43, FR-23 | Cross-role regression tour | Login/logout, first-login password change, Create Ticket with attachment, My Tickets search, Public Comment, Internal Note privacy, claim/reassign, User Management create/deactivate, all in one run with no console errors | `e2e/lab-04/regression.spec.ts` | Planned |
 | E2E-13 | E2E | AC-37 | Time zone | Browser context `timezoneId: 'America/New_York'` shows Bangkok times on Ticket Detail and dashboards | `e2e/lab-04/regression.spec.ts` | Planned |
 
@@ -373,6 +373,7 @@ in the test file header. Nothing else in Lab 1–3 may change.
 | UI-02, UI-12 (`Login.test.tsx`, `ChangePassword.test.tsx`), UI-17, UI-18 (`AuthGuards.test.tsx`), UI-52 (`UserManagement.test.tsx`) | FR-17, §11-8 | Landing path is `/dashboard`; navigation item lists gain Dashboard (and Ticket Queue for Administrator) |
 | UI-32–UI-36 (`StaffTicketDetail.test.tsx`) | BR-24 | Stubbed responses include `version`; request bodies assert it |
 | E2E-01, E2E-02 (`e2e/lab-03/authentication.spec.ts`) | FR-17 | Expect `/dashboard` landing and the new navigation sets |
+| Requester sign-in landing in `e2e/lab-03/requester-comments-and-resolved.spec.ts` and the `loginViaUi` default in `e2e/lab-02/helpers.ts` | FR-17, §11-8 | A Requester lands on `/dashboard` instead of My Tickets |
 | E2E-09 (`e2e/lab-03/staff-ticket-flow.spec.ts`) | BR-18 | If the flow resolves the Ticket, it records a Done Action first |
 | Seeded-owner check in "spreads tickets across owners…" (`server/tests/lab-03/schema-seed.integration.test.ts`) | BR-30 | A seeded Ticket owner may be an active Administrator as well as active IT Staff (the §7.6 seed makes Alex Morgan an owner) |
 | UI-14 (`client/tests/lab-02/RequesterTicketDetail.test.tsx`) | FR-09 | The new read-only "Status History" section matches the old `queryByLabelText(/^status/i)` check, so it now asserts no status combobox instead; same intent |

@@ -349,14 +349,17 @@ describe('Navigation and access (AC-36)', () => {
     ).toBeNull()
   })
 
-  // Changes when the Requester Dashboard (#68) adds its own nav item.
-  it('gives a Requester no Dashboard nav item and sends /dashboard to My Tickets', async () => {
+  // Lab 4 ui-spec.md §1: /dashboard renders by role, so a Requester gets
+  // their own dashboard and the staff endpoint is never called.
+  it('renders the Requester Dashboard for a Requester without calling the staff endpoint', async () => {
     mockApi(testUser, [])
     renderAt('/dashboard')
 
-    expect(await screen.findByRole('heading', { name: /my tickets/i })).toBeTruthy()
+    expect(await screen.findByText(/your tickets at a glance/i)).toBeTruthy()
     const nav = screen.getByRole('navigation', { name: /main/i })
-    expect(within(nav).queryByRole('link', { name: 'Dashboard' })).toBeNull()
+    expect(within(nav).getByRole('link', { name: 'Dashboard' }).getAttribute('aria-current')).toBe(
+      'page',
+    )
     await waitFor(() => expect(vi.mocked(fetch)).not.toHaveBeenCalledWith('/api/dashboard/staff'))
   })
 })

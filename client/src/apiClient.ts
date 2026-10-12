@@ -9,6 +9,7 @@ import type {
   CommentVisibility,
   RelatedSystem,
   RequestedPriority,
+  RequesterDashboard,
   SortDirection,
   StaffDashboard,
   StaffTicketComment,
@@ -124,6 +125,9 @@ export type TicketListParams = {
   categoryId?: number
   requestedPriority?: RequestedPriority
   status?: TicketStatus
+  // Lab 4 api-spec.md §4.2: drill-down filters from the Requester dashboard.
+  statusGroup?: 'active'
+  resolvedFrom?: string
   sortBy?: TicketSortField
   sortDir?: SortDirection
   page?: number
@@ -138,6 +142,8 @@ export function fetchTickets(params: TicketListParams = {}): Promise<TicketListR
   if (params.categoryId !== undefined) query.set('categoryId', String(params.categoryId))
   if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
   if (params.status) query.set('status', params.status)
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
+  if (params.resolvedFrom) query.set('resolvedFrom', params.resolvedFrom)
   if (params.sortBy) query.set('sortBy', params.sortBy)
   if (params.sortDir) query.set('sortDir', params.sortDir)
   if (params.page) query.set('page', String(params.page))
@@ -397,6 +403,11 @@ export function setAdminUserPassword(
 }
 
 // Lab 4 api-spec.md §5.2 (FR-13, FR-14): IT Staff and Administrator only.
+// Lab 4 api-spec.md §5.1: scoped to the session; no query params (AC-02).
+export function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  return fetch('/api/dashboard/requester').then((res) => parseJsonOrThrow<RequesterDashboard>(res))
+}
+
 export function fetchStaffDashboard(): Promise<StaffDashboard> {
   return fetch('/api/dashboard/staff').then((res) => parseJsonOrThrow<StaffDashboard>(res))
 }

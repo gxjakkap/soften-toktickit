@@ -20,6 +20,7 @@ function mockApi(loginResponse: () => Promise<Response> | Response) {
     }
     if (url === '/api/auth/login') return loginResponse()
     if (url === '/api/categories') return jsonResponse([])
+    if (url === '/api/dashboard/requester') return new Promise<Response>(() => {})
     if (url.startsWith('/api/tickets')) {
       return jsonResponse({
         data: [],
@@ -74,12 +75,13 @@ describe('Login validation', () => {
 })
 
 describe('Login submit', () => {
+  // Lab 4 ui-spec.md §1 (§11-8): the Requester now lands on the Dashboard.
   it('AC-01: signs in and routes to the Requester default landing screen', async () => {
     mockApi(() => jsonResponse(testUser))
     renderLogin()
     await fillAndSubmit(testUser.email, 'DevPass123!')
 
-    expect(await screen.findByRole('heading', { name: /my tickets/i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
   })
 
   it('shows the Busy state while the request is in flight', async () => {

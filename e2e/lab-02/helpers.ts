@@ -40,14 +40,14 @@ export async function loginViaApi(
 
 /** Drives the real Login screen UI — used where the test's point is to
  *  exercise the actual sign-in flow, not just get a session as fast as
- *  possible. `expectedUrl` defaults to a Requester's landing screen; pass
- *  the caller's actual role-default (or '**\/change-password') for other
- *  accounts (ui-spec.md §2). */
+ *  possible. `expectedUrl` defaults to the landing screen every role shares
+ *  since Lab 4 (ui-spec.md §1, /dashboard); pass '**\/change-password' or
+ *  '**\/login' for accounts that stop earlier. */
 export async function loginViaUi(
   page: Page,
   email: string,
   password = SEED_PASSWORD,
-  expectedUrl = '**/tickets',
+  expectedUrl = '**/dashboard',
 ) {
   await page.goto('/login')
   await page.getByLabel(/email address/i).fill(email)

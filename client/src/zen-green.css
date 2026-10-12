@@ -1201,6 +1201,19 @@ textarea.zg-field {
   margin-top: 0;
 }
 
+/* Lab 4 ui-spec.md §3 (BR-40): the Requester with no Tickets at all. */
+.zg-dashboard-blank {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
+  text-align: center;
+}
+
+.zg-dashboard-blank > .bi {
+  font-size: 32px;
+}
+
 .zg-dashboard-empty {
   margin: 0;
 }

@@ -196,6 +196,12 @@ function MyTickets() {
     setSearchInput('')
     updateParams(Object.fromEntries(FILTER_PARAMS.map((key) => [key, ''])))
   }
+  // INVALID_FILTER also covers a bad sortBy or sortDir, so the banner's
+  // Clear filters drops every param, sort included.
+  const clearAllParams = () => {
+    setSearchInput('')
+    setParams({}, { replace: true })
+  }
 
   // Lab 4 ui-spec.md §2.5: drill-down-only filters show as removable chips,
   // not in the Filters row, which keeps the Lab 2 controls.
@@ -358,7 +364,7 @@ function MyTickets() {
               : 'Unable to load your tickets. Please try again.'}
           </p>
           {invalidFilter ? (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
+            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearAllParams}>
               Clear filters
             </button>
           ) : (

@@ -336,6 +336,26 @@ describe('UI-37 invalid URL filter', () => {
     expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
     expect(location()).toBe('/staff/tickets')
   })
+
+  it('Clear filters also drops an unknown sort the route refuses', async () => {
+    mockApi(testStaffUser, {
+      onQueue: (url) =>
+        url.searchParams.get('sortDir') === 'sideways'
+          ? jsonResponse(
+              { error: { code: 'INVALID_FILTER', message: 'Invalid sort.', field: 'sortDir' } },
+              400,
+            )
+          : jsonResponse(queueBody(1)),
+    })
+    renderAt('/staff/tickets?sortDir=sideways&status=OPEN')
+
+    await screen.findByRole('alert')
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/staff/tickets')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
 })
 
 describe('UI-36 User Management URL role', () => {
@@ -527,5 +547,25 @@ describe('UI-35 My Tickets URL filters', () => {
 
     expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
     expect(location()).toBe('/tickets')
+  })
+
+  it('Clear filters also drops an unknown sort the route refuses', async () => {
+    mockApi(testUser, {
+      onTickets: (url) =>
+        url.searchParams.get('sortBy') === 'password'
+          ? jsonResponse(
+              { error: { code: 'INVALID_FILTER', message: 'Invalid sort.', field: 'sortBy' } },
+              400,
+            )
+          : jsonResponse(queueBody(1)),
+    })
+    renderAt('/tickets?sortBy=password&status=OPEN')
+
+    await screen.findByRole('alert')
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/tickets')
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

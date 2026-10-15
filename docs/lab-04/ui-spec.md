@@ -458,31 +458,52 @@ horizontal scroll.
 To be completed with dated screenshot evidence during Issues #65, #67, #68,
 and #69:
 
-- [ ] Both dashboards and both Ticket Detail screens use the same Zen Green
-      tokens, card style, and badge components as the Lab 2/3 screens
-- [ ] Metric cards: label, value, and drill-down are readable and not
-      clipped at all three viewports, and the value is never color-only
-- [ ] Zero-value cards and empty lists show their helper text, not a blank
-      card
-- [ ] Actions Taken: editable vs. read-only (locked) vs. invalid vs.
-      disabled fields are visually distinct and consistent with Lab 2 §3
-- [ ] Validation messages appear directly under their field, with no
-      overlap with the next field at any viewport
-- [ ] Cancelled Actions and inactive assignees are distinguishable without
-      color
-- [ ] Shared (Actions Taken, Public Comments) vs. private (Internal Notes)
+- [x] Both dashboards and both Ticket Detail screens use the same Zen Green
+      tokens, card style, and badge components as the Lab 2/3 screens.
+      *Verified 15 Oct 2026 (Issue #69): manual check at 375 and 1440 px;
+      shared `FeedbackState.tsx` states and Zen Green link color replace the
+      one-off markup and Bootstrap blue; HARD-01 axe run.*
+- [x] Metric cards: label, value, and drill-down are readable and not
+      clipped at all three viewports, and the value is never color-only.
+      *Verified: STYLE-01 (`dashboards.spec.ts`), HARD-01 overflow and axe at
+      1440/768/375, UI-02 accessible names.*
+- [x] Zero-value cards and empty lists show their helper text, not a blank
+      card. *Verified: UI-03, UI-08, E2E-09 (Emma, Michael), HARD-01 empty
+      states.*
+- [x] Actions Taken: editable vs. read-only (locked) vs. invalid vs.
+      disabled fields are visually distinct and consistent with Lab 2 §3.
+      *Verified: UI-16; manual check of the locked Done edit and the
+      validation state at 375 and 1440 px.*
+- [x] Validation messages appear directly under their field, with no
+      overlap with the next field at any viewport. *Verified: manual check
+      of Add Action, Create Ticket, and Create User validation at 375 and
+      1440 px; HARD-01 opens each validation state at all three widths.*
+- [x] Cancelled Actions and inactive assignees are distinguishable without
+      color. *Verified: UI-11 (badge, strikethrough, Inactive badge).*
+- [x] Shared (Actions Taken, Public Comments) vs. private (Internal Notes)
       content is visually distinct, and the Actions Taken helper text about
-      Requester visibility is present
-- [ ] Status, IT Priority, Action Status, and Follow-Up badges carry text
-      and an icon
-- [ ] Keyboard: every dashboard link and Actions Taken control reachable
-      in a logical order with visible focus; the form returns focus on close
-- [ ] No clipping, overlap, or horizontal page scroll at desktop, tablet,
-      and mobile on any Lab 4 screen
-- [ ] Navigation shows exactly the permitted items per role, with the
-      active page indicated without color alone
-- [ ] Every date/time shows Bangkok time, checked with the browser set to
-      a different time zone
+      Requester visibility is present. *Verified: manual check at 375 and
+      1440 px (Internal Notes panel and label); UI-12 helper text.*
+- [x] Status, IT Priority, Action Status, and Follow-Up badges carry text
+      and an icon. *Verified: UI-48 (every Ticket status and priority now
+      has an icon, Issue #69), UI-11 for Action Status and Follow-Up.*
+- [x] Keyboard: every dashboard link and Actions Taken control reachable
+      in a logical order with visible focus; the form returns focus on
+      close. *Verified: manual Tab walk of the staff dashboard at 1440 px
+      (header, Refresh, six cards, breakdowns, lists, in reading order);
+      HARD-03 focus ring (header ring fixed in Issue #69); UI-23; UI-47
+      for the confirmation dialogs.*
+- [x] No clipping, overlap, or horizontal page scroll at desktop, tablet,
+      and mobile on any Lab 4 screen. *Verified: HARD-01 `scrollWidth`
+      check on every screen at 1440/768/375; STYLE-01; E2E-01 long-text
+      overflow check; manual screenshots.*
+- [x] Navigation shows exactly the permitted items per role, with the
+      active page indicated without color alone. *Verified: UI-32, E2E-11.*
+- [x] Every date/time shows Bangkok time, checked with the browser set to
+      a different time zone. *Verified: HARD-02 (`timezoneId:
+      America/New_York`), UNIT-07 (`TZ=America/New_York`). Issue #69
+      routed the ten remaining `toLocaleString` dates through the shared
+      formatter.*
 
 ## 13. Screenshot Paths
 

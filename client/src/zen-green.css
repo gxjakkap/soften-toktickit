@@ -104,9 +104,17 @@ body {
 .zg-field:focus-visible,
 .zg-btn:focus-visible,
 .zg-navlink:focus-visible,
-.zg-menu-toggle:focus-visible {
+.zg-menu-toggle:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--zg-secondary);
   outline-offset: 2px;
+}
+
+/* Lab 4 ui-spec.md §9: the green ring is invisible on the green header
+   (about 1.2:1), so header controls get a white one. */
+.zg-header a:focus-visible,
+.zg-header button:focus-visible {
+  outline-color: var(--zg-surface);
 }
 
 .zg-callout {

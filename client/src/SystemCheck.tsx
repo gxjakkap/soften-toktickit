@@ -18,7 +18,7 @@ function SystemCheck() {
   }
 
   return (
-    <div className="container py-5 text-center">
+    <main className="container py-5 text-center">
       <h1>TokTickIT IT Service Desk</h1>
 
       <button
@@ -44,7 +44,7 @@ function SystemCheck() {
           <p className="text-danger">Unable to connect to TokTickIT API</p>
         </>
       )}
-    </div>
+    </main>
   )
 }
 

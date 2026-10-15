@@ -324,6 +324,8 @@ function UserPanel({
                 type="password"
                 autoComplete="new-password"
                 className={`zg-field${pwError ? ' zg-field-invalid' : ''}`}
+                aria-invalid={pwError ? true : undefined}
+                aria-describedby={pwError ? 'um-new-password-error' : undefined}
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value)
@@ -331,7 +333,7 @@ function UserPanel({
                 }}
               />
               {pwError && (
-                <p className="zg-error-message" role="alert">
+                <p id="um-new-password-error" className="zg-error-message" role="alert">
                   {pwError}
                 </p>
               )}

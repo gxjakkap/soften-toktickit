@@ -2,6 +2,13 @@
    replacing it. Only the rules the shipped screens need live here; later
    screens add their own. */
 :root {
+  /* Lab 4 ui-spec.md §11: plain links (Ticket Numbers in tables) use the
+     Zen Green primary, not Bootstrap blue, which also failed 4.5:1 on the
+     page background. */
+  --bs-link-color: #006b3c;
+  --bs-link-color-rgb: 0, 107, 60;
+  --bs-link-hover-color: #0b7a46;
+  --bs-link-hover-color-rgb: 11, 122, 70;
   --zg-primary: #006b3c;
   --zg-secondary: #0b7a46;
   --zg-pale: #eaf6ef;
@@ -802,6 +809,10 @@ textarea.zg-field {
 
 /* Full-page Forbidden state — ui-spec.md §5/§6/§7, shared by every
    role-gated screen a wrong role reaches by direct URL. */
+.zg-auth-page .zg-wordmark {
+  color: var(--zg-primary);
+}
+
 .zg-forbidden {
   margin: var(--zg-space-6) auto 0;
   max-width: 480px;

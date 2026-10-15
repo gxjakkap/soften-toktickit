@@ -62,10 +62,8 @@ function Login() {
   }
 
   return (
-    <div className="zg-page">
-      <h1 className="zg-wordmark" style={{ color: 'var(--zg-primary)' }}>
-        TokTickIT
-      </h1>
+    <main className="zg-page zg-auth-page">
+      <h1 className="zg-wordmark">TokTickIT</h1>
 
       <div className="zg-card zg-select-screen" style={{ marginTop: 'var(--zg-space-5)' }}>
         <h2 className="zg-title">Sign In</h2>
@@ -141,7 +139,7 @@ function Login() {
           </div>
         </form>
       </div>
-    </div>
+    </main>
   )
 }
 

@@ -3,8 +3,13 @@ import type { ActionStatus, RequestedPriority, TicketStatus, UserRole } from './
 
 // ui-spec.md §9: Pending/In Progress and Cancelled/Closed share a badge
 // colour, so each pair also carries a distinct icon (never colour alone).
-// Single source of truth so My Tickets and Ticket Detail can't drift apart.
-const STATUS_ICON: Partial<Record<TicketStatus, string>> = {
+// Lab 4 ui-spec.md §12: every Status and IT Priority badge carries text and
+// an icon. Single source of truth so no two screens can drift apart.
+const STATUS_ICON: Record<TicketStatus, string> = {
+  NEW: 'bi-plus-circle',
+  OPEN: 'bi-folder2-open',
+  RESOLVED: 'bi-check-circle-fill',
+  REOPENED: 'bi-arrow-counterclockwise',
   WAITING_FOR_REQUESTER: 'bi-hourglass-split',
   IN_PROGRESS: 'bi-arrow-repeat',
   CANCELLED: 'bi-x-circle',
@@ -28,6 +33,12 @@ const PRIORITY_LABEL: Record<RequestedPriority, string> = {
   HIGH: 'High',
 }
 
+const PRIORITY_ICON: Record<RequestedPriority, string> = {
+  LOW: 'bi-arrow-down',
+  MEDIUM: 'bi-dash-lg',
+  HIGH: 'bi-exclamation-triangle',
+}
+
 const PRIORITY_BADGE_CLASS: Record<RequestedPriority, string> = {
   LOW: 'zg-badge-priority-low',
   MEDIUM: 'zg-badge-priority-medium',
@@ -35,10 +46,9 @@ const PRIORITY_BADGE_CLASS: Record<RequestedPriority, string> = {
 }
 
 export function StatusBadge({ status, testId }: { status: TicketStatus; testId?: string }) {
-  const icon = STATUS_ICON[status]
   return (
     <span className={`zg-badge ${STATUS_BADGE_CLASS[status]}`} data-testid={testId}>
-      {icon && <i className={`bi ${icon}`} aria-hidden="true" />}
+      <i className={`bi ${STATUS_ICON[status]}`} aria-hidden="true" />
       {STATUS_LABEL[status]}
     </span>
   )
@@ -53,6 +63,7 @@ export function PriorityBadge({
 }) {
   return (
     <span className={`zg-badge ${PRIORITY_BADGE_CLASS[priority]}`} data-testid={testId}>
+      <i className={`bi ${PRIORITY_ICON[priority]}`} aria-hidden="true" />
       {PRIORITY_LABEL[priority]}
     </span>
   )

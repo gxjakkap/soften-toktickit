@@ -517,6 +517,18 @@ function CreateTicket() {
               >
                 Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
               </label>
+              {/* Outside the role="button" dropzone: axe nested-interactive. */}
+              <input
+                id="attachments"
+                ref={fileInputRef}
+                type="file"
+                className="zg-visually-hidden"
+                tabIndex={-1}
+                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                multiple
+                disabled={disabled}
+                onChange={handleFilesSelected}
+              />
               <div
                 className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
                 data-testid="attachment-dropzone"
@@ -530,17 +542,6 @@ function CreateTicket() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <input
-                  id="attachments"
-                  ref={fileInputRef}
-                  type="file"
-                  className="zg-visually-hidden"
-                  tabIndex={-1}
-                  accept=".jpg,.jpeg,.png,.webp,.pdf"
-                  multiple
-                  disabled={disabled}
-                  onChange={handleFilesSelected}
-                />
                 <p className="zg-helper zg-dropzone-text">
                   Drag and drop files here, click to browse, or paste an image (Ctrl+V / Cmd+V).
                 </p>

@@ -14,6 +14,7 @@ import {
   isAllowedFile,
 } from './lib/attachment-validation'
 import { formatDate } from './lib/datetime'
+import ModalDialog from './ModalDialog'
 import type { Attachment } from './types'
 
 type PendingUpload = {
@@ -207,6 +208,18 @@ function AttachmentSection({
           <label className="zg-label" htmlFor="attachments">
             Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
           </label>
+          {/* Outside the role="button" dropzone: axe nested-interactive. */}
+          <input
+            id="attachments"
+            ref={fileInputRef}
+            type="file"
+            className="zg-visually-hidden"
+            tabIndex={-1}
+            accept=".jpg,.jpeg,.png,.webp,.pdf"
+            multiple
+            disabled={atCap}
+            onChange={handleFilesSelected}
+          />
           <div
             className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
             data-testid="attachment-dropzone"
@@ -220,17 +233,6 @@ function AttachmentSection({
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <input
-              id="attachments"
-              ref={fileInputRef}
-              type="file"
-              className="zg-visually-hidden"
-              tabIndex={-1}
-              accept=".jpg,.jpeg,.png,.webp,.pdf"
-              multiple
-              disabled={atCap}
-              onChange={handleFilesSelected}
-            />
             <p className="zg-helper zg-dropzone-text">
               Drag and drop files here, or click to browse.
             </p>
@@ -325,73 +327,48 @@ function AttachmentSection({
       )}
 
       {removeTarget && (
-        <>
-          <div
-            className="modal d-block"
-            tabIndex={-1}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="remove-attachment-title"
-          >
-            <div className="modal-dialog">
-              <div className="modal-content zg-modal-content">
-                <div className="modal-header">
-                  <h5 className="zg-modal-title" id="remove-attachment-title">
-                    Remove Attachment
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    aria-label="Close"
-                    title="Close"
-                    onClick={closeRemoveDialog}
-                  />
-                </div>
-                <div className="modal-body">
-                  <p>
-                    Remove <strong>{removeTarget.originalFileName}</strong>? It will no longer be
-                    downloadable, but stays listed as removed.
-                  </p>
-                  <label className="zg-label" htmlFor="remove-reason">
-                    Reason (optional)
-                  </label>
-                  <textarea
-                    id="remove-reason"
-                    className="zg-field"
-                    rows={3}
-                    value={removeReason}
-                    onChange={(e) => setRemoveReason(e.target.value)}
-                  />
-                  {removeError && (
-                    <p className="zg-error-message" role="alert">
-                      {removeError}
-                    </p>
-                  )}
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="zg-btn zg-btn-secondary"
-                    onClick={closeRemoveDialog}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="zg-btn zg-btn-destructive"
-                    disabled={removing}
-                    aria-disabled={removing}
-                    aria-busy={removing}
-                    onClick={confirmRemove}
-                  >
-                    {removing ? 'Removing…' : 'Remove'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="modal-backdrop show" />
-        </>
+        <ModalDialog
+          id="remove-attachment"
+          title="Remove Attachment"
+          onClose={closeRemoveDialog}
+          footer={
+            <>
+              <button type="button" className="zg-btn zg-btn-secondary" onClick={closeRemoveDialog}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="zg-btn zg-btn-destructive"
+                disabled={removing}
+                aria-disabled={removing}
+                aria-busy={removing}
+                onClick={confirmRemove}
+              >
+                {removing ? 'Removing…' : 'Remove'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            Remove <strong>{removeTarget.originalFileName}</strong>? It will no longer be
+            downloadable, but stays listed as removed.
+          </p>
+          <label className="zg-label" htmlFor="remove-reason">
+            Reason (optional)
+          </label>
+          <textarea
+            id="remove-reason"
+            className="zg-field"
+            rows={3}
+            value={removeReason}
+            onChange={(e) => setRemoveReason(e.target.value)}
+          />
+          {removeError && (
+            <p className="zg-error-message" role="alert">
+              {removeError}
+            </p>
+          )}
+        </ModalDialog>
       )}
     </>
   )

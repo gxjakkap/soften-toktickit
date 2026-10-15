@@ -289,3 +289,41 @@ describe('UI-46: Change Password keeps the fields after a server failure (FR-20)
     ).toBe('N3w!Passw0rd')
   })
 })
+
+describe('UI-47: confirmation dialogs manage focus (ui-spec.md §9)', () => {
+  it('moves focus in, keeps Tab inside, closes on Esc, and returns focus', async () => {
+    stubApi(testUser, (url, init) => {
+      if (init?.method) return undefined
+      if (url === '/api/tickets/101') return json({ ...staffDetail(), comments: [] })
+      if (url === '/api/tickets/101/status-history') return json({ data: [] })
+      if (url === '/api/tickets/101/actions') return json({ data: [] })
+      return undefined
+    })
+    renderAt('/tickets/101')
+    const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: 'Problem Appears Resolved' })
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('dialog', { name: 'Problem Appears Resolved' })
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    for (let i = 0; i < 5; i++) {
+      await user.tab()
+      expect(dialog.contains(document.activeElement)).toBe(true)
+    }
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+})
+
+describe('UI-48: Status and priority badges carry text and an icon (ui-spec.md §12)', () => {
+  it('renders an icon in every status and priority badge on Ticket Detail', async () => {
+    stubApi(testStaffUser, staffReads(staffDetail({ currentStatus: 'NEW', itPriority: 'HIGH' })))
+    renderAt('/staff/tickets/101')
+    for (const testId of ['status-badge', 'requested-priority-badge']) {
+      const badge = await screen.findByTestId(testId)
+      expect(badge.querySelector('i.bi[aria-hidden="true"]')).toBeTruthy()
+      expect(badge.textContent?.trim()).not.toBe('')
+    }
+  })
+})

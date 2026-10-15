@@ -5,6 +5,7 @@ import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
 import { ErrorState, Forbidden, NotFound } from './FeedbackState'
+import ModalDialog from './ModalDialog'
 import StatusHistory from './StatusHistory'
 import { formatDate, formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
@@ -299,63 +300,42 @@ function RequesterTicketDetail() {
           </div>
 
           {confirmingResolve && (
-            <>
-              <div
-                className="modal d-block"
-                tabIndex={-1}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="resolve-confirm-title"
-              >
-                <div className="modal-dialog">
-                  <div className="modal-content zg-modal-content">
-                    <div className="modal-header">
-                      <h5 className="zg-modal-title" id="resolve-confirm-title">
-                        Problem Appears Resolved
-                      </h5>
-                      <button
-                        type="button"
-                        className="btn-close"
-                        aria-label="Close"
-                        title="Close"
-                        onClick={() => setConfirmingResolve(false)}
-                      />
-                    </div>
-                    <div className="modal-body">
-                      <p>
-                        This tells IT Staff your issue looks fixed — it does not close the Ticket.
-                        IT Staff will confirm and formally resolve it.
-                      </p>
-                      {resolveError && (
-                        <p className="zg-error-message" role="alert">
-                          {resolveError}
-                        </p>
-                      )}
-                    </div>
-                    <div className="modal-footer">
-                      <button
-                        type="button"
-                        className="zg-btn zg-btn-secondary"
-                        onClick={() => setConfirmingResolve(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="zg-btn zg-btn-primary"
-                        disabled={resolving}
-                        aria-disabled={resolving}
-                        aria-busy={resolving}
-                        onClick={confirmMarkResolved}
-                      >
-                        {resolving ? 'Confirming…' : 'Confirm'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-backdrop show" />
-            </>
+            <ModalDialog
+              id="resolve-confirm"
+              title="Problem Appears Resolved"
+              onClose={() => setConfirmingResolve(false)}
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-secondary"
+                    onClick={() => setConfirmingResolve(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-primary"
+                    disabled={resolving}
+                    aria-disabled={resolving}
+                    aria-busy={resolving}
+                    onClick={confirmMarkResolved}
+                  >
+                    {resolving ? 'Confirming…' : 'Confirm'}
+                  </button>
+                </>
+              }
+            >
+              <p>
+                This tells IT Staff your issue looks fixed — it does not close the Ticket. IT Staff
+                will confirm and formally resolve it.
+              </p>
+              {resolveError && (
+                <p className="zg-error-message" role="alert">
+                  {resolveError}
+                </p>
+              )}
+            </ModalDialog>
           )}
         </>
       )}

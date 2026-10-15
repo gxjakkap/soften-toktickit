@@ -933,7 +933,9 @@ function ActionForm({
               type="checkbox"
               className="form-check-input"
               checked={values.followUpRequired}
-              aria-controls={id('followUpNote')}
+              // The note exists only while checked, and aria-controls must
+              // name a rendered element (axe aria-valid-attr-value).
+              aria-controls={values.followUpRequired ? id('followUpNote') : undefined}
               onChange={(e) => set('followUpRequired', e.target.checked)}
             />
             Follow-Up Required?

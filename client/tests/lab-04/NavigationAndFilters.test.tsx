@@ -1,16 +1,16 @@
-// UI-32, UI-33, UI-34, UI-36, UI-37 — AC-36, AC-47 (IT Staff and Administrator parts; Issue #68 adds the Requester ones)
+// UI-32, UI-33, UI-34, UI-35, UI-36, UI-37 — AC-02, AC-36, AC-47
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../../src/App'
 import { AuthProvider } from '../../src/AuthContext'
-import { testAdminUser, testStaffUser } from '../helpers/auth'
+import { testAdminUser, testStaffUser, testUser } from '../helpers/auth'
 import type { AuthUser } from '../../src/types'
 
 // Lab 4 ui-spec.md §1, §2.5, §7 (FR-16, FR-17): Dashboard navigation and
-// landing for IT Staff and Administrators, and the URL-driven filters that
-// make the Ticket Queue and User Management work as drill-down targets.
+// landing for every role, and the URL-driven filters that make My Tickets,
+// the Ticket Queue, and User Management work as drill-down targets.
 
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -42,7 +42,11 @@ const DASHBOARD_PENDING = new Promise<Response>(() => {})
 
 function mockApi(
   user: AuthUser | null,
-  options: { onQueue?: (url: URL) => Promise<Response>; loginAs?: AuthUser } = {},
+  options: {
+    onQueue?: (url: URL) => Promise<Response>
+    onTickets?: (url: URL) => Promise<Response>
+    loginAs?: AuthUser
+  } = {},
 ) {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/auth/me') {
@@ -52,6 +56,11 @@ function mockApi(
     }
     if (url === '/api/auth/login' && init?.method === 'POST') return jsonResponse(options.loginAs)
     if (url === '/api/dashboard/staff') return DASHBOARD_PENDING
+    if (url === '/api/dashboard/requester') return DASHBOARD_PENDING
+    if (url === '/api/tickets' || url.startsWith('/api/tickets?')) {
+      const parsed = new URL(url, 'http://localhost')
+      return options.onTickets ? options.onTickets(parsed) : jsonResponse(queueBody(1))
+    }
     if (url === '/api/categories') return jsonResponse([{ id: 1, name: 'Hardware' }])
     if (url === '/api/staff/it-staff-users') {
       return jsonResponse([{ id: 14, name: 'Ahmed Hassan', role: 'IT_STAFF' }])
@@ -90,6 +99,12 @@ const queueUrls = (fetchMock: ReturnType<typeof mockApi>) =>
     .filter((url) => url.startsWith('/api/staff/tickets'))
     .map((url) => new URL(url, 'http://localhost'))
 const lastQueueUrl = (fetchMock: ReturnType<typeof mockApi>) => queueUrls(fetchMock).slice(-1)[0]!
+const lastTicketsUrl = (fetchMock: ReturnType<typeof mockApi>) =>
+  fetchMock.mock.calls
+    .map(([url]) => String(url))
+    .filter((url) => url === '/api/tickets' || url.startsWith('/api/tickets?'))
+    .map((url) => new URL(url, 'http://localhost'))
+    .slice(-1)[0]!
 
 afterEach(() => {
   cleanup()
@@ -321,6 +336,26 @@ describe('UI-37 invalid URL filter', () => {
     expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
     expect(location()).toBe('/staff/tickets')
   })
+
+  it('Clear filters also drops an unknown sort the route refuses', async () => {
+    mockApi(testStaffUser, {
+      onQueue: (url) =>
+        url.searchParams.get('sortDir') === 'sideways'
+          ? jsonResponse(
+              { error: { code: 'INVALID_FILTER', message: 'Invalid sort.', field: 'sortDir' } },
+              400,
+            )
+          : jsonResponse(queueBody(1)),
+    })
+    renderAt('/staff/tickets?sortDir=sideways&status=OPEN')
+
+    await screen.findByRole('alert')
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/staff/tickets')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
 })
 
 describe('UI-36 User Management URL role', () => {
@@ -353,5 +388,184 @@ describe('UI-36 User Management URL role', () => {
     expect((screen.getByLabelText('Search') as HTMLInputElement).value).toBe('')
     await new Promise((resolve) => setTimeout(resolve, 400))
     expect(location()).toBe('/admin/users')
+  })
+})
+
+// Lab 4 ui-spec.md §1, §2.5 (FR-16, FR-17, AC-47): the Requester parts.
+describe('UI-32/UI-33 Requester navigation and landing', () => {
+  it('lists Dashboard, My Tickets, and Create Ticket, with My Tickets active on /tickets', async () => {
+    mockApi(testUser)
+    renderAt('/tickets')
+    await screen.findByRole('heading', { name: 'My Tickets' })
+
+    const nav = screen.getByRole('navigation', { name: /main/i })
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Dashboard', 'My Tickets', 'Create Ticket'])
+    expect(within(nav).getByRole('link', { name: 'My Tickets' }).getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(
+      within(nav).getByRole('link', { name: 'Dashboard' }).getAttribute('aria-current'),
+    ).toBeNull()
+  })
+
+  it('sends a Requester from / to /dashboard', async () => {
+    mockApi(testUser)
+    renderAt('/')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
+    expect(location()).toBe('/dashboard')
+  })
+
+  it('lands a Requester on /dashboard after signing in', async () => {
+    mockApi(null, { loginAs: testUser })
+    renderAt('/login')
+
+    await userEvent.type(await screen.findByLabelText(/email address/i), testUser.email)
+    await userEvent.type(screen.getByLabelText(/^password/i), 'Secret#2026')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    await waitFor(() => expect(location()).toBe('/dashboard'))
+  })
+
+  it('still sends a Requester who must change their password to Change Password', async () => {
+    mockApi(null, { loginAs: { ...testUser, mustChangePassword: true } })
+    renderAt('/login')
+
+    await userEvent.type(await screen.findByLabelText(/email address/i), testUser.email)
+    await userEvent.type(screen.getByLabelText(/^password/i), 'Secret#2026')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    await waitFor(() => expect(location()).toBe('/change-password'))
+  })
+
+  it('keeps a deep link to a filtered My Tickets URL', async () => {
+    mockApi(testUser)
+    renderAt('/tickets?status=OPEN')
+
+    expect(await screen.findByRole('heading', { name: 'My Tickets' })).toBeTruthy()
+    expect(location()).toBe('/tickets?status=OPEN')
+  })
+})
+
+describe('UI-35 My Tickets URL filters', () => {
+  it('applies statusGroup and resolvedFrom from the URL as request params and chips', async () => {
+    const fetchMock = mockApi(testUser)
+    renderAt('/tickets?statusGroup=active&resolvedFrom=2026-10-01')
+
+    expect(await screen.findByRole('button', { name: 'Remove filter: Active only' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Remove filter: Resolved since 1 Oct 2026' }),
+    ).toBeTruthy()
+    const url = lastTicketsUrl(fetchMock)
+    expect(url.searchParams.get('statusGroup')).toBe('active')
+    expect(url.searchParams.get('resolvedFrom')).toBe('2026-10-01')
+  })
+
+  it('shows a status drill-down in the Current Status control', async () => {
+    const fetchMock = mockApi(testUser)
+    renderAt('/tickets?status=WAITING_FOR_REQUESTER')
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Current Status') as HTMLSelectElement).value).toBe(
+        'WAITING_FOR_REQUESTER',
+      ),
+    )
+    expect(lastTicketsUrl(fetchMock).searchParams.get('status')).toBe('WAITING_FOR_REQUESTER')
+  })
+
+  it('applies the "View all" sort by last update', async () => {
+    const fetchMock = mockApi(testUser)
+    renderAt('/tickets?sortBy=updatedAt&sortDir=desc')
+    await screen.findByText('TKT-2026-000101', { selector: 'a' })
+
+    const url = lastTicketsUrl(fetchMock)
+    expect(url.searchParams.get('sortBy')).toBe('updatedAt')
+    expect(url.searchParams.get('sortDir')).toBe('desc')
+  })
+
+  it('removes a chip from the URL and the request', async () => {
+    const fetchMock = mockApi(testUser)
+    renderAt('/tickets?statusGroup=active&status=OPEN')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove filter: Active only' }))
+
+    await waitFor(() => expect(location()).toBe('/tickets?status=OPEN'))
+    await waitFor(() =>
+      expect(lastTicketsUrl(fetchMock).searchParams.has('statusGroup')).toBe(false),
+    )
+  })
+
+  it('writes filter and sort changes back to the URL and resets the page', async () => {
+    mockApi(testUser)
+    renderAt('/tickets?page=1')
+    await screen.findByText('TKT-2026-000101', { selector: 'a' })
+
+    await userEvent.selectOptions(screen.getByLabelText('Current Status'), 'OPEN')
+    await waitFor(() => expect(location()).toBe('/tickets?status=OPEN'))
+    await userEvent.click(await screen.findByRole('button', { name: /current status/i }))
+    await waitFor(() =>
+      expect(location()).toBe('/tickets?status=OPEN&sortBy=currentStatus&sortDir=asc'),
+    )
+  })
+
+  it('never forwards a hand-edited requesterId, so the scope cannot widen (AC-02)', async () => {
+    const fetchMock = mockApi(testUser)
+    renderAt('/tickets?requesterId=99&statusGroup=active&ownerId=12')
+    await screen.findByRole('button', { name: 'Remove filter: Active only' })
+
+    const url = lastTicketsUrl(fetchMock)
+    expect(url.searchParams.has('requesterId')).toBe(false)
+    expect(url.searchParams.has('ownerId')).toBe(false)
+    expect(url.searchParams.get('statusGroup')).toBe('active')
+  })
+
+  it('shows the safe banner with Clear filters for an invalid param, which recovers', async () => {
+    mockApi(testUser, {
+      onTickets: (url) =>
+        url.searchParams.get('resolvedFrom') === 'someday'
+          ? jsonResponse(
+              {
+                error: {
+                  code: 'INVALID_FILTER',
+                  message: 'resolvedFrom must be a date (YYYY-MM-DD).',
+                  field: 'resolvedFrom',
+                },
+              },
+              400,
+            )
+          : jsonResponse(queueBody(1)),
+    })
+    renderAt('/tickets?resolvedFrom=someday')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).not.toMatch(/YYYY-MM-DD/)
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/tickets')
+  })
+
+  it('Clear filters also drops an unknown sort the route refuses', async () => {
+    mockApi(testUser, {
+      onTickets: (url) =>
+        url.searchParams.get('sortBy') === 'password'
+          ? jsonResponse(
+              { error: { code: 'INVALID_FILTER', message: 'Invalid sort.', field: 'sortBy' } },
+              400,
+            )
+          : jsonResponse(queueBody(1)),
+    })
+    renderAt('/tickets?sortBy=password&status=OPEN')
+
+    await screen.findByRole('alert')
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByText('TKT-2026-000101', { selector: 'a' })).toBeTruthy()
+    expect(location()).toBe('/tickets')
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

@@ -11,9 +11,10 @@ const TEMP_PASSWORD = 'Temp1234!'
 const NEW_PASSWORD = 'N3wSecret!'
 
 test.describe('Login', () => {
+  // Lab 4 (docs/lab-04/tests.md §6, §11-8): the Requester lands on the Dashboard.
   test('signs a Requester in and reaches their default landing screen', async ({ page }) => {
     await loginViaUi(page, REQUESTERS.jennifer.email)
-    await expect(page.getByRole('heading', { name: 'My Tickets' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
     await expect(page.getByTestId('current-user')).toContainText('Jennifer Anderson')
   })
 
@@ -40,9 +41,11 @@ test.describe('Login', () => {
 })
 
 test.describe('Role-scoped navigation', () => {
-  test('a Requester sees only My Tickets and Create Ticket', async ({ page }) => {
+  // Lab 4 (FR-17): Dashboard leads the Requester nav too.
+  test('a Requester sees only Dashboard, My Tickets, and Create Ticket', async ({ page }) => {
     await loginViaUi(page, REQUESTERS.jennifer.email)
     const nav = page.getByRole('navigation', { name: 'Main' })
+    await expect(nav.getByRole('link', { name: 'Dashboard' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'My Tickets' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Create Ticket' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Ticket Queue' })).toHaveCount(0)
@@ -105,13 +108,17 @@ test.describe('Mandatory first-login password change', () => {
     // FR-02/BR-02/AC-02: no other screen is reachable until this succeeds.
     await page.goto('/tickets')
     await expect(page.getByRole('heading', { name: 'Change Your Password' })).toBeVisible()
+    await page.goto('/dashboard')
+    await expect(page.getByRole('heading', { name: 'Change Your Password' })).toBeVisible()
 
     await page.getByLabel(/^current \(temporary\) password/i).fill(TEMP_PASSWORD)
     await page.getByLabel(/^new password/i).fill(NEW_PASSWORD)
     await page.getByLabel(/^confirm new password/i).fill(NEW_PASSWORD)
     await page.getByRole('button', { name: 'Continue' }).click()
 
-    await expect(page.getByRole('heading', { name: 'My Tickets' })).toBeVisible()
+    // Lab 4 (§11-8): a completed password change lands on the Dashboard.
+    await expect(page).toHaveURL('/dashboard')
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
   })
 })
 

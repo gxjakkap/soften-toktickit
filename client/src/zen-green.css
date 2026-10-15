@@ -1156,8 +1156,11 @@ textarea.zg-field {
   outline-offset: 2px;
 }
 
-.zg-metric-card.is-attention {
-  border-left: 4px solid var(--zg-warning-text);
+/* ui-spec.md §3: the warning icon is the non-color cue; the value takes
+   the warning text color (#8a5a00 passes AA on white). */
+.zg-metric-card.is-attention .zg-label .bi,
+.zg-metric-card.is-attention .zg-metric-value {
+  color: var(--zg-warning-text);
 }
 
 .zg-metric-value {
@@ -1199,6 +1202,19 @@ textarea.zg-field {
 
 .zg-dashboard-columns > .zg-dashboard-section {
   margin-top: 0;
+}
+
+/* Lab 4 ui-spec.md §3 (BR-40): the Requester with no Tickets at all. */
+.zg-dashboard-blank {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
+  text-align: center;
+}
+
+.zg-dashboard-blank > .bi {
+  font-size: 32px;
 }
 
 .zg-dashboard-empty {

@@ -24,6 +24,7 @@ function mockApi(changePasswordResponse?: () => Promise<Response> | Response) {
       return changePasswordResponse()
     }
     if (url === '/api/categories') return jsonResponse([])
+    if (url === '/api/dashboard/requester') return new Promise<Response>(() => {})
     if (url.startsWith('/api/tickets')) {
       return jsonResponse({
         data: [],
@@ -60,6 +61,8 @@ describe('AC-02: the mandatory gate', () => {
     const fetchMock = vi.fn((url: string) => {
       if (url === '/api/auth/me') return jsonResponse(testUser)
       if (url === '/api/categories') return jsonResponse([])
+      if (url === '/api/dashboard/requester') return new Promise<Response>(() => {})
+      if (url === '/api/dashboard/requester') return new Promise<Response>(() => {})
       if (url.startsWith('/api/tickets')) {
         return jsonResponse({
           data: [],
@@ -75,7 +78,7 @@ describe('AC-02: the mandatory gate', () => {
     vi.stubGlobal('fetch', fetchMock)
     renderChangePassword()
 
-    expect(await screen.findByRole('heading', { name: /my tickets/i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: /change your password/i })).toBeFalsy()
   })
 })
@@ -161,7 +164,7 @@ describe('Submit', () => {
     const user = await fillValidForm()
     await user.click(screen.getByRole('button', { name: /continue/i }))
 
-    expect(await screen.findByRole('heading', { name: /my tickets/i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
   })
 
   it('shows a field-level error under Current password when it is wrong', async () => {

@@ -65,6 +65,8 @@ export type TicketSortField =
   | 'summary'
   | 'requestedPriority'
   | 'currentStatus'
+  // Lab 4 api-spec.md §4.2: the "View all" link from Recently Updated (BR-43).
+  | 'updatedAt'
 export type SortDirection = 'asc' | 'desc'
 
 export type TicketListResponse = {
@@ -244,6 +246,26 @@ export type StaffDashboardTicketItem = {
   currentStatus: TicketStatus
   ownerName: string | null
   updatedAt: string
+}
+
+// Lab 4 api-spec.md §5.1 (BR-39..BR-44): every value is scoped to the caller.
+export type RequesterDashboardTicketItem = {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: TicketStatus
+}
+
+export type RequesterDashboard = {
+  generatedAt: string
+  hasAnyTickets: boolean
+  metrics: {
+    openTickets: DashboardMetric
+    waitingForYou: DashboardMetric
+    resolvedLast30Days: DashboardMetric & { windowStart: string }
+  }
+  recentlyUpdated: (RequesterDashboardTicketItem & { updatedAt: string })[]
+  recentlyResolved: (RequesterDashboardTicketItem & { resolvedAt: string })[]
 }
 
 export type UserAccountCounts = { active: number; inactive: number; drillDown: string }

@@ -238,6 +238,12 @@ function StaffTicketQueue() {
     setSearchInput('')
     updateParams(Object.fromEntries(FILTER_PARAMS.map((key) => [key, ''])))
   }
+  // INVALID_FILTER also covers a bad sortBy or sortDir, so the banner's
+  // Clear filters drops every param, sort included.
+  const clearAllParams = () => {
+    setSearchInput('')
+    setParams({}, { replace: true })
+  }
 
   const activeFilterChips: { key: string; label: string; clear: () => void }[] = []
   if (categoryId) {
@@ -506,7 +512,7 @@ function StaffTicketQueue() {
               : 'Unable to load the Ticket Queue. Please try again.'}
           </p>
           {invalidFilter ? (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
+            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearAllParams}>
               Clear filters
             </button>
           ) : (

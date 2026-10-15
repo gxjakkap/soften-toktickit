@@ -604,6 +604,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={publicSubmitting || publicDraft.trim().length === 0}
                   aria-disabled={publicSubmitting || publicDraft.trim().length === 0}
+                  aria-busy={publicSubmitting}
                   onClick={handlePostPublic}
                 >
                   {publicSubmitting ? 'Posting…' : 'Post Comment'}
@@ -671,6 +672,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={noteSubmitting || noteDraft.trim().length === 0}
                   aria-disabled={noteSubmitting || noteDraft.trim().length === 0}
+                  aria-busy={noteSubmitting}
                   onClick={handlePostNote}
                 >
                   {noteSubmitting ? 'Posting…' : 'Post Internal Note'}

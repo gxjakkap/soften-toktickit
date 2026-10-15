@@ -1,9 +1,10 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../../src/App'
 import { AuthProvider } from '../../src/AuthContext'
-import { testStaffUser } from '../helpers/auth'
+import { testAdminUser, testStaffUser, testUser } from '../helpers/auth'
 import type { StaffTicketDetail } from '../../src/types'
 
 // UI-39..UI-46 — AC-34, AC-37, AC-41, AC-42, AC-44: docs/lab-04 ui-spec.md
@@ -160,5 +161,131 @@ describe('UI-42: password reset mid-session (Lab 3 FR-02)', () => {
     })
     renderAt('/staff/tickets')
     expect(await screen.findByRole('heading', { name: 'Change Your Password' })).toBeTruthy()
+  })
+})
+
+const serverError = () => apiError(500, 'INTERNAL_ERROR', 'Something went wrong. Please try again.')
+
+describe('UI-43: comment composers are busy while posting and keep input on failure (FR-20, FR-21)', () => {
+  it.each([
+    ['Add a comment', 'Post Comment', 'PUBLIC'],
+    ['Add an internal note', 'Post Internal Note', 'INTERNAL'],
+  ])('%s: one request per click, busy state, draft kept after a 500', async (label, button) => {
+    let release!: (r: Response) => void
+    const posts: string[] = []
+    stubApi(testStaffUser, (url, init) => {
+      if (init?.method === 'POST' && url === '/api/staff/tickets/101/comments') {
+        posts.push(String(init.body))
+        return new Promise<Response>((resolve) => (release = resolve))
+      }
+      return staffReads(staffDetail())(url, init)
+    })
+    renderAt('/staff/tickets/101')
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText(label), 'Rebooted the dock, still flaky.')
+    const submit = screen.getByRole('button', { name: button })
+    await user.click(submit)
+    await user.click(submit)
+
+    const busy = await screen.findByRole('button', { name: 'Posting…' })
+    expect(busy.getAttribute('aria-busy')).toBe('true')
+    expect(busy).toHaveProperty('disabled', true)
+    expect(posts).toHaveLength(1)
+
+    release(serverError())
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Something went wrong. Please try again.',
+    )
+    expect((screen.getByLabelText(label) as HTMLTextAreaElement).value).toBe(
+      'Rebooted the dock, still flaky.',
+    )
+  })
+})
+
+describe('UI-44: Requester comment keeps its draft after a network failure (FR-20)', () => {
+  it('shows the safe message and keeps the text', async () => {
+    stubApi(testUser, (url, init) => {
+      if (init?.method === 'POST') return Promise.reject(new TypeError('Failed to fetch'))
+      if (url === '/api/tickets/101') return json({ ...staffDetail(), comments: [] })
+      if (url === '/api/tickets/101/status-history') return json({ data: [] })
+      if (url === '/api/tickets/101/actions') return json({ data: [] })
+      return undefined
+    })
+    renderAt('/tickets/101')
+    const user = userEvent.setup()
+    await user.type(await screen.findByLabelText('Add a comment'), 'Still broken after lunch.')
+    await user.click(screen.getByRole('button', { name: 'Post Comment' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Something went wrong. Please try again.',
+    )
+    expect((screen.getByLabelText('Add a comment') as HTMLTextAreaElement).value).toBe(
+      'Still broken after lunch.',
+    )
+  })
+})
+
+describe('UI-45: admin user form is busy while saving and keeps input on failure (FR-20, FR-21)', () => {
+  it('keeps every field after a 500 and sends one request per click', async () => {
+    let release!: (r: Response) => void
+    let posts = 0
+    stubApi(testAdminUser, (url, init) => {
+      if (!init?.method && url.startsWith('/api/admin/users'))
+        return json({ data: [], totalCount: 0 })
+      if (init?.method === 'POST' && url === '/api/admin/users') {
+        posts++
+        return new Promise<Response>((resolve) => (release = resolve))
+      }
+      return undefined
+    })
+    renderAt('/admin/users')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /create user/i }))
+    const panel = screen.getByTestId('user-panel')
+    await user.type(within(panel).getByLabelText(/full name/i), 'Dana Lee')
+    await user.type(within(panel).getByLabelText(/email address/i), 'dana.lee@example.com')
+    await user.selectOptions(within(panel).getByLabelText(/^role/i), 'IT_STAFF')
+    await user.type(within(panel).getByLabelText(/initial password/i), 'N3w!Passw0rd')
+    const save = within(panel).getByRole('button', { name: 'Save User' })
+    await user.click(save)
+    await user.click(save)
+
+    const busy = within(panel).getByRole('button', { name: 'Saving…' })
+    expect(busy.getAttribute('aria-busy')).toBe('true')
+    expect(posts).toBe(1)
+
+    release(serverError())
+    await within(panel).findByRole('alert')
+    expect((within(panel).getByLabelText(/full name/i) as HTMLInputElement).value).toBe('Dana Lee')
+    expect((within(panel).getByLabelText(/email address/i) as HTMLInputElement).value).toBe(
+      'dana.lee@example.com',
+    )
+    expect((within(panel).getByLabelText(/^role/i) as HTMLSelectElement).value).toBe('IT_STAFF')
+  })
+})
+
+describe('UI-46: Change Password keeps the fields after a server failure (FR-20)', () => {
+  it('keeps what the user typed and shows the safe message', async () => {
+    stubApi({ ...testUser, mustChangePassword: true }, (url, init) =>
+      init?.method === 'POST' && url === '/api/auth/change-password' ? serverError() : undefined,
+    )
+    renderAt('/change-password')
+    const user = userEvent.setup()
+    const current = await screen.findByLabelText(/^current \(temporary\) password/i, {
+      selector: 'input',
+    })
+    await user.type(current, 'DevPass123!')
+    await user.type(screen.getByLabelText(/^new password/i, { selector: 'input' }), 'N3w!Passw0rd')
+    await user.type(
+      screen.getByLabelText(/^confirm new password/i, { selector: 'input' }),
+      'N3w!Passw0rd',
+    )
+    await user.click(screen.getByRole('button', { name: /continue/i }))
+    await waitFor(() =>
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeTruthy(),
+    )
+    expect((current as HTMLInputElement).value).toBe('DevPass123!')
+    expect(
+      (screen.getByLabelText(/^new password/i, { selector: 'input' }) as HTMLInputElement).value,
+    ).toBe('N3w!Passw0rd')
   })
 })

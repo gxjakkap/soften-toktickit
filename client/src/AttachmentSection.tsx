@@ -381,6 +381,7 @@ function AttachmentSection({
                     className="zg-btn zg-btn-destructive"
                     disabled={removing}
                     aria-disabled={removing}
+                    aria-busy={removing}
                     onClick={confirmRemove}
                   >
                     {removing ? 'Removing…' : 'Remove'}

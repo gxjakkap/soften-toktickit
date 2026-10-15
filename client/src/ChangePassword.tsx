@@ -121,8 +121,8 @@ function ChangePassword() {
               className="zg-btn zg-btn-primary"
               disabled={submitting || !canSubmit}
               aria-disabled={submitting || !canSubmit}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Saving…' : 'Continue'}
             </button>
           </div>

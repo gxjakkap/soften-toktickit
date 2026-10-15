@@ -630,8 +630,8 @@ function CreateTicket() {
               className="zg-btn zg-btn-primary"
               disabled={submitting}
               aria-disabled={submitting}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Submitting…' : 'Submit'}
             </button>
           </div>

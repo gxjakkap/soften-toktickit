@@ -289,6 +289,7 @@ function RequesterTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={commentSubmitting || commentDraft.trim().length === 0}
                   aria-disabled={commentSubmitting || commentDraft.trim().length === 0}
+                  aria-busy={commentSubmitting}
                   onClick={handlePostComment}
                 >
                   {commentSubmitting ? 'Posting…' : 'Post Comment'}
@@ -344,6 +345,7 @@ function RequesterTicketDetail() {
                         className="zg-btn zg-btn-primary"
                         disabled={resolving}
                         aria-disabled={resolving}
+                        aria-busy={resolving}
                         onClick={confirmMarkResolved}
                       >
                         {resolving ? 'Confirming…' : 'Confirm'}

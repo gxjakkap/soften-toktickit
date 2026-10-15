@@ -134,8 +134,8 @@ function Login() {
               className="zg-btn zg-btn-primary"
               disabled={submitting}
               aria-disabled={submitting}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Signing in…' : 'Sign In'}
             </button>
           </div>

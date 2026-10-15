@@ -293,7 +293,7 @@ function UserPanel({
         )}
 
         <div className="zg-um-actions">
-          <button type="submit" className="zg-btn zg-btn-primary" disabled={busy}>
+          <button type="submit" className="zg-btn zg-btn-primary" disabled={busy} aria-busy={busy}>
             {busy ? 'Saving…' : editing ? 'Save Changes' : 'Save User'}
           </button>
           <button type="button" className="zg-btn zg-btn-secondary" onClick={onClose}>
@@ -340,6 +340,7 @@ function UserPanel({
                 type="button"
                 className="zg-btn zg-btn-secondary"
                 disabled={pwBusy}
+                aria-busy={pwBusy}
                 onClick={submitPassword}
               >
                 {pwBusy ? 'Saving…' : 'Save Password'}

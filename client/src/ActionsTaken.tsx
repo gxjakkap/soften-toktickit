@@ -1029,7 +1029,6 @@ function ActionForm({
           aria-disabled={saving}
           aria-busy={saving}
         >
-          {saving && <span className="zg-spinner" aria-hidden="true" />}
           {saving ? 'Saving…' : editing ? 'Save Changes' : 'Save Action'}
         </button>
       </div>

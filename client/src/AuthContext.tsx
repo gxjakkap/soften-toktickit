@@ -61,8 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setStatus('anonymous')
     }
+    // RequireAuth then sends the user to Change Password (Lab 3 FR-02).
+    const handlePasswordChangeRequired = () =>
+      setUser((prev) => (prev ? { ...prev, mustChangePassword: true } : prev))
     sessionInvalidated.addEventListener('invalidated', handleInvalidated)
-    return () => sessionInvalidated.removeEventListener('invalidated', handleInvalidated)
+    sessionInvalidated.addEventListener('passwordChangeRequired', handlePasswordChangeRequired)
+    return () => {
+      sessionInvalidated.removeEventListener('invalidated', handleInvalidated)
+      sessionInvalidated.removeEventListener('passwordChangeRequired', handlePasswordChangeRequired)
+    }
   }, [])
 
   const value = useMemo(

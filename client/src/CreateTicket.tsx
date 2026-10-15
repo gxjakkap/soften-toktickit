@@ -11,7 +11,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, createTicket, fetchCategories, fetchRelatedSystems } from './apiClient'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden } from './FeedbackState'
 import {
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
@@ -363,14 +363,10 @@ function CreateTicket() {
           </p>
         )}
         {refState === 'error' && (
-          <div>
-            <p className="zg-error" role="alert">
-              Unable to load Category/Related System options. Please try again.
-            </p>
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={loadReferenceData}>
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            message="Unable to load Category/Related System options. Please try again."
+            onAction={loadReferenceData}
+          />
         )}
         {refState === 'ready' && (
           <div className="zg-grid-3">

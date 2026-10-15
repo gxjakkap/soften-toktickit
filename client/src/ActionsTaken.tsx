@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { ApiError, createAction, fetchActions, updateAction, type ActionInput } from './apiClient'
 import { ActionStatusBadge, FollowUpBadge, RoleBadge, UserStatusBadge } from './badges'
+import { ErrorState } from './FeedbackState'
 import { formatDateTime, fromBangkokInput, toBangkokInput } from './lib/datetime'
 import {
   ACTION_STATUS_LABEL,
@@ -256,14 +257,7 @@ function ActionsTaken({
       {form?.mode === 'create' && formFor()}
 
       {failed ? (
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
-          <p className="zg-error-message" role="alert">
-            Unable to load the actions taken.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load the actions taken." onAction={load} />
       ) : actions === null ? (
         <div style={{ marginTop: 'var(--zg-space-4)' }} aria-live="polite">
           <span className="zg-visually-hidden">Loading actions taken…</span>

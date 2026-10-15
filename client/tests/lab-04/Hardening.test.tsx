@@ -99,3 +99,66 @@ describe('UI-39: IT Staff Ticket Detail section order (ui-spec.md §5)', () => {
     ])
   })
 })
+
+const apiError = (status: number, code: string, message: string) =>
+  json({ error: { code, message } }, status)
+
+describe('UI-40: shared not-found and forbidden states (ui-spec.md §11)', () => {
+  it('shows the not-found card as the page heading with one way back', async () => {
+    stubApi(testStaffUser, staffReads(apiError(404, 'NOT_FOUND', 'Ticket not found.')))
+    renderAt('/staff/tickets/101')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Ticket not found.' })).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: 'Back to Ticket Queue' })).toHaveLength(1)
+  })
+
+  it('shows the forbidden state, with a heading, when the API answers 403', async () => {
+    stubApi(testStaffUser, staffReads(apiError(403, 'FORBIDDEN', 'Not allowed.')))
+    renderAt('/staff/tickets/101')
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: "You don't have access to this page.",
+      }),
+    ).toBeTruthy()
+    expect(screen.queryByText('Not allowed.')).toBeNull()
+  })
+
+  it('shows the forbidden state on a list screen when the API answers 403', async () => {
+    stubApi(testStaffUser, (url) => {
+      if (url === '/api/categories') return json([])
+      if (url.startsWith('/api/staff/tickets?')) return apiError(403, 'FORBIDDEN', 'Not allowed.')
+      return undefined
+    })
+    renderAt('/staff/tickets')
+    expect(await screen.findByTestId('queue-forbidden')).toBeTruthy()
+  })
+})
+
+describe('UI-41: invalid drill-down filter offers one Clear filters (ui-spec.md §2.5)', () => {
+  it('hides the header Clear Filters while the banner offers its own', async () => {
+    stubApi(testStaffUser, (url) => {
+      if (url === '/api/categories') return json([])
+      if (url.startsWith('/api/staff/tickets?'))
+        return apiError(400, 'INVALID_FILTER', 'followUp is not a valid filter.')
+      return undefined
+    })
+    renderAt('/staff/tickets?followUp=bogus')
+    expect(
+      await screen.findByText('This link has a filter the Ticket Queue does not recognize.'),
+    ).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /clear filters/i })).toHaveLength(1)
+  })
+})
+
+describe('UI-42: password reset mid-session (Lab 3 FR-02)', () => {
+  it('sends the user to Change Password when the API says a change is required', async () => {
+    stubApi(testStaffUser, (url) => {
+      if (url === '/api/categories') return json([])
+      if (url.startsWith('/api/staff/tickets?'))
+        return apiError(403, 'PASSWORD_CHANGE_REQUIRED', 'You must change your password.')
+      return undefined
+    })
+    renderAt('/staff/tickets')
+    expect(await screen.findByRole('heading', { name: 'Change Your Password' })).toBeTruthy()
+  })
+})

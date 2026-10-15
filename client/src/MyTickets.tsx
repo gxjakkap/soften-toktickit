@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchCategories, fetchTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { EmptyState, ErrorState, Forbidden } from './FeedbackState'
 import { formatBangkokDate, formatDate } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
@@ -14,7 +14,7 @@ import type {
   TicketStatus,
 } from './types'
 
-type LoadState = 'loading' | 'ready' | 'error'
+type LoadState = 'loading' | 'ready' | 'error' | 'forbidden'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
@@ -163,7 +163,8 @@ function MyTickets() {
       .catch((err) => {
         // ui-spec.md §2.5: a bad URL param gets a Clear filters action.
         setInvalidFilter(err instanceof ApiError && err.code === 'INVALID_FILTER')
-        setState('error')
+        // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+        setState(err instanceof ApiError && err.code === 'FORBIDDEN' ? 'forbidden' : 'error')
       })
   }, [
     user,
@@ -231,7 +232,7 @@ function MyTickets() {
   // specification.md §12-14: an IT Staff or Administrator reaching this
   // Requester route directly gets the same full-page forbidden state as
   // the IT Staff/Administrator screens, never a silent error banner.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden testId="my-tickets-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
     )
@@ -246,7 +247,7 @@ function MyTickets() {
         </div>
         {!isEmptyAccount && (
           <div className="zg-actions" style={{ justifyContent: 'flex-end' }}>
-            {!isNoResults && (
+            {!isNoResults && !invalidFilter && (
               <button type="button" className="zg-btn zg-btn-tertiary" onClick={clearFilters}>
                 Clear Filters
               </button>
@@ -352,56 +353,32 @@ function MyTickets() {
         </p>
       )}
 
-      {state === 'error' && (
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
-          <p className="zg-error" role="alert">
-            {invalidFilter
-              ? 'This link has a filter My Tickets does not recognize.'
-              : 'Unable to load your tickets. Please try again.'}
-          </p>
-          {invalidFilter ? (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearAllParams}>
-              Clear filters
-            </button>
-          ) : (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-              Retry
-            </button>
-          )}
-        </div>
-      )}
+      {state === 'error' &&
+        (invalidFilter ? (
+          <ErrorState
+            message="This link has a filter My Tickets does not recognize."
+            actionLabel="Clear filters"
+            onAction={clearAllParams}
+          />
+        ) : (
+          <ErrorState message="Unable to load your tickets. Please try again." onAction={load} />
+        ))}
 
       {isEmptyAccount && (
-        <div className="zg-callout" style={{ marginTop: 'var(--zg-space-5)', textAlign: 'center' }}>
-          <i className="bi bi-inbox" aria-hidden="true" style={{ fontSize: '32px' }} />
-          <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
-            You haven't created any tickets yet
-          </p>
-          <Link
-            to="/tickets/new"
-            className="zg-btn zg-btn-primary"
-            style={{ marginTop: 'var(--zg-space-3)' }}
-          >
+        <EmptyState icon="bi-inbox" title="You haven't created any tickets yet">
+          <Link to="/tickets/new" className="zg-btn zg-btn-primary">
             <i className="bi bi-plus-lg" aria-hidden="true" />
             Create Your First Ticket
           </Link>
-        </div>
+        </EmptyState>
       )}
 
       {isNoResults && (
-        <div className="zg-callout" style={{ marginTop: 'var(--zg-space-5)', textAlign: 'center' }}>
-          <p className="zg-title" style={{ fontSize: '18px' }}>
-            No tickets match your filters
-          </p>
-          <button
-            type="button"
-            className="zg-btn zg-btn-secondary"
-            style={{ marginTop: 'var(--zg-space-3)' }}
-            onClick={clearFilters}
-          >
+        <EmptyState title="No tickets match your filters">
+          <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
             Clear Filters
           </button>
-        </div>
+        </EmptyState>
       )}
 
       {hasRows && response && (

@@ -8,7 +8,7 @@ import {
 } from './apiClient'
 import { useSearchParams } from 'react-router-dom'
 import { RoleBadge, UserStatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { EmptyState, ErrorState, Forbidden } from './FeedbackState'
 import { isStrongPassword } from './lib/password-rules'
 import { roleHomePath } from './lib/role-routes'
 import PasswordChecklist from './PasswordChecklist'
@@ -19,7 +19,7 @@ import type { AdminUser, UserRole } from './types'
 // Every disabled control here is a convenience: the server enforces the same
 // rules regardless (FR-06).
 
-type LoadState = 'loading' | 'ready' | 'error'
+type LoadState = 'loading' | 'ready' | 'error' | 'forbidden'
 type Panel = { mode: 'create' } | { mode: 'edit'; user: AdminUser } | null
 type FieldErrors = Partial<Record<'name' | 'email' | 'role' | 'initialPassword', string>>
 
@@ -409,7 +409,10 @@ function UserManagement() {
         setUsers(res.data)
         setState('ready')
       })
-      .catch(() => setState('error'))
+      .catch((err) =>
+        // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+        setState(err instanceof ApiError && err.code === 'FORBIDDEN' ? 'forbidden' : 'error'),
+      )
   }, [allowed, search, role])
 
   useEffect(load, [load])
@@ -432,7 +435,7 @@ function UserManagement() {
 
   // ui-spec.md §7: a non-Administrator reaching this route gets a full-page
   // forbidden state, not a redirect; the API rejects them with 403 regardless.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return <Forbidden testId="users-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }
 
@@ -543,28 +546,17 @@ function UserManagement() {
           )}
 
           {state === 'error' && (
-            <div style={{ marginTop: 'var(--zg-space-4)' }}>
-              <p className="zg-error" role="alert">
-                Unable to load users. Please try again.
-              </p>
-              <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-                Retry
-              </button>
-            </div>
+            <ErrorState message="Unable to load users. Please try again." onAction={load} />
           )}
 
           {state === 'ready' && users.length === 0 && (
-            <div
-              className="zg-callout"
-              style={{ marginTop: 'var(--zg-space-4)', textAlign: 'center' }}
-            >
-              <p>No users match your search.</p>
+            <EmptyState title="No users match your search.">
               {filtered && (
                 <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
                   Clear Filters
                 </button>
               )}
-            </div>
+            </EmptyState>
           )}
 
           {users.length > 0 && state !== 'error' && (

@@ -4,14 +4,14 @@ import ActionsTaken from './ActionsTaken'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden, NotFound } from './FeedbackState'
 import StatusHistory from './StatusHistory'
 import { formatDate, formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { StatusHistoryEntry, TicketComment, TicketDetail } from './types'
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error' | 'forbidden'
 
 const COMMENT_MAX = 2000
 
@@ -60,6 +60,9 @@ function RequesterTicketDetail() {
         // the UI shows the same safe "not found" message either way.
         if (err instanceof ApiError && err.code === 'NOT_FOUND') {
           setState('not-found')
+        } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
+          // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+          setState('forbidden')
         } else {
           setState('error')
         }
@@ -107,7 +110,7 @@ function RequesterTicketDetail() {
   // specification.md §12-14: an IT Staff or Administrator reaching this
   // Requester route directly gets the full-page forbidden state, with no
   // Ticket request made.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden
         testId="requester-detail-forbidden"
@@ -118,14 +121,18 @@ function RequesterTicketDetail() {
 
   return (
     <div>
-      <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
-        <p className="zg-helper" style={{ margin: 0 }}>
-          My Tickets &gt; Ticket Detail
-        </p>
-        <Link to="/tickets" className="zg-btn zg-btn-secondary">
-          Back to My Tickets
-        </Link>
-      </div>
+      {/* The not-found card carries its own way back, so the header link
+          would only repeat it. */}
+      {state !== 'not-found' && (
+        <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
+          <p className="zg-helper" style={{ margin: 0 }}>
+            My Tickets &gt; Ticket Detail
+          </p>
+          <Link to="/tickets" className="zg-btn zg-btn-secondary">
+            Back to My Tickets
+          </Link>
+        </div>
+      )}
 
       {state === 'loading' && (
         <p className="zg-skeleton" aria-live="polite">
@@ -133,24 +140,10 @@ function RequesterTicketDetail() {
         </p>
       )}
 
-      {state === 'not-found' && (
-        <div className="zg-card">
-          <p>Ticket not found.</p>
-          <Link to="/tickets" className="zg-btn zg-btn-secondary">
-            Back to My Tickets
-          </Link>
-        </div>
-      )}
+      {state === 'not-found' && <NotFound backTo="/tickets" backLabel="Back to My Tickets" />}
 
       {state === 'error' && (
-        <div>
-          <p className="zg-error" role="alert">
-            Unable to load this ticket. Please try again.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load this ticket. Please try again." onAction={load} />
       )}
 
       {state === 'ready' && ticket && user && (

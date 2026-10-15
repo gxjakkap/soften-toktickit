@@ -14,7 +14,7 @@ import {
   updateTicketStatus,
 } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden, NotFound } from './FeedbackState'
 import StatusHistory from './StatusHistory'
 import { formatDateTime } from './lib/datetime'
 import { permittedTransitions } from './lib/ticket-status'
@@ -30,7 +30,7 @@ import type {
   TicketWorkflowState,
 } from './types'
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error' | 'forbidden'
 type WorkflowControl = 'owner' | 'priority' | 'status'
 
 const COMMENT_MAX = 2000
@@ -114,6 +114,9 @@ function StaffTicketDetail() {
       .catch((err) => {
         if (err instanceof ApiError && err.code === 'NOT_FOUND') {
           setState('not-found')
+        } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
+          // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+          setState('forbidden')
         } else {
           setState('error')
         }
@@ -260,7 +263,7 @@ function StaffTicketDetail() {
   }
 
   // ui-spec.md §6; Lab 4 BR-29: IT Staff and Administrators only.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden testId="detail-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
     )
@@ -283,14 +286,18 @@ function StaffTicketDetail() {
 
   return (
     <div>
-      <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
-        <p className="zg-helper" style={{ margin: 0 }}>
-          Ticket Queue &gt; Ticket Detail
-        </p>
-        <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-          Back to Ticket Queue
-        </Link>
-      </div>
+      {/* The not-found card carries its own way back, so the header link
+          would only repeat it. */}
+      {state !== 'not-found' && (
+        <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
+          <p className="zg-helper" style={{ margin: 0 }}>
+            Ticket Queue &gt; Ticket Detail
+          </p>
+          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
+            Back to Ticket Queue
+          </Link>
+        </div>
+      )}
 
       {state === 'loading' && (
         <p className="zg-skeleton" aria-live="polite">
@@ -299,23 +306,11 @@ function StaffTicketDetail() {
       )}
 
       {state === 'not-found' && (
-        <div className="zg-card">
-          <p>Ticket not found.</p>
-          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-            Back to Ticket Queue
-          </Link>
-        </div>
+        <NotFound backTo="/staff/tickets" backLabel="Back to Ticket Queue" />
       )}
 
       {state === 'error' && (
-        <div>
-          <p className="zg-error" role="alert">
-            Unable to load this ticket. Please try again.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load this ticket. Please try again." onAction={load} />
       )}
 
       {state === 'ready' && ticket && (

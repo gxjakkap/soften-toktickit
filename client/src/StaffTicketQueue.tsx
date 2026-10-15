@@ -603,9 +603,17 @@ function StaffTicketQueue() {
                   <strong>{t.ticketNumber}</strong>
                 </div>
                 <p style={{ margin: 'var(--zg-space-1) 0' }}>{t.summary}</p>
-                <div className="zg-actions">
-                  <PriorityBadge priority={t.requestedPriority} />
-                  <PriorityBadge priority={t.itPriority} />
+                <div className="zg-actions zg-card-badges">
+                  {/* Two priority badges need their names on a card, where
+                      no column header says which is which. */}
+                  <span className="zg-card-badge">
+                    <span className="zg-helper">Requested</span>
+                    <PriorityBadge priority={t.requestedPriority} />
+                  </span>
+                  <span className="zg-card-badge">
+                    <span className="zg-helper">IT</span>
+                    <PriorityBadge priority={t.itPriority} />
+                  </span>
                   <StatusBadge status={t.currentStatus} />
                 </div>
                 <p className="zg-helper" style={{ marginTop: 'var(--zg-space-2)' }}>

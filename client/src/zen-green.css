@@ -641,6 +641,32 @@ textarea.zg-field {
   gap: var(--zg-space-1);
 }
 
+/* Mobile: page numbers on their own row, Previous/Next together below,
+   and the "Showing …" line last, instead of wrapping one button alone. */
+@media (max-width: 767px) {
+  .zg-pagination-pages {
+    justify-content: center;
+    order: -1;
+    width: 100%;
+  }
+
+  .zg-pagination > .zg-helper {
+    order: 1;
+    text-align: center;
+    width: 100%;
+  }
+}
+
+.zg-card-badges {
+  justify-content: flex-start;
+}
+
+.zg-card-badge {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--zg-space-1);
+}
+
 .zg-success-banner {
   background: var(--zg-success-bg);
   border: 1px solid var(--zg-secondary);
@@ -954,6 +980,20 @@ textarea.zg-field {
 
 .zg-history-entry:last-child {
   border-bottom: 0;
+}
+
+/* Mobile: each part of an entry on its own line, so no "·" separator is
+   left dangling at the start of a wrapped line. */
+@media (max-width: 767px) {
+  .zg-history-entry {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--zg-space-1);
+  }
+
+  .zg-history-sep {
+    display: none;
+  }
 }
 
 .zg-history-change {

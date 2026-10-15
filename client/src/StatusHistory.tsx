@@ -62,11 +62,12 @@ function StatusHistory({
                   </span>
                 )}
                 <span>
-                  · <strong>{entry.changedBy.name}</strong>{' '}
-                  <RoleBadge role={entry.changedBy.role} />
+                  <span className="zg-history-sep">· </span>
+                  <strong>{entry.changedBy.name}</strong> <RoleBadge role={entry.changedBy.role} />
                 </span>
                 <span className="zg-helper">
-                  · <time dateTime={entry.changedAt}>{formatDateTime(entry.changedAt)}</time>
+                  <span className="zg-history-sep">· </span>
+                  <time dateTime={entry.changedAt}>{formatDateTime(entry.changedAt)}</time>
                 </span>
               </li>
             ))}

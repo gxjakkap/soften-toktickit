@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorState } from './FeedbackState'
 import { RoleBadge, StatusBadge } from './badges'
 import { formatDateTime } from './lib/datetime'
 import type { StatusHistoryEntry } from './types'
@@ -34,14 +35,7 @@ function StatusHistory({
       </h2>
 
       {failed ? (
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
-          <p className="zg-error-message" role="alert">
-            Unable to load the status history.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={onRetry}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load the status history." onAction={onRetry} />
       ) : shown === null ? (
         <p className="zg-skeleton" style={{ marginTop: 'var(--zg-space-4)' }}>
           Loading status history…
@@ -68,11 +62,12 @@ function StatusHistory({
                   </span>
                 )}
                 <span>
-                  · <strong>{entry.changedBy.name}</strong>{' '}
-                  <RoleBadge role={entry.changedBy.role} />
+                  <span className="zg-history-sep">· </span>
+                  <strong>{entry.changedBy.name}</strong> <RoleBadge role={entry.changedBy.role} />
                 </span>
                 <span className="zg-helper">
-                  · <time dateTime={entry.changedAt}>{formatDateTime(entry.changedAt)}</time>
+                  <span className="zg-history-sep">· </span>
+                  <time dateTime={entry.changedAt}>{formatDateTime(entry.changedAt)}</time>
                 </span>
               </li>
             ))}

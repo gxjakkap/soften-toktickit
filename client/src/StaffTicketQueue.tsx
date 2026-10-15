@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchActiveItStaff, fetchCategories, fetchStaffTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
-import { formatBangkokDate } from './lib/datetime'
+import { EmptyState, ErrorState, Forbidden } from './FeedbackState'
+import { formatBangkokDate, formatDate } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
@@ -16,7 +16,7 @@ import type {
   TicketStatus,
 } from './types'
 
-type LoadState = 'loading' | 'ready' | 'error'
+type LoadState = 'loading' | 'ready' | 'error' | 'forbidden'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
@@ -76,10 +76,6 @@ const SORTABLE_COLUMNS: { field: TicketQueueSortField; label: string }[] = [
   { field: 'itPriority', label: 'IT Priority' },
   { field: 'currentStatus', label: 'Status' },
 ]
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString()
-}
 
 function StaffTicketQueue() {
   const { user } = useAuth()
@@ -204,7 +200,8 @@ function StaffTicketQueue() {
       .catch((err) => {
         // ui-spec.md §2.5: a bad URL param gets a Clear filters action.
         setInvalidFilter(err instanceof ApiError && err.code === 'INVALID_FILTER')
-        setState('error')
+        // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+        setState(err instanceof ApiError && err.code === 'FORBIDDEN' ? 'forbidden' : 'error')
       })
   }, [
     user,
@@ -338,7 +335,7 @@ function StaffTicketQueue() {
 
   // ui-spec.md §5: a Requester reaching this route directly gets a full-page
   // forbidden state, never a silent redirect — the API already returns 403.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return <Forbidden testId="queue-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }
 
@@ -349,7 +346,7 @@ function StaffTicketQueue() {
           <h1 className="zg-title">Ticket Queue</h1>
           <p className="zg-helper">Search, filter, and open any Ticket in the shared queue.</p>
         </div>
-        {!isEmptyQueue && !isNoResults && (
+        {!isEmptyQueue && !isNoResults && !invalidFilter && (
           <button type="button" className="zg-btn zg-btn-tertiary" onClick={clearFilters}>
             Clear Filters
           </button>
@@ -504,48 +501,28 @@ function StaffTicketQueue() {
         </p>
       )}
 
-      {state === 'error' && (
-        <div style={{ marginTop: 'var(--zg-space-4)' }}>
-          <p className="zg-error" role="alert">
-            {invalidFilter
-              ? 'This link has a filter the Ticket Queue does not recognize.'
-              : 'Unable to load the Ticket Queue. Please try again.'}
-          </p>
-          {invalidFilter ? (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={clearAllParams}>
-              Clear filters
-            </button>
-          ) : (
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-              Retry
-            </button>
-          )}
-        </div>
-      )}
+      {state === 'error' &&
+        (invalidFilter ? (
+          <ErrorState
+            message="This link has a filter the Ticket Queue does not recognize."
+            actionLabel="Clear filters"
+            onAction={clearAllParams}
+          />
+        ) : (
+          <ErrorState
+            message="Unable to load the Ticket Queue. Please try again."
+            onAction={load}
+          />
+        ))}
 
-      {isEmptyQueue && (
-        <div className="zg-callout" style={{ marginTop: 'var(--zg-space-5)', textAlign: 'center' }}>
-          <i className="bi bi-inbox" aria-hidden="true" style={{ fontSize: '32px' }} />
-          <p className="zg-title" style={{ fontSize: '18px', marginTop: 'var(--zg-space-3)' }}>
-            No tickets exist yet
-          </p>
-        </div>
-      )}
+      {isEmptyQueue && <EmptyState icon="bi-inbox" title="No tickets exist yet" />}
 
       {isNoResults && (
-        <div className="zg-callout" style={{ marginTop: 'var(--zg-space-5)', textAlign: 'center' }}>
-          <p className="zg-title" style={{ fontSize: '18px' }}>
-            No tickets match your filters
-          </p>
-          <button
-            type="button"
-            className="zg-btn zg-btn-secondary"
-            style={{ marginTop: 'var(--zg-space-3)' }}
-            onClick={clearFilters}
-          >
+        <EmptyState title="No tickets match your filters">
+          <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
             Clear Filters
           </button>
-        </div>
+        </EmptyState>
       )}
 
       {hasRows && response && (
@@ -594,7 +571,9 @@ function StaffTicketQueue() {
                         {t.ticketNumber}
                       </Link>
                     </td>
-                    <td>{formatDate(t.createdAt)}</td>
+                    <td>
+                      <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time>
+                    </td>
                     <td>
                       <PriorityBadge priority={t.requestedPriority} />
                     </td>
@@ -624,16 +603,25 @@ function StaffTicketQueue() {
                   <strong>{t.ticketNumber}</strong>
                 </div>
                 <p style={{ margin: 'var(--zg-space-1) 0' }}>{t.summary}</p>
-                <div className="zg-actions">
-                  <PriorityBadge priority={t.requestedPriority} />
-                  <PriorityBadge priority={t.itPriority} />
+                <div className="zg-actions zg-card-badges">
+                  {/* Two priority badges need their names on a card, where
+                      no column header says which is which. */}
+                  <span className="zg-card-badge">
+                    <span className="zg-helper">Requested</span>
+                    <PriorityBadge priority={t.requestedPriority} />
+                  </span>
+                  <span className="zg-card-badge">
+                    <span className="zg-helper">IT</span>
+                    <PriorityBadge priority={t.itPriority} />
+                  </span>
                   <StatusBadge status={t.currentStatus} />
                 </div>
                 <p className="zg-helper" style={{ marginTop: 'var(--zg-space-2)' }}>
                   Owner: {t.ownerName ?? 'Unassigned'}
                 </p>
                 <p className="zg-helper">
-                  Created {formatDate(t.createdAt)} · Updated {formatDate(t.updatedAt)}
+                  Created <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time> · Updated{' '}
+                  <time dateTime={t.updatedAt}>{formatDate(t.updatedAt)}</time>
                 </p>
               </Link>
             ))}

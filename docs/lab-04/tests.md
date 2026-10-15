@@ -63,7 +63,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UNIT-04 | Unit | BR-06, BR-05, BR-08 | Action payload validation | Trims; enforces lengths; follow-up note required iff follow-up; note nulled when follow-up false; Result required for Done; future `actionAt` rejected only for Done; offset-less timestamp rejected | `server/tests/lab-04/action-rules.unit.test.ts` | Pass |
 | UNIT-05 | Unit | BR-34, AC-29 | `startOfBangkokDay`, `bangkokDateString` | `2026-10-06T16:59:59.999Z` → `2026-10-06`; `2026-10-06T17:00:00.000Z` → `2026-10-07`; start of `2026-10-07` = `2026-10-06T17:00:00Z`; 30-day window start | `server/tests/lab-04/bangkok-time.unit.test.ts` | Pass |
 | UNIT-06 | Unit | BR-21 | `nextResolvedAt(to, now, current)` | Set on →Resolved; kept on Resolved→Closed; cleared on →Reopened; unchanged otherwise | `server/tests/lab-04/ticket-workflow.unit.test.ts` | Pass |
-| UNIT-07 | Unit | BR-33, AC-37 | Client `formatDateTime` / `formatDate` | With `TZ=America/New_York`, renders `2026-10-06T07:05:00Z` as `6 Oct 2026, 14:05`; date-only form; `<time dateTime>` value is the ISO input | `client/tests/lab-04/datetime.test.ts` | Planned |
+| UNIT-07 | Unit | BR-33, AC-37 | Client `formatDateTime` / `formatDate` | With `TZ=America/New_York`, renders `2026-10-06T07:05:00Z` as `6 Oct 2026, 14:05`; date-only form; `<time dateTime>` value is the ISO input; September reads `Sep` | `client/tests/lab-04/datetime.test.ts` | Pass (the `<time dateTime>` wrapper is checked by HARD-02) |
 | UNIT-08 | Unit | BR-16 | Client and server matrices agree | `client/src/lib/ticket-status.ts` and `server/src/lib/ticket-status.ts` yield identical permitted sets for all 8 statuses | `client/tests/lab-04/ticket-status-parity.test.ts` | Pass |
 
 ### 2.2 API / Integration
@@ -242,6 +242,22 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UI-37 | UI | ui-spec.md §2.5 | Invalid URL filter | 400 `INVALID_FILTER` shows safe banner with Clear filters | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-38 | UI | AC-37 | Bangkok times on screens | With `TZ` ≠ Bangkok, My Tickets, both Ticket Details, and dashboards render Bangkok times | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Planned |
 
+**Final hardening, Issue #69** (`client/tests/lab-04/Hardening.test.tsx`):
+
+| Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
+| --- | --- | --- | --- | --- | --- | --- |
+| UI-39 | UI | ui-spec.md §5 | Staff Ticket Detail section order | Ownership → Actions Taken → Public Comments → Internal Notes → Attachments → Status History | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-40 | UI | FR-19, AC-34, ui-spec.md §11 | Shared not-found and forbidden states | 404 shows "Ticket not found." as the `<h1>` with one way back; an API 403 on Ticket Detail or the Queue shows the forbidden state with an `<h1>` and no server text | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-41 | UI | ui-spec.md §2.5, FR-24 | Invalid drill-down filter | Only the banner's Clear filters is offered; the header Clear Filters is hidden | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-42 | UI | Lab 3 FR-02 | Password reset mid-session | A `403 PASSWORD_CHANGE_REQUIRED` from any call sends the user to Change Password | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-43 | UI | FR-20, FR-21, BR-28, AC-44 | Public Comment and Internal Note composers | Two clicks send one request; button shows "Posting…", `disabled`, `aria-busy`; after a 500 the safe message shows and the draft stays | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-44 | UI | FR-20, AC-44 | Requester comment, network failure | Safe message; draft kept | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-45 | UI | FR-20, FR-21, AC-44 | Admin Create User | Two clicks send one request; busy state; after a 500 name, email, and role stay | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-46 | UI | FR-20, AC-44 | Change Password, server failure | Safe message; typed passwords stay in their fields | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-47 | UI | AC-42, ui-spec.md §9 | Confirmation dialogs | Focus moves into the dialog, Tab stays inside, Esc closes it, focus returns to the trigger | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-48 | UI | ui-spec.md §12 | Status and priority badges | Every Ticket status and priority badge has a text label and an icon | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-49 | UI | ui-spec.md §11 | Obsolete badge name | Waiting for Requester uses `.zg-badge-status-waiting` | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+
 ### 2.7 UI Style / Responsive / Accessibility
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
@@ -249,8 +265,11 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` | Partial (both dashboards' 3/2/1 card columns, list columns, and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
 | STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` | Planned |
 | STYLE-03 | Visual/Responsive | AC-43 | Lab 2/3 screens still clean | Re-run Lab 3 screenshot specs; no new overflow | `e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts` | Planned |
-| A11Y-01 | Accessibility | AC-42, ui-spec.md §9 | Automated scan | `@axe-core/playwright` on both dashboards, both Ticket Detail screens (Actions open), Queue, My Tickets: zero serious/critical violations | `e2e/lab-04/accessibility.spec.ts` | Planned |
+| A11Y-01 | Accessibility | AC-42, ui-spec.md §9 | Automated scan | `@axe-core/playwright` on both dashboards, both Ticket Detail screens (Actions open), Queue, My Tickets: zero serious/critical violations | `e2e/lab-04/hardening.spec.ts` (HARD-01 runs the scan on every screen, not only these) | Pass |
 | A11Y-02 | Accessibility | AC-42 | Keyboard-only | Tab through staff dashboard reaches every card link in order with visible focus; Enter on a card drills down; Actions form opens/closes by keyboard with focus return | `e2e/lab-04/accessibility.spec.ts` | Planned |
+| HARD-01 | Accessibility / Responsive | FR-19, FR-24, AC-34, AC-41, AC-43, ui-spec.md §11 | Every major screen per role (Requester, empty Requester, IT Staff, Administrator, password-change and inactive accounts) at 1440/768/375, including forbidden, not-found, invalid-filter, no-results, empty, validation, and dialog states | No console error or warning; no failed same-origin request other than the case's expected 4xx; `scrollWidth` ≤ viewport; zero serious/critical axe violations | `e2e/lab-04/hardening.spec.ts` | Pass |
+| HARD-02 | Visual | AC-37, BR-33 | Bangkok time under a New York browser | Queue date and Ticket Detail date/time equal the Bangkok rendering of the API instant; Bangkok-time hint shown on Ticket Detail | `e2e/lab-04/hardening.spec.ts` | Pass |
+| HARD-03 | Accessibility | AC-42, ui-spec.md §9 | Focus ring | Header link gets a white ring on the green header; page links get the Zen Green ring | `e2e/lab-04/hardening.spec.ts` | Pass |
 
 ### 2.8 End-to-End
 
@@ -307,17 +326,17 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | AC-31 | API-40, API-52, UI-03, UI-08, E2E-09 |
 | AC-32 | API-37, API-43, SEC-01 |
 | AC-33 | API-49, UI-05, E2E-10 |
-| AC-34 | UI-04, UI-10 |
+| AC-34 | UI-04, UI-10, UI-40 |
 | AC-35 | API-39, API-48 |
 | AC-36 | UI-32, UI-33, E2E-11 |
-| AC-37 | UNIT-07, UI-38, E2E-13 |
+| AC-37 | UNIT-07, UI-38, E2E-13, HARD-02 |
 | AC-38 | MIG-01, MIG-02 |
 | AC-39 | MIG-05 |
 | AC-40 | MIG-06 |
-| AC-41 | STYLE-01, STYLE-02 |
-| AC-42 | UI-23, A11Y-01, A11Y-02 |
+| AC-41 | STYLE-01, STYLE-02, HARD-01 |
+| AC-42 | UI-23, UI-47, A11Y-01, A11Y-02, HARD-03 |
 | AC-43 | MIG-07, MIG-08, MIG-09, STYLE-03, E2E-12 |
-| AC-44 | UI-18, UI-19 |
+| AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46 |
 | AC-45 | API-53 |
 | AC-46 | API-29 |
 | AC-47 | UI-34, UI-35, UI-36 |
@@ -329,19 +348,21 @@ Every AC-01–AC-47 maps to at least one planned test.
 Mirrors `ui-spec.md` §12. Each item is ticked with its evidence (test ID
 and screenshot path) in Issue #69/#70:
 
-- [ ] Zen Green consistency across dashboards and Ticket Detail screens
-- [ ] Metric cards readable, unclipped, value not color-only, at 3 viewports
-- [ ] Zero cards and empty lists show helper text
-- [ ] Editable vs. read-only vs. invalid vs. disabled Action fields
+- [x] Zen Green consistency across dashboards and Ticket Detail screens
+- [x] Metric cards readable, unclipped, value not color-only, at 3 viewports
+- [x] Zero cards and empty lists show helper text
+- [x] Editable vs. read-only vs. invalid vs. disabled Action fields
       consistent with Lab 2 §3
-- [ ] Validation placement directly under fields, no overlap
-- [ ] Cancelled Actions and inactive assignees distinguishable without color
-- [ ] Shared vs. private content distinct
-- [ ] Badges carry text and icon
-- [ ] Keyboard focus visible and logical; form focus return
-- [ ] No clipping, overlap, or horizontal scroll on any Lab 4 screen
-- [ ] Navigation per role with non-color active indication
-- [ ] Bangkok time shown under a non-Bangkok browser time zone
+- [x] Validation placement directly under fields, no overlap
+- [x] Cancelled Actions and inactive assignees distinguishable without color
+- [x] Shared vs. private content distinct
+- [x] Badges carry text and icon
+- [x] Keyboard focus visible and logical; form focus return
+- [x] No clipping, overlap, or horizontal scroll on any Lab 4 screen
+- [x] Navigation per role with non-color active indication
+- [x] Bangkok time shown under a non-Bangkok browser time zone
+
+Each item's evidence is recorded beside it in `ui-spec.md` §12 (Issue #69).
 
 ## 5. Test Commands
 
@@ -378,6 +399,7 @@ in the test file header. Nothing else in Lab 1–3 may change.
 | Seeded-owner check in "spreads tickets across owners…" (`server/tests/lab-03/schema-seed.integration.test.ts`) | BR-30 | A seeded Ticket owner may be an active Administrator as well as active IT Staff (the §7.6 seed makes Alex Morgan an owner) |
 | UI-14 (`client/tests/lab-02/RequesterTicketDetail.test.tsx`) | FR-09 | The new read-only "Status History" section matches the old `queryByLabelText(/^status/i)` check, so it now asserts no status combobox instead; same intent |
 | Fixture cleanup in the Lab 2/3 API tests that create Tickets through the API or change status, and `server/scripts/clean-e2e-fixtures.ts` | BR-22, §7.3-5 | History and Action rows are FK Restrict, so `afterAll` deletes them before the Tickets; no assertion changed |
+| "Login forgot-password link" (`client/tests/lab-03/Login.test.tsx`) | FR-24 | Lab 3 ui-spec §2 allowed an inert "Forgot your password?" control "if shown at all". Issue #69 removes it as an unfinished control, so the test asserts it is absent |
 
 ## 7. Final Results
 

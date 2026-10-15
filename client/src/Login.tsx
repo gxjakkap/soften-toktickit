@@ -62,10 +62,8 @@ function Login() {
   }
 
   return (
-    <div className="zg-page">
-      <h1 className="zg-wordmark" style={{ color: 'var(--zg-primary)' }}>
-        TokTickIT
-      </h1>
+    <main className="zg-page zg-auth-page">
+      <h1 className="zg-wordmark">TokTickIT</h1>
 
       <div className="zg-card zg-select-screen" style={{ marginTop: 'var(--zg-space-5)' }}>
         <h2 className="zg-title">Sign In</h2>
@@ -115,33 +113,20 @@ function Login() {
             />
           </div>
 
-          <div className="zg-actions" style={{ marginTop: 'var(--zg-space-2)' }}>
-            {/* No password-reset email in Lab 3 (specification.md §3 Excluded)
-                — shown inert with an explanation rather than silently broken. */}
-            <button
-              type="button"
-              className="zg-btn zg-btn-tertiary"
-              disabled
-              title="Password resets are performed by an Administrator."
-            >
-              Forgot your password?
-            </button>
-          </div>
-
           <div className="zg-actions" style={{ marginTop: 'var(--zg-space-4)' }}>
             <button
               type="submit"
               className="zg-btn zg-btn-primary"
               disabled={submitting}
               aria-disabled={submitting}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Signing in…' : 'Sign In'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </main>
   )
 }
 

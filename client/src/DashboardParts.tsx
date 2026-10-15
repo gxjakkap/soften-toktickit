@@ -42,7 +42,7 @@ export function DashboardHeader({
           disabled={refreshing}
           aria-busy={refreshing || undefined}
         >
-          <i className="bi bi-arrow-clockwise" aria-hidden="true" />
+          {!refreshing && <i className="bi bi-arrow-clockwise" aria-hidden="true" />}
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
         {children}

@@ -553,12 +553,6 @@ function StaffTicketDetail() {
             />
           )}
 
-          <AttachmentSection
-            ticketId={ticket.id}
-            initialAttachments={ticket.attachments}
-            readOnly
-          />
-
           <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
             <h2 className="zg-section-heading">Public Comments</h2>
 
@@ -689,6 +683,13 @@ function StaffTicketDetail() {
               </div>
             </div>
           </div>
+
+          {/* Lab 4 ui-spec.md §5: Attachments follow Internal Notes. */}
+          <AttachmentSection
+            ticketId={ticket.id}
+            initialAttachments={ticket.attachments}
+            readOnly
+          />
 
           <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
         </>

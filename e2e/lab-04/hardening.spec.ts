@@ -356,3 +356,26 @@ test('HARD-02: dates render in Bangkok time under a non-Bangkok browser zone', a
   )
   await context.close()
 })
+
+// HARD-03 — AC-42: ui-spec.md §9. Keyboard focus is visible on the green
+// header (white ring) and on the page (Zen Green ring).
+test('HARD-03: focus ring is visible on header and page links', async ({ browser }) => {
+  const { context, page } = await signedIn(browser, STAFF)
+  await page.goto('/dashboard')
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
+  const ring = () =>
+    page.evaluate(() => {
+      const style = getComputedStyle(document.activeElement as HTMLElement)
+      return `${style.outlineStyle} ${style.outlineColor}`
+    })
+
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'TokTickIT' })).toBeFocused()
+  expect(await ring()).toBe('solid rgb(255, 255, 255)')
+
+  await page.getByRole('link', { name: /^Unassigned: \d+\. View tickets$/ }).focus()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Tab')
+  expect(await ring()).toBe('solid rgb(11, 122, 70)')
+  await context.close()
+})

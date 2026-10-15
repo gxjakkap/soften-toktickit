@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchCategories, fetchTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
 import Forbidden from './Forbidden'
-import { formatBangkokDate } from './lib/datetime'
+import { formatBangkokDate, formatDate } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
@@ -64,10 +64,6 @@ const SORTABLE_COLUMNS: { field: TicketSortField; label: string }[] = [
   { field: 'requestedPriority', label: 'Requested Priority' },
   { field: 'currentStatus', label: 'Current Status' },
 ]
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString()
-}
 
 function MyTickets() {
   const { user } = useAuth()
@@ -447,7 +443,9 @@ function MyTickets() {
                         {t.ticketNumber}
                       </Link>
                     </td>
-                    <td>{formatDate(t.createdAt)}</td>
+                    <td>
+                      <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time>
+                    </td>
                     <td>{t.summary}</td>
                     <td>
                       <PriorityBadge priority={t.requestedPriority} />
@@ -456,7 +454,9 @@ function MyTickets() {
                       <StatusBadge status={t.currentStatus} />
                     </td>
                     <td>{t.categoryName}</td>
-                    <td>{formatDate(t.updatedAt)}</td>
+                    <td>
+                      <time dateTime={t.updatedAt}>{formatDate(t.updatedAt)}</time>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -479,7 +479,8 @@ function MyTickets() {
                   <StatusBadge status={t.currentStatus} />
                 </div>
                 <p className="zg-helper" style={{ marginTop: 'var(--zg-space-2)' }}>
-                  Created {formatDate(t.createdAt)} · Updated {formatDate(t.updatedAt)}
+                  Created <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time> · Updated{' '}
+                  <time dateTime={t.updatedAt}>{formatDate(t.updatedAt)}</time>
                 </p>
               </Link>
             ))}

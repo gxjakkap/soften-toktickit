@@ -322,6 +322,7 @@ function StaffTicketDetail() {
         <>
           <div className="zg-card">
             <h1 className="zg-title">{ticket.summary}</h1>
+            <p className="zg-helper">Times shown in Bangkok time (UTC+7)</p>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -329,7 +330,9 @@ function StaffTicketDetail() {
               </div>
               <div>
                 <span className="zg-label">Ticket Date</span>
-                <p>{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p>
+                  <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+                </p>
               </div>
               <div>
                 <span className="zg-label">Category</span>
@@ -571,7 +574,9 @@ function StaffTicketDetail() {
                       <strong>{comment.authorName}</strong>
                       <RoleBadge role={comment.authorRole} />
                       <span className="zg-helper">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        <time dateTime={comment.createdAt}>
+                          {formatDateTime(comment.createdAt)}
+                        </time>
                       </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>
@@ -637,7 +642,9 @@ function StaffTicketDetail() {
                     <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
                       <strong>{note.authorName}</strong>
                       <RoleBadge role={note.authorRole} />
-                      <span className="zg-helper">{new Date(note.createdAt).toLocaleString()}</span>
+                      <span className="zg-helper">
+                        <time dateTime={note.createdAt}>{formatDateTime(note.createdAt)}</time>
+                      </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{note.content}</p>
                   </li>

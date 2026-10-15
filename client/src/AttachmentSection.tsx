@@ -13,6 +13,7 @@ import {
   ensureFileName,
   isAllowedFile,
 } from './lib/attachment-validation'
+import { formatDate } from './lib/datetime'
 import type { Attachment } from './types'
 
 type PendingUpload = {
@@ -260,8 +261,14 @@ function AttachmentSection({
                   <>
                     {' '}
                     <span className="zg-badge zg-badge-removed">Removed</span>
-                    {attachment.removedAt &&
-                      ` on ${new Date(attachment.removedAt).toLocaleDateString()}`}
+                    {attachment.removedAt && (
+                      <>
+                        {' on '}
+                        <time dateTime={attachment.removedAt}>
+                          {formatDate(attachment.removedAt)}
+                        </time>
+                      </>
+                    )}
                   </>
                 )}
               </span>

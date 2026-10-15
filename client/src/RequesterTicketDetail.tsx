@@ -6,6 +6,7 @@ import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } 
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
 import Forbidden from './Forbidden'
 import StatusHistory from './StatusHistory'
+import { formatDate, formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { StatusHistoryEntry, TicketComment, TicketDetail } from './types'
@@ -161,7 +162,8 @@ function RequesterTicketDetail() {
               <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
                 {resolvedAt ? (
                   <span className="zg-badge zg-badge-status-resolved" data-testid="resolved-badge">
-                    Marked resolved by you on {new Date(resolvedAt).toLocaleDateString()}
+                    Marked resolved by you on{' '}
+                    <time dateTime={resolvedAt}>{formatDate(resolvedAt)}</time>
                   </span>
                 ) : (
                   <>
@@ -188,6 +190,7 @@ function RequesterTicketDetail() {
             <h1 className="zg-title" style={{ marginTop: 'var(--zg-space-3)' }}>
               {ticket.summary}
             </h1>
+            <p className="zg-helper">Times shown in Bangkok time (UTC+7)</p>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -195,7 +198,9 @@ function RequesterTicketDetail() {
               </div>
               <div>
                 <span className="zg-label">Ticket Date</span>
-                <p>{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p>
+                  <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+                </p>
               </div>
               <div>
                 <span className="zg-label">Category</span>
@@ -250,7 +255,9 @@ function RequesterTicketDetail() {
                       <strong>{comment.authorName}</strong>
                       <RoleBadge role={comment.authorRole} />
                       <span className="zg-helper">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        <time dateTime={comment.createdAt}>
+                          {formatDateTime(comment.createdAt)}
+                        </time>
                       </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>

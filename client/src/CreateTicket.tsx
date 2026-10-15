@@ -18,6 +18,7 @@ import {
   ensureFileName,
   isAllowedFile,
 } from './lib/attachment-validation'
+import { formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
@@ -335,7 +336,7 @@ function CreateTicket() {
               readOnly
               value={
                 createdTicket
-                  ? new Date(createdTicket.createdAt).toLocaleString()
+                  ? formatDateTime(createdTicket.createdAt)
                   : 'Generated after submission'
               }
             />

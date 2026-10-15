@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchActiveItStaff, fetchCategories, fetchStaffTickets } from './apiClient'
 import { PriorityBadge, StatusBadge } from './badges'
 import Forbidden from './Forbidden'
-import { formatBangkokDate } from './lib/datetime'
+import { formatBangkokDate, formatDate } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
@@ -76,10 +76,6 @@ const SORTABLE_COLUMNS: { field: TicketQueueSortField; label: string }[] = [
   { field: 'itPriority', label: 'IT Priority' },
   { field: 'currentStatus', label: 'Status' },
 ]
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString()
-}
 
 function StaffTicketQueue() {
   const { user } = useAuth()
@@ -594,7 +590,9 @@ function StaffTicketQueue() {
                         {t.ticketNumber}
                       </Link>
                     </td>
-                    <td>{formatDate(t.createdAt)}</td>
+                    <td>
+                      <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time>
+                    </td>
                     <td>
                       <PriorityBadge priority={t.requestedPriority} />
                     </td>
@@ -633,7 +631,8 @@ function StaffTicketQueue() {
                   Owner: {t.ownerName ?? 'Unassigned'}
                 </p>
                 <p className="zg-helper">
-                  Created {formatDate(t.createdAt)} · Updated {formatDate(t.updatedAt)}
+                  Created <time dateTime={t.createdAt}>{formatDate(t.createdAt)}</time> · Updated{' '}
+                  <time dateTime={t.updatedAt}>{formatDate(t.updatedAt)}</time>
                 </p>
               </Link>
             ))}

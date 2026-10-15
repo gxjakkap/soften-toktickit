@@ -22,6 +22,9 @@ const dateOnly = new Intl.DateTimeFormat('en-GB', {
 // A `YYYY-MM-DD` filter value is a Bangkok calendar day (BR-34): "6 Oct 2026".
 // An unparseable value (a hand-edited URL) comes back as typed, since
 // Intl.DateTimeFormat throws on an invalid Date.
+// A stored instant as its Bangkok calendar day: "6 Oct 2026".
+export const formatDate = (iso: string) => dateOnly.format(new Date(iso))
+
 export const formatBangkokDate = (date: string) => {
   const parsed = new Date(`${date}T00:00:00+07:00`)
   return Number.isNaN(parsed.getTime()) ? date : dateOnly.format(parsed)

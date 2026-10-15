@@ -496,7 +496,7 @@ textarea.zg-field {
   color: var(--zg-warning-text);
 }
 
-.zg-badge-status-pending {
+.zg-badge-status-waiting {
   background: var(--zg-warning-bg);
   color: var(--zg-warning-text);
 }

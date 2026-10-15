@@ -113,19 +113,6 @@ function Login() {
             />
           </div>
 
-          <div className="zg-actions" style={{ marginTop: 'var(--zg-space-2)' }}>
-            {/* No password-reset email in Lab 3 (specification.md §3 Excluded)
-                — shown inert with an explanation rather than silently broken. */}
-            <button
-              type="button"
-              className="zg-btn zg-btn-tertiary"
-              disabled
-              title="Password resets are performed by an Administrator."
-            >
-              Forgot your password?
-            </button>
-          </div>
-
           <div className="zg-actions" style={{ marginTop: 'var(--zg-space-4)' }}>
             <button
               type="submit"

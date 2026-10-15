@@ -20,7 +20,7 @@ const STATUS_BADGE_CLASS: Record<TicketStatus, string> = {
   NEW: 'zg-badge-status-new',
   OPEN: 'zg-badge-status-open',
   IN_PROGRESS: 'zg-badge-status-in-progress',
-  WAITING_FOR_REQUESTER: 'zg-badge-status-pending',
+  WAITING_FOR_REQUESTER: 'zg-badge-status-waiting',
   RESOLVED: 'zg-badge-status-resolved',
   CLOSED: 'zg-badge-status-closed',
   REOPENED: 'zg-badge-status-reopened',

@@ -327,3 +327,12 @@ describe('UI-48: Status and priority badges carry text and an icon (ui-spec.md ย
     }
   })
 })
+
+describe('UI-49: obsolete Lab 2 badge name removed (ui-spec.md ยง11)', () => {
+  it('Waiting for Requester uses the renamed waiting badge style', async () => {
+    stubApi(testStaffUser, staffReads(staffDetail({ currentStatus: 'WAITING_FOR_REQUESTER' })))
+    renderAt('/staff/tickets/101')
+    const badge = await screen.findByTestId('status-badge')
+    expect(badge.className).toContain('zg-badge-status-waiting')
+  })
+})

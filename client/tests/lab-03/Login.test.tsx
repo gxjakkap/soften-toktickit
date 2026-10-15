@@ -150,13 +150,15 @@ describe('Login submit', () => {
   })
 })
 
+// Lab 3 ui-spec §2 allowed the link only as an inert control ("if shown at
+// all"). Lab 4 FR-24 removes unfinished controls, so it is now absent
+// (docs/lab-04/tests.md §6).
 describe('Login forgot-password link', () => {
-  it('is present but inert, with an explanatory tooltip', async () => {
+  it('is not shown, since password resets are Administrator-only', async () => {
     mockApi(() => jsonResponse(testUser))
     renderLogin()
 
-    const link = await screen.findByRole('button', { name: /forgot your password/i })
-    expect((link as HTMLButtonElement).disabled).toBe(true)
-    expect(link.getAttribute('title')).toMatch(/administrator/i)
+    await screen.findByRole('button', { name: 'Sign In' })
+    expect(screen.queryByText(/forgot your password/i)).toBeNull()
   })
 })

@@ -147,6 +147,12 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | API-53 | API | AC-45, FR-22 | Health | 200 `database: ok` normally; with the DB probe mocked to throw, 503 `database: unreachable` and no error text | `server/tests/lab-04/health-and-errors.api.test.ts` | Planned |
 | API-54 | API | api-spec.md §0.2 | Safe 500 on new endpoints | A forced Prisma error in the Action create and dashboard handlers returns 500 `INTERNAL_ERROR` with the generic message only | `server/tests/lab-04/health-and-errors.api.test.ts` | Planned |
 
+**Route ids** (`server/tests/lab-04/route-ids.api.test.ts`):
+
+| Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
+| --- | --- | --- | --- | --- | --- | --- |
+| API-55 | API | BR-15, api-spec.md §0.2 | Route id past the Int4 range (`2147483648`) | Every Ticket, Attachment, and User route answers 404 `NOT_FOUND`, the same as any id that names no row, not a 500 | `server/tests/lab-04/route-ids.api.test.ts` | Pass |
+
 ### 2.3 Security / Authorization
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |

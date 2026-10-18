@@ -90,6 +90,15 @@ const unauthenticated = {
 }
 const isFilled = (v: unknown): v is string => typeof v === 'string' && v.trim() !== ''
 
+// A route id outside Postgres' Int4 range can't name a row, and Prisma throws
+// on it instead of finding nothing. NaN sends it down the same not-found or
+// validation path as any other non-integer id.
+const MAX_DB_ID = 2_147_483_647
+const toId = (raw: string | string[]) => {
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 1 && n <= MAX_DB_ID ? n : Number.NaN
+}
+
 // Compared against when the email is unknown so both failures cost one bcrypt
 // round and can't be told apart by timing (BR-06).
 const dummyHash = hashPassword('unused-password')
@@ -648,7 +657,7 @@ app.post(
   async (req, res) => {
     const requester = req.user!
 
-    const ticketId = Number(req.params.id)
+    const ticketId = toId(req.params.id)
     const ticket = Number.isInteger(ticketId)
       ? await prisma.ticket.findUnique({ where: { id: ticketId } })
       : null
@@ -717,7 +726,7 @@ app.post(
 app.get('/api/tickets/:id', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
   const requester = req.user!
 
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({
         where: { id: ticketId },
@@ -793,7 +802,7 @@ app.get(
   async (req, res) => {
     const requester = req.user!
 
-    const attachment = await findOwnedAttachment(Number(req.params.id), requester.id)
+    const attachment = await findOwnedAttachment(toId(req.params.id), requester.id)
     if (!attachment) {
       return res
         .status(404)
@@ -822,7 +831,7 @@ app.patch(
   async (req, res) => {
     const requester = req.user!
 
-    const attachment = await findOwnedAttachment(Number(req.params.id), requester.id)
+    const attachment = await findOwnedAttachment(toId(req.params.id), requester.id)
     if (!attachment) {
       return res
         .status(404)
@@ -877,7 +886,7 @@ app.post(
   async (req, res) => {
     const requester = req.user!
 
-    const ticketId = Number(req.params.id)
+    const ticketId = toId(req.params.id)
     const ticket = Number.isInteger(ticketId)
       ? await prisma.ticket.findUnique({ where: { id: ticketId } })
       : null
@@ -932,7 +941,7 @@ app.patch(
   async (req, res) => {
     const requester = req.user!
 
-    const ticketId = Number(req.params.id)
+    const ticketId = toId(req.params.id)
     const ticket = Number.isInteger(ticketId)
       ? await prisma.ticket.findUnique({ where: { id: ticketId } })
       : null
@@ -1159,7 +1168,7 @@ app.get('/api/staff/it-staff-users', ...staffRoles, async (_req, res) => {
 // regardless of visibility — this is the one place BR-04's Administrator
 // promise is actually reachable.
 app.get('/api/staff/tickets/:id', ...staffRoles, async (req, res) => {
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({
         where: { id: ticketId },
@@ -1310,7 +1319,7 @@ app.patch('/api/staff/tickets/:id/claim', ...staffRoles, async (req, res) => {
   const staff = req.user!
   if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
 
-  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (_tx, ticket) => {
+  await runWorkflowWrite(res, toId(req.params.id), req.body.version, async (_tx, ticket) => {
     if (ticket.ownerId === staff.id) return null
     if (ticket.ownerId !== null) {
       throw new RuleError(409, {
@@ -1332,7 +1341,7 @@ app.patch('/api/staff/tickets/:id/owner', ...staffRoles, async (req, res) => {
   if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
   const requested = req.body?.ownerId
 
-  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx) => {
+  await runWorkflowWrite(res, toId(req.params.id), req.body.version, async (tx) => {
     if (requested === null) return { ownerId: null }
     const candidate = Number(requested)
     const candidateUser = Number.isInteger(candidate)
@@ -1365,7 +1374,7 @@ app.patch('/api/staff/tickets/:id/priority', ...staffRoles, async (req, res) => 
   }
   if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
 
-  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async () => ({
+  await runWorkflowWrite(res, toId(req.params.id), req.body.version, async () => ({
     itPriority,
   }))
 })
@@ -1397,7 +1406,7 @@ app.patch('/api/staff/tickets/:id/status', ...staffRoles, async (req, res) => {
   }
   if (!isVersion(req.body?.version)) return res.status(400).json(missingVersion)
 
-  await runWorkflowWrite(res, Number(req.params.id), req.body.version, async (tx, ticket) => {
+  await runWorkflowWrite(res, toId(req.params.id), req.body.version, async (tx, ticket) => {
     if (!canTransition(ticket.currentStatus, status)) {
       throw new RuleError(409, {
         error: {
@@ -1457,7 +1466,7 @@ async function listStatusHistory(ticketId: number) {
 
 // Lab 4 api-spec.md §3.6 (FR-09, BR-22): read-only; no write route exists.
 app.get('/api/staff/tickets/:id/status-history', ...staffRoles, async (req, res) => {
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
     : null
@@ -1472,7 +1481,7 @@ app.get(
   ...requireAuth,
   requireRole('REQUESTER'),
   async (req, res) => {
-    const ticketId = Number(req.params.id)
+    const ticketId = toId(req.params.id)
     const ticket = Number.isInteger(ticketId)
       ? await prisma.ticket.findUnique({
           where: { id: ticketId },
@@ -1490,7 +1499,7 @@ app.get(
 // accepted from the client — this is the one caller allowed to write INTERNAL.
 app.post('/api/staff/tickets/:id/comments', ...staffRoles, async (req, res) => {
   const staff = req.user!
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
 
   const visibility = req.body?.visibility
   if (visibility !== 'PUBLIC' && visibility !== 'INTERNAL') {
@@ -1665,7 +1674,7 @@ async function findReplay(
 
 // api-spec.md §2.1 (FR-02, BR-13, AC-15).
 app.get('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } })
     : null
@@ -1675,7 +1684,7 @@ app.get('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
 
 // api-spec.md §2.4 (FR-05, BR-12, AC-06, AC-07): read-only, ownership-scoped.
 app.get('/api/tickets/:id/actions', ...requireAuth, requireRole('REQUESTER'), async (req, res) => {
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   const ticket = Number.isInteger(ticketId)
     ? await prisma.ticket.findUnique({ where: { id: ticketId }, select: { requesterId: true } })
     : null
@@ -1710,7 +1719,7 @@ app.post('/api/staff/tickets/:id/actions', ...staffRoles, async (req, res) => {
     return res.status(400).json(fieldError('VALIDATION_ERROR', violation.message, violation.field))
   }
 
-  const ticketId = Number(req.params.id)
+  const ticketId = toId(req.params.id)
   if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
 
   try {
@@ -1769,8 +1778,8 @@ app.patch('/api/staff/tickets/:id/actions/:actionId', ...staffRoles, async (req,
     return res.status(400).json(fieldError('VALIDATION_ERROR', message, field))
   }
 
-  const ticketId = Number(req.params.id)
-  const actionId = Number(req.params.actionId)
+  const ticketId = toId(req.params.id)
+  const actionId = toId(req.params.actionId)
   if (!Number.isInteger(ticketId)) return res.status(404).json(ticketNotFound)
   if (!Number.isInteger(actionId)) return res.status(404).json(actionNotFound)
 
@@ -2210,7 +2219,7 @@ app.patch(
   ...requireAuth,
   requireRole('ADMINISTRATOR'),
   async (req, res) => {
-    const targetId = Number(req.params.id)
+    const targetId = toId(req.params.id)
     const notFound = { error: { code: 'NOT_FOUND', message: 'User not found.' } }
     if (!Number.isInteger(targetId)) return res.status(404).json(notFound)
 
@@ -2325,7 +2334,7 @@ app.patch(
   ...requireAuth,
   requireRole('ADMINISTRATOR'),
   async (req, res) => {
-    const targetId = Number(req.params.id)
+    const targetId = toId(req.params.id)
     if (!Number.isInteger(targetId)) {
       return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found.' } })
     }

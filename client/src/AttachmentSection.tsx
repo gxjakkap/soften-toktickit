@@ -331,9 +331,15 @@ function AttachmentSection({
           id="remove-attachment"
           title="Remove Attachment"
           onClose={closeRemoveDialog}
+          busy={removing}
           footer={
             <>
-              <button type="button" className="zg-btn zg-btn-secondary" onClick={closeRemoveDialog}>
+              <button
+                type="button"
+                className="zg-btn zg-btn-secondary"
+                disabled={removing}
+                onClick={closeRemoveDialog}
+              >
                 Cancel
               </button>
               <button

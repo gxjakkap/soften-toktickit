@@ -7,7 +7,7 @@ import { AuthProvider } from '../../src/AuthContext'
 import { testAdminUser, testStaffUser, testUser } from '../helpers/auth'
 import type { StaffTicketDetail } from '../../src/types'
 
-// UI-39..UI-46 — AC-34, AC-37, AC-41, AC-42, AC-44: docs/lab-04 ui-spec.md
+// UI-39..UI-50 — AC-34, AC-37, AC-41, AC-42, AC-44: docs/lab-04 ui-spec.md
 // §5, §11 (FR-19, FR-20, FR-21, FR-24). Issue #69 hardening fixes: section
 // order, shared feedback states, busy state, kept input, and accessible
 // modals.
@@ -313,6 +313,87 @@ describe('UI-47: confirmation dialogs manage focus (ui-spec.md §9)', () => {
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(trigger)
+  })
+})
+
+describe('UI-50: confirmation dialogs stay open while their request is in flight (FR-20, FR-21)', () => {
+  // Cancel, the close button, and Esc all wait for the request, so a failure
+  // lands in the dialog that caused it instead of vanishing with it.
+  async function expectLocked(dialog: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
+    expect(
+      (within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+    expect(
+      (within(dialog).getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+    await user.keyboard('{Escape}')
+    expect(dialog.isConnected).toBe(true)
+  }
+
+  it('Remove Attachment keeps the dialog, the reason, and shows the error after a 500', async () => {
+    let release!: (r: Response) => void
+    const attachment = {
+      id: 9,
+      ticketId: 101,
+      originalFileName: 'battery.png',
+      mimeType: 'image/png',
+      sizeBytes: 2048,
+      uploadedAt: '2026-10-01T02:00:00.000Z',
+      isRemoved: false,
+    }
+    stubApi(testUser, (url, init) => {
+      if (init?.method === 'PATCH' && url === '/api/attachments/9/remove')
+        return new Promise<Response>((resolve) => (release = resolve))
+      if (init?.method) return undefined
+      if (url === '/api/tickets/101')
+        return json({ ...staffDetail({ attachments: [attachment] }), comments: [] })
+      if (url === '/api/tickets/101/status-history') return json({ data: [] })
+      if (url === '/api/tickets/101/actions') return json({ data: [] })
+      return undefined
+    })
+    renderAt('/tickets/101')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    const dialog = screen.getByRole('dialog', { name: 'Remove Attachment' })
+    await user.type(within(dialog).getByLabelText(/reason/i), 'Wrong file')
+    await user.click(within(dialog).getByRole('button', { name: 'Remove' }))
+
+    await expectLocked(dialog, user)
+
+    release(serverError())
+    expect(await within(dialog).findByText('Something went wrong. Please try again.')).toBeTruthy()
+    expect((within(dialog).getByLabelText(/reason/i) as HTMLTextAreaElement).value).toBe(
+      'Wrong file',
+    )
+    expect(
+      (within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled,
+    ).toBe(false)
+  })
+
+  it('Problem Appears Resolved keeps the dialog and shows the error after a 500', async () => {
+    let release!: (r: Response) => void
+    stubApi(testUser, (url, init) => {
+      if (init?.method === 'PATCH' && url === '/api/tickets/101/resolved')
+        return new Promise<Response>((resolve) => (release = resolve))
+      if (init?.method) return undefined
+      if (url === '/api/tickets/101') return json({ ...staffDetail(), comments: [] })
+      if (url === '/api/tickets/101/status-history') return json({ data: [] })
+      if (url === '/api/tickets/101/actions') return json({ data: [] })
+      return undefined
+    })
+    renderAt('/tickets/101')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Problem Appears Resolved' }))
+    const dialog = screen.getByRole('dialog', { name: 'Problem Appears Resolved' })
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }))
+
+    await expectLocked(dialog, user)
+
+    release(serverError())
+    expect(await within(dialog).findByText('Something went wrong. Please try again.')).toBeTruthy()
+    expect(
+      (within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled,
+    ).toBe(false)
   })
 })
 

@@ -257,6 +257,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UI-47 | UI | AC-42, ui-spec.md §9 | Confirmation dialogs | Focus moves into the dialog, Tab stays inside, Esc closes it, focus returns to the trigger | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 | UI-48 | UI | ui-spec.md §12 | Status and priority badges | Every Ticket status and priority badge has a text label and an icon | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 | UI-49 | UI | ui-spec.md §11 | Obsolete badge name | Waiting for Requester uses `.zg-badge-status-waiting` | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-50 | UI | FR-20, FR-21, AC-44 | Remove Attachment and Problem Appears Resolved, request in flight then 500 | Cancel, Close, and Esc can't dismiss the dialog mid-request; after the failure the dialog shows the safe message and keeps the reason | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 
 ### 2.7 UI Style / Responsive / Accessibility
 
@@ -336,7 +337,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | AC-41 | STYLE-01, STYLE-02, HARD-01 |
 | AC-42 | UI-23, UI-47, A11Y-01, A11Y-02, HARD-03 |
 | AC-43 | MIG-07, MIG-08, MIG-09, STYLE-03, E2E-12 |
-| AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46 |
+| AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46, UI-50 |
 | AC-45 | API-53 |
 | AC-46 | API-29 |
 | AC-47 | UI-34, UI-35, UI-36 |

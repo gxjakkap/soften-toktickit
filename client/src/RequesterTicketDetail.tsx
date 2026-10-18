@@ -304,11 +304,13 @@ function RequesterTicketDetail() {
               id="resolve-confirm"
               title="Problem Appears Resolved"
               onClose={() => setConfirmingResolve(false)}
+              busy={resolving}
               footer={
                 <>
                   <button
                     type="button"
                     className="zg-btn zg-btn-secondary"
+                    disabled={resolving}
                     onClick={() => setConfirmingResolve(false)}
                   >
                     Cancel

@@ -4,18 +4,22 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 
 // Lab 4 ui-spec.md §9 and handout §7 (no inaccessible modals): the one
 // confirmation dialog. Focus moves into it on open, Tab stays inside, Esc
-// closes it, and focus returns to whatever opened it.
+// closes it, and focus returns to whatever opened it. While `busy` (its
+// request is in flight) it can't be closed, so a failure still has a dialog
+// to show its error in and the user's input survives.
 function ModalDialog({
   id,
   title,
   onClose,
   footer,
+  busy = false,
   children,
 }: {
   id: string
   title: string
   onClose: () => void
   footer: ReactNode
+  busy?: boolean
   children: ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -31,7 +35,7 @@ function ModalDialog({
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       e.stopPropagation()
-      onCloseRef.current()
+      if (!busy) onCloseRef.current()
       return
     }
     if (e.key !== 'Tab' || !ref.current) return
@@ -70,6 +74,7 @@ function ModalDialog({
                 className="btn-close"
                 aria-label="Close"
                 title="Close"
+                disabled={busy}
                 onClick={onClose}
               />
             </div>

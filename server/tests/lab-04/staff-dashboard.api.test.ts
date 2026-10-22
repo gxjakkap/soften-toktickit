@@ -1,4 +1,4 @@
-// API-43..API-52 (tests.md §2.2); AC-28, AC-29, AC-30, AC-31, AC-32, AC-33, AC-35.
+// API-43..API-52, API-58 (tests.md §2.2); AC-28, AC-29, AC-30, AC-31, AC-32, AC-33, AC-35.
 import request from 'supertest'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { app } from '../../src/app.js'
@@ -508,5 +508,20 @@ describe('API-52 zero metrics (BR-37, AC-31)', () => {
     for (const entry of [...res.body.byStatus, ...res.body.activeByItPriority]) {
       expect(typeof entry.value).toBe('number')
     }
+  })
+
+  // Issue #70: a Bangkok day with no resolutions gives Resolved Today 0, and
+  // its drill-down is still present and returns an empty list (BR-37, BR-38).
+  it('API-58: Resolved Today is 0 with its drill-down intact on a day nothing was resolved', async () => {
+    // A past day: a future one would also expire the test session (BR-13).
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2020-03-01T05:00:00.000Z'))
+    const res = await dashboard(cookies.s1)
+    expect(res.body.metrics.resolvedToday).toEqual({
+      value: 0,
+      drillDown: '/staff/tickets?resolvedFrom=2020-03-01&resolvedTo=2020-03-01',
+    })
+    const list = await followDrillDown(cookies.s1, res.body.metrics.resolvedToday.drillDown)
+    expect(list.body.totalCount).toBe(0)
   })
 })

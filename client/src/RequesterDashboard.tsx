@@ -7,7 +7,7 @@ import {
   DashboardSection,
   DashboardSkeleton,
 } from './DashboardParts'
-import Forbidden from './Forbidden'
+import { Forbidden } from './FeedbackState'
 import { formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import MetricCard from './MetricCard'

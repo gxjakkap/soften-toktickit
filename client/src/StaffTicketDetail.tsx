@@ -14,7 +14,7 @@ import {
   updateTicketStatus,
 } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden, NotFound } from './FeedbackState'
 import StatusHistory from './StatusHistory'
 import { formatDateTime } from './lib/datetime'
 import { permittedTransitions } from './lib/ticket-status'
@@ -30,7 +30,7 @@ import type {
   TicketWorkflowState,
 } from './types'
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error' | 'forbidden'
 type WorkflowControl = 'owner' | 'priority' | 'status'
 
 const COMMENT_MAX = 2000
@@ -114,6 +114,9 @@ function StaffTicketDetail() {
       .catch((err) => {
         if (err instanceof ApiError && err.code === 'NOT_FOUND') {
           setState('not-found')
+        } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
+          // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+          setState('forbidden')
         } else {
           setState('error')
         }
@@ -260,7 +263,7 @@ function StaffTicketDetail() {
   }
 
   // ui-spec.md §6; Lab 4 BR-29: IT Staff and Administrators only.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden testId="detail-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
     )
@@ -283,14 +286,18 @@ function StaffTicketDetail() {
 
   return (
     <div>
-      <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
-        <p className="zg-helper" style={{ margin: 0 }}>
-          Ticket Queue &gt; Ticket Detail
-        </p>
-        <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-          Back to Ticket Queue
-        </Link>
-      </div>
+      {/* The not-found card carries its own way back, so the header link
+          would only repeat it. */}
+      {state !== 'not-found' && (
+        <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
+          <p className="zg-helper" style={{ margin: 0 }}>
+            Ticket Queue &gt; Ticket Detail
+          </p>
+          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
+            Back to Ticket Queue
+          </Link>
+        </div>
+      )}
 
       {state === 'loading' && (
         <p className="zg-skeleton" aria-live="polite">
@@ -299,29 +306,18 @@ function StaffTicketDetail() {
       )}
 
       {state === 'not-found' && (
-        <div className="zg-card">
-          <p>Ticket not found.</p>
-          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-            Back to Ticket Queue
-          </Link>
-        </div>
+        <NotFound backTo="/staff/tickets" backLabel="Back to Ticket Queue" />
       )}
 
       {state === 'error' && (
-        <div>
-          <p className="zg-error" role="alert">
-            Unable to load this ticket. Please try again.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load this ticket. Please try again." onAction={load} />
       )}
 
       {state === 'ready' && ticket && (
         <>
           <div className="zg-card">
             <h1 className="zg-title">{ticket.summary}</h1>
+            <p className="zg-helper">Times shown in Bangkok time (UTC+7)</p>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -329,7 +325,9 @@ function StaffTicketDetail() {
               </div>
               <div>
                 <span className="zg-label">Ticket Date</span>
-                <p>{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p>
+                  <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+                </p>
               </div>
               <div>
                 <span className="zg-label">Category</span>
@@ -550,12 +548,6 @@ function StaffTicketDetail() {
             />
           )}
 
-          <AttachmentSection
-            ticketId={ticket.id}
-            initialAttachments={ticket.attachments}
-            readOnly
-          />
-
           <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
             <h2 className="zg-section-heading">Public Comments</h2>
 
@@ -571,7 +563,9 @@ function StaffTicketDetail() {
                       <strong>{comment.authorName}</strong>
                       <RoleBadge role={comment.authorRole} />
                       <span className="zg-helper">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        <time dateTime={comment.createdAt}>
+                          {formatDateTime(comment.createdAt)}
+                        </time>
                       </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>
@@ -610,6 +604,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={publicSubmitting || publicDraft.trim().length === 0}
                   aria-disabled={publicSubmitting || publicDraft.trim().length === 0}
+                  aria-busy={publicSubmitting}
                   onClick={handlePostPublic}
                 >
                   {publicSubmitting ? 'Posting…' : 'Post Comment'}
@@ -637,7 +632,9 @@ function StaffTicketDetail() {
                     <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
                       <strong>{note.authorName}</strong>
                       <RoleBadge role={note.authorRole} />
-                      <span className="zg-helper">{new Date(note.createdAt).toLocaleString()}</span>
+                      <span className="zg-helper">
+                        <time dateTime={note.createdAt}>{formatDateTime(note.createdAt)}</time>
+                      </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{note.content}</p>
                   </li>
@@ -675,6 +672,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={noteSubmitting || noteDraft.trim().length === 0}
                   aria-disabled={noteSubmitting || noteDraft.trim().length === 0}
+                  aria-busy={noteSubmitting}
                   onClick={handlePostNote}
                 >
                   {noteSubmitting ? 'Posting…' : 'Post Internal Note'}
@@ -682,6 +680,13 @@ function StaffTicketDetail() {
               </div>
             </div>
           </div>
+
+          {/* Lab 4 ui-spec.md §5: Attachments follow Internal Notes. */}
+          <AttachmentSection
+            ticketId={ticket.id}
+            initialAttachments={ticket.attachments}
+            readOnly
+          />
 
           <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
         </>

@@ -58,6 +58,11 @@ async function parseJsonOrThrow<T>(res: Response): Promise<T> {
     if (body?.error?.code === 'UNAUTHENTICATED') {
       sessionInvalidated.dispatchEvent(new Event('invalidated'))
     }
+    // Lab 3 BR-02: an Administrator reset this user's password mid-session,
+    // so every protected route now answers 403 until it is changed.
+    if (body?.error?.code === 'PASSWORD_CHANGE_REQUIRED') {
+      sessionInvalidated.dispatchEvent(new Event('passwordChangeRequired'))
+    }
     throw new ApiError(
       body?.error?.message ?? 'Something went wrong. Please try again.',
       body?.error?.field,

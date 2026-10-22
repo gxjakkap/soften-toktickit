@@ -63,10 +63,8 @@ function ChangePassword() {
   }
 
   return (
-    <div className="zg-page">
-      <h1 className="zg-wordmark" style={{ color: 'var(--zg-primary)' }}>
-        TokTickIT
-      </h1>
+    <main className="zg-page zg-auth-page">
+      <h1 className="zg-wordmark">TokTickIT</h1>
 
       <div className="zg-card zg-select-screen" style={{ marginTop: 'var(--zg-space-5)' }}>
         <h2 className="zg-title">Change Your Password</h2>
@@ -121,14 +119,14 @@ function ChangePassword() {
               className="zg-btn zg-btn-primary"
               disabled={submitting || !canSubmit}
               aria-disabled={submitting || !canSubmit}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Saving…' : 'Continue'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </main>
   )
 }
 

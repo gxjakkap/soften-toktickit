@@ -10,7 +10,11 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
   hourCycle: 'h23',
 })
 
-export const formatDateTime = (iso: string) => dateTime.format(new Date(iso))
+// ICU's en-GB data abbreviates September as "Sept"; ui-spec.md §2.1 uses
+// three-letter months throughout, so every date output goes through this.
+const threeLetterMonth = (text: string) => text.replace('Sept', 'Sep')
+
+export const formatDateTime = (iso: string) => threeLetterMonth(dateTime.format(new Date(iso)))
 
 const dateOnly = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Bangkok',
@@ -19,12 +23,15 @@ const dateOnly = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 })
 
+// A stored instant as its Bangkok calendar day: "6 Oct 2026".
+export const formatDate = (iso: string) => threeLetterMonth(dateOnly.format(new Date(iso)))
+
 // A `YYYY-MM-DD` filter value is a Bangkok calendar day (BR-34): "6 Oct 2026".
 // An unparseable value (a hand-edited URL) comes back as typed, since
 // Intl.DateTimeFormat throws on an invalid Date.
 export const formatBangkokDate = (date: string) => {
   const parsed = new Date(`${date}T00:00:00+07:00`)
-  return Number.isNaN(parsed.getTime()) ? date : dateOnly.format(parsed)
+  return Number.isNaN(parsed.getTime()) ? date : threeLetterMonth(dateOnly.format(parsed))
 }
 
 const timeOnly = new Intl.DateTimeFormat('en-GB', {

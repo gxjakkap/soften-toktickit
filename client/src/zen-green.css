@@ -2,6 +2,13 @@
    replacing it. Only the rules the shipped screens need live here; later
    screens add their own. */
 :root {
+  /* Lab 4 ui-spec.md §11: plain links (Ticket Numbers in tables) use the
+     Zen Green primary, not Bootstrap blue, which also failed 4.5:1 on the
+     page background. */
+  --bs-link-color: #006b3c;
+  --bs-link-color-rgb: 0, 107, 60;
+  --bs-link-hover-color: #0b7a46;
+  --bs-link-hover-color-rgb: 11, 122, 70;
   --zg-primary: #006b3c;
   --zg-secondary: #0b7a46;
   --zg-pale: #eaf6ef;
@@ -97,9 +104,17 @@ body {
 .zg-field:focus-visible,
 .zg-btn:focus-visible,
 .zg-navlink:focus-visible,
-.zg-menu-toggle:focus-visible {
+.zg-menu-toggle:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--zg-secondary);
   outline-offset: 2px;
+}
+
+/* Lab 4 ui-spec.md §9: the green ring is invisible on the green header
+   (about 1.2:1), so header controls get a white one. */
+.zg-header a:focus-visible,
+.zg-header button:focus-visible {
+  outline-color: var(--zg-surface);
 }
 
 .zg-callout {
@@ -387,16 +402,23 @@ textarea.zg-field {
 }
 
 /* Busy Submit button — ui-spec §4. */
-.zg-spinner {
+.zg-spinner,
+.zg-btn[aria-busy='true']::before {
   animation: zg-spin 0.6s linear infinite;
-  border: 2px solid rgb(255 255 255 / 40%);
+  border: 2px solid currentColor;
   border-radius: 50%;
-  border-top-color: #fff;
+  border-top-color: transparent;
   display: inline-block;
   height: 14px;
   margin-right: var(--zg-space-2);
   vertical-align: middle;
   width: 14px;
+}
+
+/* Lab 4 ui-spec.md §2.3 (BR-28): every busy submit button shows the spinner
+   from its aria-busy state, so no screen can forget it. */
+.zg-btn[aria-busy='true']::before {
+  content: '';
 }
 
 @keyframes zg-spin {
@@ -482,7 +504,7 @@ textarea.zg-field {
   color: var(--zg-warning-text);
 }
 
-.zg-badge-status-pending {
+.zg-badge-status-waiting {
   background: var(--zg-warning-bg);
   color: var(--zg-warning-text);
 }
@@ -624,6 +646,32 @@ textarea.zg-field {
 .zg-pagination-pages {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}
+
+/* Mobile: page numbers on their own row, Previous/Next together below,
+   and the "Showing …" line last, instead of wrapping one button alone. */
+@media (max-width: 767px) {
+  .zg-pagination-pages {
+    justify-content: center;
+    order: -1;
+    width: 100%;
+  }
+
+  .zg-pagination > .zg-helper {
+    order: 1;
+    text-align: center;
+    width: 100%;
+  }
+}
+
+.zg-card-badges {
+  justify-content: flex-start;
+}
+
+.zg-card-badge {
+  align-items: center;
+  display: inline-flex;
   gap: var(--zg-space-1);
 }
 
@@ -795,10 +843,42 @@ textarea.zg-field {
 
 /* Full-page Forbidden state — ui-spec.md §5/§6/§7, shared by every
    role-gated screen a wrong role reaches by direct URL. */
+.zg-auth-page .zg-wordmark {
+  color: var(--zg-primary);
+}
+
 .zg-forbidden {
   margin: var(--zg-space-6) auto 0;
   max-width: 480px;
+}
+
+/* Lab 4 ui-spec.md §11: shared feedback states (FeedbackState.tsx). */
+.zg-feedback {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
   text-align: center;
+}
+
+.zg-feedback-icon {
+  font-size: 32px;
+}
+
+.zg-feedback-title {
+  color: var(--zg-text);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.zg-empty-state,
+.zg-error-state {
+  margin-top: var(--zg-space-4);
+}
+
+.zg-error-state .zg-error {
+  margin-bottom: var(--zg-space-2);
 }
 
 .zg-sort-indicator {
@@ -908,6 +988,20 @@ textarea.zg-field {
 
 .zg-history-entry:last-child {
   border-bottom: 0;
+}
+
+/* Mobile: each part of an entry on its own line, so no "·" separator is
+   left dangling at the start of a wrapped line. */
+@media (max-width: 767px) {
+  .zg-history-entry {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--zg-space-1);
+  }
+
+  .zg-history-sep {
+    display: none;
+  }
 }
 
 .zg-history-change {

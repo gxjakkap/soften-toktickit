@@ -11,13 +11,14 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import AttachmentSection from './AttachmentSection'
 import { ApiError, createTicket, fetchCategories, fetchRelatedSystems } from './apiClient'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden } from './FeedbackState'
 import {
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   ensureFileName,
   isAllowedFile,
 } from './lib/attachment-validation'
+import { formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type { Category, RelatedSystem, RequestedPriority, Ticket } from './types'
@@ -335,7 +336,7 @@ function CreateTicket() {
               readOnly
               value={
                 createdTicket
-                  ? new Date(createdTicket.createdAt).toLocaleString()
+                  ? formatDateTime(createdTicket.createdAt)
                   : 'Generated after submission'
               }
             />
@@ -362,14 +363,10 @@ function CreateTicket() {
           </p>
         )}
         {refState === 'error' && (
-          <div>
-            <p className="zg-error" role="alert">
-              Unable to load Category/Related System options. Please try again.
-            </p>
-            <button type="button" className="zg-btn zg-btn-secondary" onClick={loadReferenceData}>
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            message="Unable to load Category/Related System options. Please try again."
+            onAction={loadReferenceData}
+          />
         )}
         {refState === 'ready' && (
           <div className="zg-grid-3">
@@ -520,6 +517,18 @@ function CreateTicket() {
               >
                 Attachments (JPG, JPEG, PNG, WEBP, or PDF; 5 MB max per file, 5 files max)
               </label>
+              {/* Outside the role="button" dropzone: axe nested-interactive. */}
+              <input
+                id="attachments"
+                ref={fileInputRef}
+                type="file"
+                className="zg-visually-hidden"
+                tabIndex={-1}
+                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                multiple
+                disabled={disabled}
+                onChange={handleFilesSelected}
+              />
               <div
                 className={`zg-dropzone${dragOver ? ' is-dragover' : ''}`}
                 data-testid="attachment-dropzone"
@@ -533,17 +542,6 @@ function CreateTicket() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <input
-                  id="attachments"
-                  ref={fileInputRef}
-                  type="file"
-                  className="zg-visually-hidden"
-                  tabIndex={-1}
-                  accept=".jpg,.jpeg,.png,.webp,.pdf"
-                  multiple
-                  disabled={disabled}
-                  onChange={handleFilesSelected}
-                />
                 <p className="zg-helper zg-dropzone-text">
                   Drag and drop files here, click to browse, or paste an image (Ctrl+V / Cmd+V).
                 </p>
@@ -633,8 +631,8 @@ function CreateTicket() {
               className="zg-btn zg-btn-primary"
               disabled={submitting}
               aria-disabled={submitting}
+              aria-busy={submitting}
             >
-              {submitting && <span className="zg-spinner" aria-hidden="true" />}
               {submitting ? 'Submitting…' : 'Submit'}
             </button>
           </div>

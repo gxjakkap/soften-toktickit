@@ -19,11 +19,10 @@ Full-stack monorepo.
    pnpm db:up
    ```
 
-2. Install dependencies.
+2. Install dependencies for the whole workspace (`client/`, `server/`, and the root Playwright suite), from the repository root.
 
    ```bash
-   cd client && pnpm install && cd ..
-   cd server && pnpm install && cd ..
+   pnpm install
    ```
 
 3. Configure environment variables.
@@ -34,6 +33,12 @@ Full-stack monorepo.
    ```
 
    Adjust values if you changed the default Postgres credentials or ports in `docker-compose.yaml`.
+
+   | File | Variable | Default | Used for |
+   | --- | --- | --- | --- |
+   | `server/.env` | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/toktickit?schema=public` | Prisma connection for the API, migrations, seed, and server tests |
+   | `server/.env` | `PORT` | `3001` | API port. The client's Vite dev server proxies `/api` to `http://localhost:3001`, so change both together. |
+   | `client/.env` | `VITE_API_URL` | `http://localhost:3001` | Kept from Lab 1. The client calls relative `/api/...` URLs through the Vite proxy and does not read it. |
 
 4. Apply the Prisma schema and generate the Prisma Client, from `server/`. If the database already holds data you want to keep (for example a Lab 3 database before the Lab 4 migration), back it up first, as described in [Rollback and recovery](#rollback-and-recovery).
 
@@ -54,13 +59,23 @@ Full-stack monorepo.
 
    Local development only. Every seeded account (`*@example.com`: five active and one inactive Requester, three active and one inactive IT Staff, one Administrator) shares the password `DevPass123!`. Not a secret, never use it outside a local database. Passwords are stored as bcrypt hashes. Re-running the seed resets these accounts to that state. `siriporn.wattana@example.com` is seeded with a mandatory password change, as are Lab 2 Requesters migrated from an older database.
 
-   Seed dates are relative to the current Asia/Bangkok day, so "today" and "last 30 days" stay meaningful. Re-run the seed on a later day to move them forward. Accounts that demonstrate dashboard values:
+   Seed dates are relative to the current Asia/Bangkok day, so "today" and "last 30 days" stay meaningful. Re-run the seed on a later day to move them forward.
 
-   - `emma.watson@example.com`: a Requester with no Tickets (the Requester Dashboard empty state).
-   - `michael.brown@example.com`: a Requester with open Tickets but nothing waiting and nothing resolved (Waiting for You and Resolved (Last 30 Days) are 0).
-   - `nattapong.srisuk@example.com`: IT Staff who owns active Tickets but has no open Actions assigned (My Open Actions is 0).
-   - `alex.morgan@example.com`: the Administrator, who owns an active Ticket and has an open Action assigned.
-   - `linda.park@example.com` (inactive) is the assignee of an open Action, to show how an inactive assignee is displayed.
+   Demo accounts (all `*@example.com`, password `DevPass123!`):
+
+   | Role | Account | What it shows |
+   | --- | --- | --- |
+   | Requester | `jennifer.anderson@example.com` | 14 Tickets (more than one page), non-zero Requester Dashboard cards and both recent lists |
+   | Requester | `michael.brown@example.com` | Open Tickets only: Waiting for You and Resolved (Last 30 Days) are 0 |
+   | Requester | `emma.watson@example.com` | No Tickets: the Requester Dashboard and My Tickets empty states |
+   | Requester | `david.chen@example.com` | Owner of the Lab 4 demo Tickets with several Actions each |
+   | Requester | `siriporn.wattana@example.com` | Must change the password before anything else |
+   | Requester | `patricia.reyes@example.com` | Inactive: sign-in is refused |
+   | IT Staff | `sarah.johnson@example.com` | Non-zero staff dashboard, including My Open Actions and Follow-Ups Pending |
+   | IT Staff | `ahmed.hassan@example.com` | A second staff member who performs Actions on other people's Tickets |
+   | IT Staff | `nattapong.srisuk@example.com` | Owns active Tickets but has no open Actions assigned: My Open Actions is 0 |
+   | IT Staff | `linda.park@example.com` | Inactive: sign-in is refused; still the assignee of an open Action, shown with an Inactive badge |
+   | Administrator | `alex.morgan@example.com` | Staff dashboard plus User Accounts; owns an active Ticket and has an open Action |
 
 ## Rollback and recovery
 
@@ -104,14 +119,28 @@ cd server && pnpm dev   # http://localhost:3001
 cd client && pnpm dev   # http://localhost:5173
 ```
 
-The app opens on the login screen (`/login`). Sign in with a seeded account's email and the shared dev password above. Each role lands on its default screen automatically: Requester on My Tickets, IT Staff on Ticket Queue, Administrator on User Management. An account with a mandatory password change goes to Change Password first. The Lab 1 system check lives at `/system-check`.
+The app opens on the login screen (`/login`). Sign in with a seeded account's email and the shared dev password above. Every role lands on `/dashboard`: the Requester Dashboard for a Requester, the IT Staff Dashboard for IT Staff and the Administrator. An account with a mandatory password change goes to Change Password first. Every date and time is shown in Bangkok time, whatever the browser's time zone. The Lab 1 system check lives at `/system-check`, off the navigation.
+
+## Demo script (Lab 4)
+
+Run the seed first so the numbers below hold. Each step names the account to sign in as.
+
+1. **IT Staff dashboard** (`sarah.johnson@example.com`). Read the six cards, the two breakdowns, My Open Actions, and Recently Updated. Open any card: the Ticket Queue opens with the card's filters as chips, and its total matches the card. Press Refresh to reload the numbers. Sign in as `nattapong.srisuk@example.com` to show My Open Actions at 0 with its helper text.
+2. **Actions Taken** (Sarah). From My Open Actions, open "Laptop battery drains within an hour". The section lists Done, Cancelled, In Progress, and Planned Actions performed by different staff. Use + Add Action, save with an empty Follow-Up Note while Follow-Up Required is checked to show the field error, then save a valid Action. Then open "VPN disconnects every hour" and edit its Done Action: the description and result are locked with a one-line reason, while the follow-up can still be cleared. The same Ticket shows an open Action assigned to the inactive Linda Park.
+3. **Ticket workflow** (Sarah, same Ticket). Open Current Status: Resolved is listed as "Resolved (blocked)", with the failed conditions under it. Mark the In Progress and Planned Actions Done or Cancelled, then set Resolved. The status badge and Status History update in place. Open the Ticket in a second browser as `ahmed.hassan@example.com`, change its status there, then change it again in the first window to see the conflict notice and Reload latest.
+4. **Requester dashboard** (`jennifer.anderson@example.com`). Read Open Tickets, Waiting for You, and Resolved (Last 30 Days), then open a card to land on My Tickets with the matching chips. Open a Ticket to see its Actions Taken and Status History read-only. Sign in as `michael.brown@example.com` for zero Waiting and Resolved cards, and `emma.watson@example.com` for the empty dashboard with Create Ticket.
+5. **Administrator** (`alex.morgan@example.com`). The dashboard adds User Accounts. Each row opens User Management filtered by role. The Ticket Queue and Ticket Detail work exactly as for IT Staff.
 
 ## Testing
 
+Server tests and the Playwright suite need the Docker database up and seeded (`pnpm db:up`, then `pnpm prisma:seed` in `server/`).
+
 ```bash
-cd client && pnpm test  # Vitest
-cd server && pnpm test  # Vitest + Supertest
+pnpm --filter server test   # unit, API/integration, authorization, migration, seed, performance smoke (Vitest + Supertest)
+pnpm --filter client test   # unit and UI component tests (Vitest + Testing Library)
 ```
+
+Tests live by lab: `server/tests/lab-NN/`, `client/tests/lab-NN/`, and `e2e/lab-NN/`. `docs/lab-04/tests.md` maps each test ID to its file and acceptance criteria.
 
 ### End-to-end and visual/responsive tests (Playwright)
 
@@ -121,7 +150,13 @@ Requires the seeded database (`pnpm prisma:seed`, above); the suite signs in as 
 pnpm e2e
 ```
 
-This runs the user-flow suites (`e2e/lab-02/requester-ticket-flow.spec.ts`, `e2e/lab-03/authentication.spec.ts`, `e2e/lab-03/requester-comments-and-resolved.spec.ts`, `e2e/lab-03/staff-ticket-flow.spec.ts`, `e2e/lab-03/user-administration.spec.ts`) and the screenshot/visual-regression suites (`e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts`), which write to `artifacts/lab-03/screenshots/`. If the server and client aren't already running, Playwright starts them itself (see `playwright.config.ts`).
+This runs every spec under `e2e/`:
+
+- Lab 2 and Lab 3 user flows and screenshot suites (`e2e/lab-02/`, `e2e/lab-03/`). The screenshot suites write to `artifacts/lab-03/screenshots/`.
+- Lab 4 flows: Actions Taken (`e2e/lab-04/actions-taken-flow.spec.ts`), the resolution gate and conflicts (`e2e/lab-04/ticket-resolution.spec.ts`), and both dashboards with their drill-downs (`e2e/lab-04/dashboards.spec.ts`).
+- The hardening sweep (`e2e/lab-04/hardening.spec.ts`): every major screen for every role at 1440, 768, and 375 px, failing on any console error, unexpected failed request, horizontal page scroll, or serious/critical `@axe-core/playwright` violation, plus a Bangkok-time check with the browser set to New York.
+
+The E2E flows create their own Tickets and remove them afterwards (`pnpm --filter server clean:e2e-fixtures` runs in global setup and teardown). If the server and client aren't already running, Playwright starts them itself (see `playwright.config.ts`). Run one file with `pnpm e2e e2e/lab-04/hardening.spec.ts`.
 
 ### Everything, one command
 

@@ -1,0 +1,906 @@
+TokTickIT Lab 4 - server unit and API/integration suite (run 3 of 3)
+Date: 2026-10-22 17:54:40 +07
+Branch: lab4/feat/10-test-coverage (from lab4-staging fd02fd2)
+Commit: 3ee14181be920fec6cac4c993ab80de1fbda7742
+Command: pnpm --filter server test --reporter=verbose
+
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> server@1.0.0 test /Users/jakka/Code/soften-toktickit/server
+> vitest run --reporter=verbose
+
+
+ RUN  v4.1.10 /Users/jakka/Code/soften-toktickit/server
+
+ ✓ tests/lab-03/schema-seed.integration.test.ts > seed script (specification.md §8.4) > meets the account minimums, hashes every password, and is idempotent 2991ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > seed script (specification.md §8.4) > spreads tickets across owners, statuses and priorities, and seeds both comment kinds 19ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > rejects a duplicate email (P2002) and a non-lower-case email (BR-15) 6ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > defaults: user is active and does not need a password change; ticket is NEW, unowned, unconfirmed 9ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > accepts an IT Staff owner and rejects one that does not exist (P2003) 3ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > deleting an owner unassigns their tickets; deleting a requester who filed tickets is refused 13ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > comments: author and ticket must exist; author with comments cannot be deleted; ticket delete cascades 21ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > sessions cascade with their user and token hashes are unique 11ms
+ ✓ tests/lab-03/schema-seed.integration.test.ts > schema constraints (specification.md §8.2) > indexes exist for the Queue lookups (owner, requester, status, IT priority) and role 7ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: staff GET /api/admin/users 92ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: staff POST /api/admin/users 67ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: staff PATCH /api/admin/users/1 64ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: staff PATCH /api/admin/users/1/password 63ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: requester GET /api/admin/users 64ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: requester POST /api/admin/users 62ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: requester PATCH /api/admin/users/1 62ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 403 FORBIDDEN: requester PATCH /api/admin/users/1/password 62ms
+ ✓ tests/lab-03/users-admin.api.test.ts > non-Administrator callers are rejected on every endpoint (AC-11, AC-35) > 401 UNAUTHENTICATED with no session 2ms
+ ✓ tests/lab-03/users-admin.api.test.ts > GET /api/admin/users (FR-20, BR-38, BR-39, AC-27, AC-28) > lists every user with the documented shape, name ascending, no secrets 67ms
+ ✓ tests/lab-03/users-admin.api.test.ts > GET /api/admin/users (FR-20, BR-38, BR-39, AC-27, AC-28) > search matches name or email, case-insensitively and partially 70ms
+ ✓ tests/lab-03/users-admin.api.test.ts > GET /api/admin/users (FR-20, BR-38, BR-39, AC-27, AC-28) > role filter narrows, and combines with search using AND 71ms
+ ✓ tests/lab-03/users-admin.api.test.ts > GET /api/admin/users (FR-20, BR-38, BR-39, AC-27, AC-28) > 400 INVALID_FILTER for an unrecognized role 61ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > 201 creates a user who must change the initial password at first login 237ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > 409 DUPLICATE_EMAIL, including a differently-cased match, and nothing is created 66ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > 400 VALIDATION_ERROR for an invalid or missing role 71ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > 400 VALIDATION_ERROR for a blank name or malformed email 64ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > 400 WEAK_PASSWORD when the password lacks a special character, and no user is created 64ms
+ ✓ tests/lab-03/users-admin.api.test.ts > POST /api/admin/users (FR-21, BR-10, BR-11, BR-15, BR-33, AC-09, AC-29, AC-30) > can create an inactive Administrator 120ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > 200 edits name, email, role and active state 130ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > deactivating or changing the role of a user ends their sessions (BR-34) 190ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > 409 DUPLICATE_EMAIL when the new email belongs to another user, any case 65ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > keeping one’s own email (even re-cased) is not a duplicate 65ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > 400 VALIDATION_ERROR for an invalid role, empty body or wrong types; 404 for unknown id 74ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > 409 SELF_DEACTIVATION when the caller deactivates their own account (BR-35) 70ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > self-deactivation is decided from the session, not a client-supplied id 68ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > last active Administrator (FR-26, BR-36, AC-32) > 409 LAST_ADMINISTRATOR when the only active Administrator changes their own role 73ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > last active Administrator (FR-26, BR-36, AC-32) > demoting the other Administrator works, after which the caller is the last one 134ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id (FR-22, FR-25..27, BR-34..36, AC-31, AC-32) > last active Administrator (FR-26, BR-36, AC-32) > an Administrator may demote themself while another active Administrator remains 128ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id/password (FR-23, BR-37, AC-30) > 200 replaces the hash, forces a change at next login, and ends their sessions 299ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id/password (FR-23, BR-37, AC-30) > 400 WEAK_PASSWORD and the hash is unchanged 64ms
+ ✓ tests/lab-03/users-admin.api.test.ts > PATCH /api/admin/users/:id/password (FR-23, BR-37, AC-30) > 404 NOT_FOUND for an unknown user 119ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06: a second run produces identical Tickets, Actions, and history with the same ids 2416ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06: Tickets cover every status, every IT Priority, both ownerships, and 0/1/many Actions 7ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06 (BR-02): a Ticket has Actions performed by several people, including someone other than its Owner 3ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06 (BR-18): seeded Resolved/Closed Tickets pass the resolution gate, except the legacy-style one 7ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06: staff dashboard inputs are non-zero where the seed promises (BR-46, BR-48, BR-49, BR-50, BR-42) 8ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06: zero-metric demo users (Emma, Michael, Nattapong) and the Administrator demo (Alex) 11ms
+ ✓ tests/lab-04/schema-seed.integration.test.ts > Lab 4 seed (specification.md §7.6) > MIG-06 (BR-22): history has one creation entry per Ticket, and fromStatus is null only on it 4ms
+ ✓ tests/lab-02/seed-idempotency.integration.test.ts > prisma/seed.ts > SCHEMA-08: seeds the required reference data and is safe to re-run 2357ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-53 health (AC-45, FR-22) > 200 with database ok when the database answers 3ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-53 health (AC-45, FR-22) > 503 with a safe body when the database probe throws 1ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-53 health (AC-45, FR-22) > 503 when the database probe hangs past the 2-second timeout 2006ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-54 safe 500 on the new endpoints (api-spec.md §0.2) > Action create: a database error is the generic 500 with no driver text 19ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-54 safe 500 on the new endpoints (api-spec.md §0.2) > staff dashboard: a database error is the generic 500 24ms
+ ✓ tests/lab-04/health-and-errors.api.test.ts > API-54 safe 500 on the new endpoints (api-spec.md §0.2) > requester dashboard: a database error is the generic 500 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > the matrix has exactly 17 permitted transitions 1ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> NEW 21ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> OPEN 14ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> IN_PROGRESS 11ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> WAITING_FOR_REQUESTER 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> RESOLVED 10ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> CLOSED 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> REOPENED 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > NEW -> CANCELLED 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> NEW 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> OPEN 7ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> IN_PROGRESS 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> WAITING_FOR_REQUESTER 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> RESOLVED 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> CLOSED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> REOPENED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > OPEN -> CANCELLED 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> NEW 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> OPEN 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> IN_PROGRESS 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> WAITING_FOR_REQUESTER 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> RESOLVED 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> CLOSED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > IN_PROGRESS -> CANCELLED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> NEW 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> OPEN 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> IN_PROGRESS 8ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> WAITING_FOR_REQUESTER 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> RESOLVED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> CLOSED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > WAITING_FOR_REQUESTER -> CANCELLED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> NEW 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> OPEN 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> IN_PROGRESS 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> WAITING_FOR_REQUESTER 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> CLOSED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> REOPENED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > RESOLVED -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> NEW 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> OPEN 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> IN_PROGRESS 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> WAITING_FOR_REQUESTER 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> CLOSED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> REOPENED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CLOSED -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> NEW 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> OPEN 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> IN_PROGRESS 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> WAITING_FOR_REQUESTER 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> CLOSED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > REOPENED -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> NEW 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> OPEN 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> IN_PROGRESS 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> WAITING_FOR_REQUESTER 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> CLOSED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > CANCELLED -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform NEW -> OPEN 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform NEW -> IN_PROGRESS 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform NEW -> CANCELLED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform OPEN -> IN_PROGRESS 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform OPEN -> WAITING_FOR_REQUESTER 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform OPEN -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform IN_PROGRESS -> WAITING_FOR_REQUESTER 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform IN_PROGRESS -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform IN_PROGRESS -> CANCELLED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform WAITING_FOR_REQUESTER -> IN_PROGRESS 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform WAITING_FOR_REQUESTER -> RESOLVED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform WAITING_FOR_REQUESTER -> CANCELLED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform RESOLVED -> CLOSED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform RESOLVED -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform CLOSED -> REOPENED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform REOPENED -> OPEN 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > BR-29: an Administrator may also perform REOPENED -> IN_PROGRESS 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused NEW -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused NEW -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused NEW -> RESOLVED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused NEW -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused NEW -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused OPEN -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused OPEN -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused OPEN -> RESOLVED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused OPEN -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused OPEN -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused IN_PROGRESS -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused IN_PROGRESS -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused IN_PROGRESS -> IN_PROGRESS like IT Staff 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused IN_PROGRESS -> CLOSED like IT Staff 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused IN_PROGRESS -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused WAITING_FOR_REQUESTER -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused WAITING_FOR_REQUESTER -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused WAITING_FOR_REQUESTER -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused WAITING_FOR_REQUESTER -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused WAITING_FOR_REQUESTER -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> IN_PROGRESS like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> RESOLVED like IT Staff 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused RESOLVED -> CANCELLED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> IN_PROGRESS like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> RESOLVED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CLOSED -> CANCELLED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> RESOLVED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused REOPENED -> CANCELLED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> NEW like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> OPEN like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> IN_PROGRESS like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> WAITING_FOR_REQUESTER like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> RESOLVED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> CLOSED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> REOPENED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-56 (BR-16): an Administrator is refused CANCELLED -> CANCELLED like IT Staff 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused NEW -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused OPEN -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused IN_PROGRESS -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused WAITING_FOR_REQUESTER -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> RESOLVED on their own Ticket 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused RESOLVED -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> RESOLVED on their own Ticket 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CLOSED -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused REOPENED -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> NEW on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> OPEN on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> IN_PROGRESS on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> WAITING_FOR_REQUESTER on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> RESOLVED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> CLOSED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> REOPENED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-20 (AC-21, BR-16): all 64 status pairs as IT Staff > API-57 (BR-17): a Requester is refused CANCELLED -> CANCELLED on their own Ticket 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to NEW on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to OPEN on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to IN_PROGRESS on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to WAITING_FOR_REQUESTER on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to RESOLVED on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to CLOSED on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to REOPENED on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 403 to CANCELLED on their own and on another Requester’s Ticket 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-27 (AC-22, BR-17): a Requester never changes status > 401 UNAUTHENTICATED with no session 1ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with no Actions is 409 RESOLUTION_BLOCKED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with only Cancelled is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with Done + Planned is 409 RESOLUTION_BLOCKED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with Done + In Progress is 409 RESOLUTION_BLOCKED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with Done with a follow-up is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > IN_PROGRESS -> RESOLVED with all three failing is 409 RESOLUTION_BLOCKED 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with no Actions is 409 RESOLUTION_BLOCKED 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with only Cancelled is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with Done + Planned is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with Done + In Progress is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with Done with a follow-up is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > WAITING_FOR_REQUESTER -> RESOLVED with all three failing is 409 RESOLUTION_BLOCKED 4ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls > a follow-up on a Cancelled Action does not block resolution 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-24 (AC-19, BR-21, BR-22): successful resolve > returns TicketWorkflowState, sets resolvedAt, bumps version, writes one history row 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-25 (AC-25, BR-21): reopen clears resolvedAt and the gate applies again > Resolved -> Closed keeps it, Closed -> Reopened clears it, re-resolving needs the gate 16ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-26 (AC-20, BR-20): "Problem Appears Resolved" stays advisory > records the indication only; status, resolvedAt, version, history, and gate are unchanged 17ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-28 (AC-23, BR-24, BR-26): concurrent status changes > sequential: the second write with the old version is 409 STALE_UPDATE with the current state 6ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-28 (AC-23, BR-24, BR-26): concurrent status changes > parallel: exactly one of two same-version writes wins; one history row 16ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-29 (AC-46, BR-24): version on every workflow write > claim: missing or non-integer version is 400, stale is 409, success bumps it 12ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-29 (AC-46, BR-24): version on every workflow write > owner: missing or non-integer version is 400, stale is 409, success bumps it 10ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-29 (AC-46, BR-24): version on every workflow write > priority: missing or non-integer version is 400, stale is 409, success bumps it 9ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-29 (AC-46, BR-24): version on every workflow write > status: missing or non-integer version is 400, stale is 409, success bumps it 10ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-29 (AC-46, BR-24): version on every workflow write > a repeat claim by the current owner checks version but does not bump it 7ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > POST /api/tickets writes the null -> NEW creation entry 5ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > three changes give three entries, changedAt then id ascending, from both read endpoints 19ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > ties on changedAt are broken by id 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > a legacy Ticket returns an empty list 2ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > no route edits or deletes a history entry 9ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > a Requester reading another Requester’s history gets 404; staff get 404 for a missing Ticket 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-30 (AC-24, BR-22): append-only, ordered history > role guards: 401 with no session, 403 across roles 3ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-31 (BR-19): the gate reads Actions inside the status transaction > never ends Resolved with an open Action when one is added in parallel (20 runs) 385ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-32 (BR-23): cancelling with open Actions > succeeds and leaves the Actions as they were 14ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-33 (api-spec.md §3.5): Ticket Detail adds version, resolvedAt, resolutionGate > matches the database and what the status endpoint decides 25ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-34 (AC-26, BR-29, BR-30): Administrator parity > Queue, Detail, claim, reassign (to an Administrator), priority, status, comment, note 49ms
+ ✓ tests/lab-04/ticket-workflow.api.test.ts > API-35 (BR-30, §11-15): assignable users list > active IT Staff and Administrators with role, name ascending; no inactive or Requesters 3ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > returns the identity shape and sets an httpOnly SameSite=Lax session cookie (AC-01) 85ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > stores only the SHA-256 of the token, expiring 12 hours out (BR-13) 66ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > deletes expired session rows on login so the table does not only grow (BR-13) 65ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > matches the email case-insensitively (BR-15) 60ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > answers unknown email and wrong password identically and creates no session (AC-05, BR-06) 120ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > rejects a correct password on an inactive account with 403 and no session (AC-06, AC-33, BR-07) 58ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > does not reveal an account is inactive when the password is wrong (BR-06) 57ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > 400 VALIDATION_ERROR naming email when it is missing or not a string 2ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > 400 VALIDATION_ERROR naming password when it is missing or not a string 1ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > 400 VALIDATION_ERROR naming email when it is missing or not a string 1ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/login (§1.1) > 400 VALIDATION_ERROR naming password when it is missing or not a string 0ms
+ ✓ tests/lab-03/auth.api.test.ts > GET /api/auth/me (§1.3) > returns the caller identity for a valid session (BR-14) 65ms
+ ✓ tests/lab-03/auth.api.test.ts > GET /api/auth/me (§1.3) > 401 UNAUTHENTICATED with no cookie or an unknown token (AC-08) 2ms
+ ✓ tests/lab-03/auth.api.test.ts > GET /api/auth/me (§1.3) > 401 once the session has expired (AC-08, BR-13) 65ms
+ ✓ tests/lab-03/auth.api.test.ts > GET /api/auth/me (§1.3) > 401 once the session user has been deactivated (§0.1) 63ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/logout (§1.2) > 204, deletes the session row, clears the cookie, and the old cookie stops working (AC-07, BR-12) 67ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/logout (§1.2) > 401 UNAUTHENTICATED with no valid session 0ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/change-password (§1.4) > 401 UNAUTHENTICATED without a session 1ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/change-password (§1.4) > first-login flow: gate flag is true, bad attempts change nothing, success clears it (AC-02, AC-30, BR-02, BR-11) 533ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/change-password (§1.4) > sets no cookie when the change fails to commit, so no client holds a token for a rolled-back row 178ms
+ ✓ tests/lab-03/auth.api.test.ts > POST /api/auth/change-password (§1.4) > also works as a voluntary change for a user with no gate, leaving one live session 177ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets (session-derived identity) > 401s with no session 8ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets (session-derived identity) > 403s for an authenticated IT Staff caller (BR-17: Requester role only) 83ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets (session-derived identity) > AC-03: ignores a client-supplied requesterId and files the Ticket under the session owner 81ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets (session-derived identity) > BR-21: itPriority is copied from requestedPriority at creation 68ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets (session-derived identity) > 400s VALIDATION_ERROR, not 500, on a body-less request (Express 5 leaves req.body undefined) 64ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > GET /api/tickets (session-derived identity) > 401s with no session 1ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > GET /api/tickets (session-derived identity) > AC-03: a requesterId query param is ignored; only the session owner’s Tickets are returned 142ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > GET /api/tickets (session-derived identity) > list items carry itPriority and ownerName (api-spec.md §3.2) 81ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > GET /api/tickets/:id (session-derived identity) > AC-03: 404s for a Ticket owned by a different Requester, even if their real id is guessed 146ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > GET /api/tickets/:id (session-derived identity) > response includes ownerName, itPriority, requesterConfirmedResolvedAt, and a PUBLIC-only comments array 83ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > creates a PUBLIC comment with author/timestamp from the session, never the client 77ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > AC-21/BR-26: rejects whitespace-only content with a field-level error and inserts nothing 72ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > BR-26: rejects content over 2000 trimmed characters 73ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > 400s VALIDATION_ERROR, not 500, on a body-less request (Express 5 leaves req.body undefined) 72ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > 404s when the Ticket is not owned by the caller (no existence leak) 127ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > POST /api/tickets/:id/comments (FR-10, BR-26..28, BR-30) > 403s for an authenticated non-Requester caller 126ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > PATCH /api/tickets/:id/resolved (FR-11, BR-24, BR-25) > sets requesterConfirmedResolvedAt and is idempotent 73ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > PATCH /api/tickets/:id/resolved (FR-11, BR-24, BR-25) > AC-14: 404s for a Ticket not owned by the caller 129ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > PATCH /api/tickets/:id/resolved (FR-11, BR-24, BR-25) > BR-25: 409s when the Ticket is Closed or Cancelled 64ms
+ ✓ tests/lab-03/requester-tickets.api.test.ts > PATCH /api/tickets/:id/resolved (FR-11, BR-24, BR-25) > 403s for an authenticated non-Requester caller 118ms
+(node:34638) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-01 dashboard latency > staff dashboard median of 10 calls < 300 ms 112ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-01 dashboard latency > requester dashboard median of 10 calls < 300 ms 28ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-02 gate and list latency > Queue with followUp=pending&statusGroup=active median < 300 ms 33ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-02 gate and list latency > resolving a Ticket with 50 Actions < 200 ms 8ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-03 list latency > staff: Queue, unfiltered median < 300 ms 37ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-03 list latency > requester: My Tickets, default median < 300 ms 44ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-03 list latency > requester: My Tickets, statusGroup=active median < 300 ms 57ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-03 list latency > requester: My Tickets, sortBy=updatedAt median < 300 ms 39ms
+ ✓ tests/lab-04/performance.smoke.test.ts > PERF-03 list latency > Actions Taken list on a Ticket with 50 Actions median < 300 ms 40ms
+ ✓ tests/lab-03/authorization.api.test.ts > GET /api/auth/me (refactored onto authenticate) > still 401s with no session and 200s with one (regression check) 93ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > 401 UNAUTHENTICATED on the queue with no session 1ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > 403 FORBIDDEN when a Requester calls the Queue (AC-35) 68ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > allows an IT Staff caller through the guard chain (Issue #6: the Queue itself) 84ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > Lab 4 BR-29: an Administrator reaches the Queue (supersedes BR-40/AC-37) 70ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > Administrator is allowed on Ticket Detail read-only (BR-40/AC-36), Requester is not (AC-04) 130ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > Lab 4 BR-29: an Administrator passes the guard on every Queue mutation route (supersedes BR-40/AC-37) 82ms
+ ✓ tests/lab-03/authorization.api.test.ts > Ticket Queue / Detail role guards (api-spec.md §4) > an IT Staff mutation route passes the guard chain through to the real route (Issue #7) 66ms
+ ✓ tests/lab-03/authorization.api.test.ts > Admin User Management role guards (api-spec.md §5) > 401 UNAUTHENTICATED with no session 1ms
+ ✓ tests/lab-03/authorization.api.test.ts > Admin User Management role guards (api-spec.md §5) > 403 FORBIDDEN when IT Staff calls an Admin endpoint (AC-11) 62ms
+ ✓ tests/lab-03/authorization.api.test.ts > Admin User Management role guards (api-spec.md §5) > 403 FORBIDDEN when a Requester calls an Admin endpoint 61ms
+ ✓ tests/lab-03/authorization.api.test.ts > Admin User Management role guards (api-spec.md §5) > passes an Administrator caller through to the handler 66ms
+ ✓ tests/lab-03/authorization.api.test.ts > Mandatory password-change gate (api-spec.md §1.5) > 403 PASSWORD_CHANGE_REQUIRED on a protected non-auth route, even for the right role 63ms
+ ✓ tests/lab-03/authorization.api.test.ts > Mandatory password-change gate (api-spec.md §1.5) > does not gate /api/auth/me itself 63ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-01: guards on the staff Action endpoints (AC-06, BR-12) > returns 401 without a session 14ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-01: guards on the staff Action endpoints (AC-06, BR-12) > returns 403 to a Requester on list, create, and update, even on their own Ticket 18ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-01: guards on the staff Action endpoints (AC-06, BR-12) > keeps a user who owes a password change blocked 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-02: GET /api/staff/tickets/:id/actions ordering (FR-02, BR-13, AC-15) > orders by actionAt then id, includes Cancelled, and is stable across calls 23ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-02: GET /api/staff/tickets/:id/actions ordering (FR-02, BR-13, AC-15) > returns [] for a Ticket with no Actions and 404 for a missing Ticket 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-03: create a valid Action Taken (AC-01, FR-01, BR-01, BR-04) > saves under the path Ticket with performedBy = caller and assignedTo defaulting to the caller 13ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-03: create a valid Action Taken (AC-01, FR-01, BR-01, BR-04) > assigns the requested active IT Staff user 9ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-03: create a valid Action Taken (AC-01, FR-01, BR-01, BR-04) > lets an Administrator create, recorded as the performer 8ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-04: spoofed performedById / ticketId (AC-03, BR-01, BR-03) > ignores body identity fields on create and update 17ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-05: follow-up note required (AC-04, BR-06) > rejects a missing, empty, or whitespace note and saves nothing 6ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-05: follow-up note required (AC-04, BR-06) > stores the note as null when follow-up is not required 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-05: follow-up note required (AC-04, BR-06) > requires a note when an update turns follow-up on 12ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-06: invalid assignee (AC-05, BR-04, BR-30) > rejects inactive, Requester, and nonexistent assignees on create 10ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-06: invalid assignee (AC-05, BR-04, BR-30) > rejects them on update and leaves the Action unchanged 13ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-06: invalid assignee (AC-05, BR-04, BR-30) > accepts an Administrator as assignee 4ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-07: field validation (BR-05, BR-32) > returns 400 naming the field for each bad value 20ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-07: field validation (BR-05, BR-32) > returns 400, not 500, for a body-less request 2ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-07: field validation (BR-05, BR-32) > accepts the Ticket creation minute and rejects anything earlier 9ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-08: Done needs a Result and a past Action Date/Time (AC-09, BR-08) > rejects Done without a Result on create and on update 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-08: Done needs a Result and a past Action Date/Time (AC-09, BR-08) > rejects a Done Action dated more than 5 minutes ahead but allows future Planned work 8ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > PLANNED → IN_PROGRESS succeeds and bumps version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > PLANNED → DONE succeeds and bumps version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > PLANNED → CANCELLED succeeds and bumps version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > IN_PROGRESS → PLANNED succeeds and bumps version 6ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > IN_PROGRESS → DONE succeeds and bumps version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > IN_PROGRESS → CANCELLED succeeds and bumps version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > DONE is final 10ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-09: Action status transitions (FR-03, BR-07, AC-10) > CANCELLED is final 9ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-10: field locks (AC-10, AC-11, BR-09) > lets a Done Action clear its follow-up but not change its description 9ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-10: field locks (AC-10, AC-11, BR-09) > rejects any change on a Cancelled Action but accepts unchanged values 6ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-11: stale Action update (AC-08, BR-25, BR-26) > rejects the second of two updates from the same version with the current record 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-11: stale Action update (AC-08, BR-25, BR-26) > lets exactly one of two concurrent updates win 29ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-12: version required (BR-25) > rejects a missing or non-integer version 5ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-12: version required (BR-25) > treats a version-only or unchanged body as a no-op 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-13: non-active Ticket (AC-12, BR-10) > rejects create and update on a RESOLVED Ticket 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-13: non-active Ticket (AC-12, BR-10) > rejects create and update on a CLOSED Ticket 10ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-13: non-active Ticket (AC-12, BR-10) > rejects create and update on a CANCELLED Ticket 6ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-13: non-active Ticket (AC-12, BR-10) > allows writes again once the Ticket is Reopened 4ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-14: idempotent create (AC-13, BR-14, FR-06) > returns the first Action on a sequential retry 8ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-14: idempotent create (AC-13, BR-14, FR-06) > creates one row for two concurrent submissions 29ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-14: idempotent create (AC-13, BR-14, FR-06) > scopes the key per user and per Ticket 15ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-14: idempotent create (AC-13, BR-14, FR-06) > replays a saved create after the Ticket was resolved 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-14: idempotent create (AC-13, BR-14, FR-06) > creates a new Action every time without a key 7ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-15: multiple performers on one Ticket (AC-14, BR-02, BR-11) > records Actions by the Owner, another IT Staff member, and an Administrator 14ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-16: activity refreshes Ticket updatedAt, not version (BR-27) > on Action create and update, Public Comment, and Internal Note 21ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-17: GET /api/tickets/:id/actions (AC-06, AC-07, FR-05, BR-12) > shows the owning Requester every field in the staff order 9ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-17: GET /api/tickets/:id/actions (AC-06, AC-07, FR-05, BR-12) > returns 404 for another Requester's Ticket, identical to a missing one 4ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-17: GET /api/tickets/:id/actions (AC-06, AC-07, FR-05, BR-12) > returns 403 to IT Staff and has no write route 4ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-18: inactive existing assignee is kept (BR-04) > saves an update that does not change the inactive assignee 10ms
+ ✓ tests/lab-04/actions-taken.api.test.ts > API-19: Action lookup (api-spec.md §2.3) > returns 404 for another Ticket's Action, a missing Action, and a missing Ticket 8ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-43 wrong roles (AC-32) > 401 without a session 2ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-43 wrong roles (AC-32) > 403 for a Requester, with no metric in the body 5ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-44 card values (BR-45..BR-50, AC-28) > each global card equals an independent query on the same state 29ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-44 card values (BR-45..BR-50, AC-28) > "me" cards are the caller’s own and differ between two IT Staff 9ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-45 Action metric edges (BR-45, BR-48, BR-23) > ignores open Actions on Cancelled and Resolved Tickets, and Cancelled follow-ups 10ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-46 Resolved Today boundary (BR-50, BR-34, AC-29) > counts 17:00:00.000Z as today and 16:59:59.999Z as yesterday in Bangkok 10ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-46 Resolved Today boundary (BR-50, BR-34, AC-29) > a Ticket resolved and closed today counts; one reopened today does not 37ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-47 breakdowns (BR-51, BR-52) > all 8 statuses and 3 priorities, enum order, zeros included, matching the database 10ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-48 lists (BR-53, BR-54, AC-35) > My Open Actions: 5 oldest by actionAt then id, truncated description, documented fields 5ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-48 lists (BR-53, BR-54, AC-35) > Recently Updated: 5 newest by updatedAt then id, owner name or null, documented fields 4ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-49 Administrator user counts (BR-55, FR-14, AC-33) > Administrator gets userAccounts per role and active state 6ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-49 Administrator user counts (BR-55, FR-14, AC-33) > Administrator gets the same staff metrics as IT Staff 5ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-49 Administrator user counts (BR-55, FR-14, AC-33) > IT Staff get no userAccounts key at all 4ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-50 drill-down equals list (BR-38, AC-30) > every card and breakdown for s1 55ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-50 drill-down equals list (BR-38, AC-30) > every card and breakdown for s2 47ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-50 drill-down equals list (BR-38, AC-30) > every card and breakdown for s3 42ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-50 drill-down equals list (BR-38, AC-30) > every card and breakdown for admin 33ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > statusGroup=active keeps active statuses only, and ANDs with status 10ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > resolvedFrom/resolvedTo are inclusive Bangkok dates 9ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > followUp=pending and openActionAssigneeId filter on Actions; an unknown id is an empty list 9ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > sortBy=resolvedAt puts nulls last in both directions 7ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > statusGroup=all → 400 INVALID_FILTER on statusGroup 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > resolvedFrom=2026-02-30 → 400 INVALID_FILTER on resolvedFrom 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > resolvedTo=tomorrow → 400 INVALID_FILTER on resolvedTo 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > resolvedFrom=2026-10-07&resolvedTo=2026-10-06 → 400 INVALID_FILTER on resolvedTo 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > followUp=done → 400 INVALID_FILTER on followUp 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > openActionAssigneeId=abc → 400 INVALID_FILTER on openActionAssigneeId 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > openActionAssigneeId=-1 → 400 INVALID_FILTER on openActionAssigneeId 1ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > openActionAssigneeId= → 400 INVALID_FILTER on openActionAssigneeId 2ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > sortBy=description → 400 INVALID_FILTER on sortBy 2ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-51 Queue drill-down filters (api-spec.md §4.1) > leaves the unfiltered Queue unchanged: every Ticket, createdAt ascending 4ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-52 zero metrics (BR-37, AC-31) > a caller with no owned Tickets and no Actions gets 0s and an empty list 4ms
+ ✓ tests/lab-04/staff-dashboard.api.test.ts > API-52 zero metrics (BR-37, AC-31) > API-58: Resolved Today is 0 with its drill-down intact on a day nothing was resolved 6ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-37 wrong roles (AC-32) > 401 without a session 2ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-37 wrong roles (AC-32) > 403 for staff, with no metric in the body 6ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-37 wrong roles (AC-32) > 403 for admin, with no metric in the body 4ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-36 ownership (AC-02, BR-31) > counts and lists only the caller’s own Tickets 28ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-36 ownership (AC-02, BR-31) > ignores ?requesterId= pointing at another Requester 11ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-38 metric values (BR-39, BR-41, BR-42, AC-28) > each metric equals an independent count on the fixture 8ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-38 metric values (BR-39, BR-41, BR-42, AC-28) > 30-day window: includes 00:00 +07 of day −29, excludes 1 ms before, and moves at Bangkok midnight 14ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-39 lists (BR-43, BR-44, AC-35) > Recently Updated: 5 newest by updatedAt, ties by id descending, documented fields only 4ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-39 lists (BR-43, BR-44, AC-35) > Recently Resolved: non-null resolvedAt only, newest first; Reopened absent 3ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-39 lists (BR-43, BR-44, AC-35) > caps both lists at 5 and never returns full Ticket objects 4ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-40 zero data (BR-37, BR-40, AC-31) > a Requester with no Tickets gets hasAnyTickets false, zeros, and empty lists 3ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-40 zero data (BR-37, BR-40, AC-31) > a Requester with Tickets but none waiting gets waitingForYou 0 3ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-41 drill-down equals list (BR-38, AC-30) > every card for a matches its list totalCount 16ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-41 drill-down equals list (BR-38, AC-30) > every card for b matches its list totalCount 16ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-41 drill-down equals list (BR-38, AC-30) > every card for empty matches its list totalCount 13ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > statusGroup=active returns only active Tickets 4ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > statusGroup combines with status (AND) 7ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > resolvedFrom keeps Tickets resolved on or after 00:00 Bangkok of that date 5ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > sortBy=updatedAt sorts by updatedAt then id 5ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > statusGroup=all → 400 INVALID_FILTER on statusGroup 2ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > statusGroup=active&statusGroup=active → 400 INVALID_FILTER on statusGroup 2ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > resolvedFrom=2026-02-30 → 400 INVALID_FILTER on resolvedFrom 1ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > resolvedFrom=06-10-2026 → 400 INVALID_FILTER on resolvedFrom 1ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > sortBy=resolvedAt → 400 INVALID_FILTER on sortBy 1ms
+ ✓ tests/lab-04/requester-dashboard.api.test.ts > API-42 My Tickets drill-down filters (api-spec.md §4.2) > leaves the default listing unchanged: all own Tickets, createdAt descending 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/categories with no session 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/categories as REQUESTER 5ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/categories as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/categories as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/related-systems with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/related-systems as REQUESTER 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/related-systems as IT_STAFF 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/related-systems as ADMINISTRATOR 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: POST /api/tickets with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/tickets as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/tickets with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/tickets as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/tickets as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/tickets as REQUESTER 9ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/tickets/:id with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/tickets/:id as IT_STAFF 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/tickets/:id as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/tickets/:id as REQUESTER 17ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: POST /api/tickets/:id/attachments with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets/:id/attachments as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets/:id/attachments as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/tickets/:id/attachments as REQUESTER 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/attachments/:id/download with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/attachments/:id/download as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/attachments/:id/download as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/attachments/:id/download as REQUESTER 5ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/attachments/:id/remove with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/attachments/:id/remove as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/attachments/:id/remove as ADMINISTRATOR 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/attachments/:id/remove as REQUESTER 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: POST /api/tickets/:id/comments with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets/:id/comments as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/tickets/:id/comments as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/tickets/:id/comments as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/tickets/:id/resolved with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/tickets/:id/resolved as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/tickets/:id/resolved as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/tickets/:id/resolved as REQUESTER 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/staff/tickets with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/staff/tickets as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/tickets as IT_STAFF 6ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/tickets as ADMINISTRATOR 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/staff/tickets/:id with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/staff/tickets/:id as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/tickets/:id as IT_STAFF 13ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/tickets/:id as ADMINISTRATOR 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/staff/it-staff-users with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/staff/it-staff-users as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/it-staff-users as IT_STAFF 3ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/staff/it-staff-users as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/staff/tickets/:id/claim with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/staff/tickets/:id/claim as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/claim as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/claim as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/staff/tickets/:id/owner with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/staff/tickets/:id/owner as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/owner as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/owner as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/staff/tickets/:id/priority with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/staff/tickets/:id/priority as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/priority as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/priority as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/staff/tickets/:id/status with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/staff/tickets/:id/status as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/status as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/status as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: POST /api/staff/tickets/:id/comments with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/staff/tickets/:id/comments as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/staff/tickets/:id/comments as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/staff/tickets/:id/comments as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: GET /api/admin/users with no session 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/admin/users as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: GET /api/admin/users as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): GET /api/admin/users as ADMINISTRATOR 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: POST /api/admin/users with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/admin/users as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: POST /api/admin/users as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): POST /api/admin/users as ADMINISTRATOR 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/admin/users/:id with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/admin/users/:id as REQUESTER 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/admin/users/:id as IT_STAFF 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/admin/users/:id as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 401 UNAUTHENTICATED: PATCH /api/admin/users/:id/password with no session 0ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/admin/users/:id/password as REQUESTER 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > 403 FORBIDDEN: PATCH /api/admin/users/:id/password as IT_STAFF 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > authorization matrix: every protected endpoint x every role > reaches the handler (not 401/403): PATCH /api/admin/users/:id/password as ADMINISTRATOR 1ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > no existence leak for another Requester’s Ticket/Attachment (BR-16, FR-24) > GET /api/tickets/:id for another Requester’s ticket 404s with no ticket content 5ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > no existence leak for another Requester’s Ticket/Attachment (BR-16, FR-24) > GET /api/attachments/:id/download for another Requester’s attachment 404s with no file leaked 2ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > no existence leak for another Requester’s Ticket/Attachment (BR-16, FR-24) > PATCH /api/attachments/:id/remove for another Requester’s attachment 404s, nothing changed 4ms
+ ✓ tests/lab-03/authorization-matrix.api.test.ts > no existence leak for another Requester’s Ticket/Attachment (BR-16, FR-24) > an Internal Note is never present in a Requester-role response, even for their own ticket (BR-04, BR-29) 11ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/tickets/:id > 401s with no session 2ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/tickets/:id > 403 FORBIDDEN for a Requester caller 9ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/tickets/:id > 404s for a nonexistent ticket 6ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/tickets/:id > BR-40: an Administrator may retrieve the detail, including Internal Notes 16ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/tickets/:id > returns ownerId/ownerName and both comment visibilities for IT Staff 14ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/it-staff-users > 403 FORBIDDEN for a non-IT-Staff caller 2ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > GET /api/staff/it-staff-users > lists only active IT Staff and Administrators, ordered by name 6ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/claim > claims an unassigned ticket 10ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/claim > BR-19: claiming a ticket the caller already owns is a no-op success 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/claim > AC-38/BR-19: claiming a ticket owned by someone else is rejected, naming Reassign 7ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/claim > 403 for a Requester caller, 404 for a missing ticket 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/owner > BR-20: reassigns to any active IT Staff id, including the caller 8ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/owner > clears ownership back to unassigned with ownerId: null 9ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/owner > Lab 4 BR-30: an active Administrator is a valid owner 7ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/owner > 400 INVALID_OWNER for a Requester id, an inactive IT Staff id, or a nonexistent id 13ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/owner > 403 for a Requester caller, 404 for a missing ticket 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/priority > AC-17: updates itPriority and leaves requestedPriority unchanged 7ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/priority > 400 VALIDATION_ERROR for an invalid priority value 2ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/priority > 403 for a Requester caller 2ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows NEW -> OPEN 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows NEW -> IN_PROGRESS 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows NEW -> CANCELLED 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows OPEN -> IN_PROGRESS 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows OPEN -> WAITING_FOR_REQUESTER 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows OPEN -> CANCELLED 6ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows IN_PROGRESS -> WAITING_FOR_REQUESTER 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows IN_PROGRESS -> RESOLVED 7ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows IN_PROGRESS -> CANCELLED 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows WAITING_FOR_REQUESTER -> IN_PROGRESS 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows WAITING_FOR_REQUESTER -> RESOLVED 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows WAITING_FOR_REQUESTER -> CANCELLED 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows RESOLVED -> CLOSED 7ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows RESOLVED -> REOPENED 5ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows CLOSED -> REOPENED 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows REOPENED -> OPEN 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > allows REOPENED -> IN_PROGRESS 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects NEW -> CLOSED as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects NEW -> RESOLVED as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects OPEN -> RESOLVED as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects OPEN -> OPEN as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects CLOSED -> OPEN as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects CANCELLED -> OPEN as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects CANCELLED -> IN_PROGRESS as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > rejects REOPENED -> RESOLVED as 409 INVALID_TRANSITION, status unchanged 3ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > AC-19: Resolved -> Reopened succeeds and the ticket is actionable again 4ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > 400 VALIDATION_ERROR for an unrecognized status value, before any transition check 2ms
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts > PATCH /api/staff/tickets/:id/status > 403 for a Requester caller, 404 for a missing ticket 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/staff/tickets/:id/actions with no session 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/staff/tickets/:id/actions as REQUESTER 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/staff/tickets/:id/actions as IT_STAFF 7ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/staff/tickets/:id/actions as ADMINISTRATOR 5ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: POST /api/staff/tickets/:id/actions with no session 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: POST /api/staff/tickets/:id/actions as REQUESTER 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): POST /api/staff/tickets/:id/actions as IT_STAFF 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): POST /api/staff/tickets/:id/actions as ADMINISTRATOR 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: PATCH /api/staff/tickets/:id/actions/:actionId with no session 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: PATCH /api/staff/tickets/:id/actions/:actionId as REQUESTER 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/actions/:actionId as IT_STAFF 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): PATCH /api/staff/tickets/:id/actions/:actionId as ADMINISTRATOR 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/staff/tickets/:id/status-history with no session 0ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/staff/tickets/:id/status-history as REQUESTER 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/staff/tickets/:id/status-history as IT_STAFF 4ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/staff/tickets/:id/status-history as ADMINISTRATOR 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/tickets/:id/actions with no session 0ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/tickets/:id/actions as IT_STAFF 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/tickets/:id/actions as ADMINISTRATOR 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/tickets/:id/actions as REQUESTER 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/tickets/:id/status-history with no session 0ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/tickets/:id/status-history as IT_STAFF 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/tickets/:id/status-history as ADMINISTRATOR 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/tickets/:id/status-history as REQUESTER 4ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/dashboard/requester with no session 0ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/dashboard/requester as IT_STAFF 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/dashboard/requester as ADMINISTRATOR 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/dashboard/requester as REQUESTER 14ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 401 UNAUTHENTICATED: GET /api/dashboard/staff with no session 1ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > 403 FORBIDDEN: GET /api/dashboard/staff as REQUESTER 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/dashboard/staff as IT_STAFF 15ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > reaches the handler (not 401/403): GET /api/dashboard/staff as ADMINISTRATOR 5ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-01: every Lab 4 endpoint x every role (api-spec.md §6) > the dashboards answer an allowed role with 200 10ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-02: no existence leak on another Requester’s Ticket (BR-12, BR-31) > GET /api/tickets/:id/actions is the same 404 as a missing Ticket 4ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-02: no existence leak on another Requester’s Ticket (BR-12, BR-31) > GET /api/tickets/:id/status-history is the same 404 as a missing Ticket 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-03: a Requester cannot write an Action by any path (BR-12, AC-06) > POST and PATCH on the staff and Requester Action paths are all non-2xx; nothing changes 6ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-04: Internal Notes stay private on every Lab 4 Requester response (Lab 3 BR-04) > () => `/api/tickets/${ticketId}` never contains the note text 4ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-04: Internal Notes stay private on every Lab 4 Requester response (Lab 3 BR-04) > () => `/api/tickets/${ticketId}/actions` never contains the note text 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-04: Internal Notes stay private on every Lab 4 Requester response (Lab 3 BR-04) > () => `/api/tickets/${ticketId}/status-history` never contains the note text 3ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-04: Internal Notes stay private on every Lab 4 Requester response (Lab 3 BR-04) > () => "/api/dashboard/requester" never contains the note text 2ms
+ ✓ tests/lab-04/authorization-matrix.api.test.ts > SEC-04: Internal Notes stay private on every Lab 4 Requester response (Lab 3 BR-04) > the staff view of the same Ticket does contain it (the note exists) 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > 401s with no session 2ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > 403 FORBIDDEN for a Requester caller (AC-35) 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > BR-31: returns Tickets across every Requester and Owner, not scoped to the caller 22ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > BR-31: a second IT Staff caller sees the identical shared Queue, including Tickets owned by the first 7ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > response rows carry the api-spec.md §4.1 shape, including itPriority and ownerName 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > AC-22: search matches ticketNumber or summary, case-insensitive, partial 6ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > search by exact ticketNumber finds the Ticket 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: categoryId 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: requestedPriority 6ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: itPriority (independent of requestedPriority) 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: status 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: ownerId as a numeric id 5ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > filters in isolation: ownerId=unassigned 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > AC-23: category + status filters combine with AND logic 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > combined filters: itPriority + ownerId=unassigned 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > AC-24: pagination metadata is correct and page 1 shows only the default page size 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > page 2 shows the remaining tickets 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > out-of-range page/pageSize are clamped, not rejected 9ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > specification.md §12-8: default sort is createdAt asc (oldest first), with id asc as a deterministic tie-break 4ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > every sortable field sorts in both directions 48ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > sortBy=ticketNumber desc orders by Ticket Number descending 6ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > AC-25/AC-26: filters matching nothing return data: [] with hasAnyTickets: true, totalCount: 0 3ms
+ ✓ tests/lab-03/staff-queue.api.test.ts > GET /api/staff/tickets > rejects unrecognized requestedPriority/itPriority/status/sortBy/sortDir/ownerId/categoryId with 400 INVALID_FILTER 11ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-15 (AC-09): accepts a valid 2MB jpg and returns 201 in the active attachment list 38ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-16 (AC-10): rejects a 6th upload once 5 active attachments exist 48ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-17 (AC-11): rejects a file over 5MB with 413 and inserts nothing 16ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-18 (AC-12): rejects an unsupported file type with 415 and inserts nothing 10ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-22 (BR-29): rejects upload to a Ticket not owned by the caller with 404 9ms
+ ✓ tests/lab-02/attachments.api.test.ts > POST /api/tickets/:id/attachments > API-23 (AC-13): a rejected upload does not affect the parent Ticket 7ms
+ ✓ tests/lab-02/attachments.api.test.ts > GET /api/attachments/:id/download > API-19 (FR-11): streams an active attachment byte-identical to the upload with correct headers 15ms
+ ✓ tests/lab-02/attachments.api.test.ts > GET /api/attachments/:id/download > API-20 (AC-15): returns 410 ATTACHMENT_REMOVED for a removed attachment, no file returned 12ms
+ ✓ tests/lab-02/attachments.api.test.ts > GET /api/attachments/:id/download > returns 404 NOT_FOUND when the attachment is not owned by the caller 10ms
+ ✓ tests/lab-02/attachments.api.test.ts > GET /api/attachments/:id/download > returns 401 UNAUTHENTICATED with no session 8ms
+ ✓ tests/lab-02/attachments.api.test.ts > PATCH /api/attachments/:id/remove > API-21 (AC-14): soft-removes an owned attachment, setting isRemoved/removedAt and keeping the row 10ms
+ ✓ tests/lab-02/attachments.api.test.ts > PATCH /api/attachments/:id/remove > omits removedReason as null when no reason is given 9ms
+ ✓ tests/lab-02/attachments.api.test.ts > PATCH /api/attachments/:id/remove > is idempotent: removing an already-removed attachment returns 200 with the existing removed state 11ms
+ ✓ tests/lab-02/attachments.api.test.ts > PATCH /api/attachments/:id/remove > rejects removal of an attachment not owned by the caller with 404 8ms
+ ✓ tests/lab-02/attachments.api.test.ts > PATCH /api/attachments/:id/remove > returns 401 UNAUTHENTICATED with no session 6ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > creates a PUBLIC comment with author/timestamp from the session 25ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > creates an INTERNAL note, visible only through the staff detail endpoint 35ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > 400 VALIDATION_ERROR for an invalid visibility value 6ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > AC-21/BR-26: rejects whitespace-only and over-length content 7ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > 404s for a nonexistent ticket 3ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > AC-04: a Requester calling this endpoint is rejected without exposing any note content 3ms
+ ✓ tests/lab-03/comments-notes.api.test.ts > POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30) > Lab 4 BR-29: an Administrator can post a comment and an internal note here 15ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/tickets/2147483648 7ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/tickets/2147483648/actions 4ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/tickets/2147483648/status-history 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > post /api/tickets/2147483648/comments 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/tickets/2147483648/resolved 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > post /api/tickets/2147483648/attachments 4ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/attachments/2147483648/download 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/attachments/2147483648/remove 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/staff/tickets/2147483648 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/staff/tickets/2147483648/actions 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > get /api/staff/tickets/2147483648/status-history 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > post /api/staff/tickets/2147483648/comments 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/staff/tickets/2147483648/claim 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/staff/tickets/2147483648/owner 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/staff/tickets/2147483648/priority 2ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/staff/tickets/2147483648/status 3ms
+ ✓ tests/lab-04/route-ids.api.test.ts > API-55: out-of-range route ids are not found, not a server error > patch /api/admin/users/2147483648 4ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts > GET /api/tickets/:id > API-13 (AC-24): returns 200 with full detail and attachments for the owning Requester 21ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts > GET /api/tickets/:id > API-14 (AC-03): returns 404 NOT_FOUND for a Ticket owned by a different Requester 10ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts > GET /api/tickets/:id > returns 404 NOT_FOUND for a nonexistent Ticket id (BR-15: same response as not-owned) 3ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts > GET /api/tickets/:id > returns 401 UNAUTHENTICATED with no session 1ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts > GET /api/tickets/:id > includes soft-removed attachments as metadata, marked isRemoved 20ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-06 (AC-03, BR-14): returns only the session owner’s tickets, never another Requester’s 22ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-11 (AC-20, BR-30): a Requester with zero tickets gets data: [] and hasAnyTickets: false 6ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > 401s with no session 1ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-07 (AC-16, BR-16): search matches ticketNumber or summary, case-insensitive, partial 6ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-08 (AC-17, BR-17): categoryId + status filters combine with AND logic 9ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-12 (AC-19, BR-30): filters matching nothing return data: [] with hasAnyTickets: true, totalCount: 0 4ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-09 (AC-18): pagination metadata is correct and page 1 shows only the default page size 5ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-09: page 2 shows the remaining tickets 4ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > API-10 (BR-19): out-of-range page/pageSize are clamped, not rejected 12ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > BR-18: sortBy=summary asc sorts alphabetically by Summary 4ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > BR-18: default sort is createdAt desc, with id desc as a deterministic tie-break 3ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > rejects an unrecognized requestedPriority/status/sortBy/sortDir/non-numeric or unknown categoryId with 400 INVALID_FILTER 8ms
+ ✓ tests/lab-02/my-tickets.api.test.ts > GET /api/tickets > treats an empty categoryId as no filter rather than category 0 3ms
+
+Dashboard metric evidence (staff: sarah.johnson@example.com, requester: jennifer.anderson@example.com, admin: alex.morgan@example.com)
+API generatedAt: 2026-10-22T10:55:14.115Z
+| Metric                                         | Expected (SQL)                  | API value                       | SQL                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BR-45 My Open Actions                          | 2                               | 2                               | SELECT count(*) FROM "ActionTaken" a JOIN "Ticket" t ON t.id = a."ticketId" WHERE a."assignedToId" = 3144 AND a.status IN ('PLANNED','IN_PROGRESS') AND t."currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                 |
+| BR-45 My Open Actions: across N tickets        | 2                               | 2                               | SELECT count(DISTINCT a."ticketId") FROM "ActionTaken" a JOIN "Ticket" t ON t.id = a."ticketId" WHERE a."assignedToId" = 3144 AND a.status IN ('PLANNED','IN_PROGRESS') AND t."currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')             |
+| BR-46 Unassigned                               | 6                               | 6                               | SELECT count(*) FROM "Ticket" WHERE "ownerId" IS NULL AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                                 |
+| BR-47 My Active Tickets                        | 4                               | 4                               | SELECT count(*) FROM "Ticket" WHERE "ownerId" = 3144 AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                                  |
+| BR-48 Follow-Ups Pending                       | 2                               | 2                               | SELECT count(*) FROM "Ticket" t WHERE t."currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED') AND EXISTS ( SELECT 1 FROM "ActionTaken" a WHERE a."ticketId" = t.id AND a.status <> 'CANCELLED' AND a."followUpRequired")                        |
+| BR-49 High Priority                            | 3                               | 3                               | SELECT count(*) FROM "Ticket" WHERE "itPriority" = 'HIGH' AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                             |
+| BR-50 Resolved Today                           | 1                               | 1                               | SELECT count(*) FROM "Ticket" WHERE "resolvedAt" >= (date_trunc('day', now() AT TIME ZONE 'Asia/Bangkok') AT TIME ZONE 'Asia/Bangkok') AND "resolvedAt" < (date_trunc('day', now() AT TIME ZONE 'Asia/Bangkok') AT TIME ZONE 'Asia/Bangkok') + interval '1 day'              |
+| BR-51 Tickets by Status: NEW                   | 4                               | 4                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'NEW'                                                                                                                                                                                                                  |
+| BR-51 Tickets by Status: OPEN                  | 5                               | 5                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'OPEN'                                                                                                                                                                                                                 |
+| BR-51 Tickets by Status: IN_PROGRESS           | 5                               | 5                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'IN_PROGRESS'                                                                                                                                                                                                          |
+| BR-51 Tickets by Status: WAITING_FOR_REQUESTER | 4                               | 4                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'WAITING_FOR_REQUESTER'                                                                                                                                                                                                |
+| BR-51 Tickets by Status: RESOLVED              | 4                               | 4                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'RESOLVED'                                                                                                                                                                                                             |
+| BR-51 Tickets by Status: CLOSED                | 3                               | 3                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'CLOSED'                                                                                                                                                                                                               |
+| BR-51 Tickets by Status: REOPENED              | 2                               | 2                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'REOPENED'                                                                                                                                                                                                             |
+| BR-51 Tickets by Status: CANCELLED             | 1                               | 1                               | SELECT count(*) FROM "Ticket" WHERE "currentStatus" = 'CANCELLED'                                                                                                                                                                                                            |
+| BR-52 Active by IT Priority: LOW               | 12                              | 12                              | SELECT count(*) FROM "Ticket" WHERE "itPriority" = 'LOW' AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                              |
+| BR-52 Active by IT Priority: MEDIUM            | 5                               | 5                               | SELECT count(*) FROM "Ticket" WHERE "itPriority" = 'MEDIUM' AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                           |
+| BR-52 Active by IT Priority: HIGH              | 3                               | 3                               | SELECT count(*) FROM "Ticket" WHERE "itPriority" = 'HIGH' AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                             |
+| BR-53 My Open Actions list (action ids)        | [7,11]                          | [7,11]                          | SELECT a.id FROM "ActionTaken" a JOIN "Ticket" t ON t.id = a."ticketId" WHERE a."assignedToId" = 3144 AND a.status IN ('PLANNED','IN_PROGRESS') AND t."currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED') ORDER BY a."actionAt", a.id LIMIT 5 |
+| BR-54 Recently Updated (ticket ids)            | [11842,11841,11840,11839,11838] | [11842,11841,11840,11839,11838] | SELECT id FROM "Ticket" ORDER BY "updatedAt" DESC, id DESC LIMIT 5                                                                                                                                                                                                           |
+| BR-55 User Accounts: REQUESTER active          | 5                               | 5                               | SELECT count(*) FROM "User" WHERE role = 'REQUESTER' AND "isActive" = true                                                                                                                                                                                                   |
+| BR-55 User Accounts: REQUESTER inactive        | 1                               | 1                               | SELECT count(*) FROM "User" WHERE role = 'REQUESTER' AND "isActive" = false                                                                                                                                                                                                  |
+| BR-55 User Accounts: IT_STAFF active           | 4                               | 4                               | SELECT count(*) FROM "User" WHERE role = 'IT_STAFF' AND "isActive" = true                                                                                                                                                                                                    |
+| BR-55 User Accounts: IT_STAFF inactive         | 1                               | 1                               | SELECT count(*) FROM "User" WHERE role = 'IT_STAFF' AND "isActive" = false                                                                                                                                                                                                   |
+| BR-55 User Accounts: ADMINISTRATOR active      | 1                               | 1                               | SELECT count(*) FROM "User" WHERE role = 'ADMINISTRATOR' AND "isActive" = true                                                                                                                                                                                               |
+| BR-55 User Accounts: ADMINISTRATOR inactive    | 0                               | 0                               | SELECT count(*) FROM "User" WHERE role = 'ADMINISTRATOR' AND "isActive" = false                                                                                                                                                                                              |
+| BR-40 hasAnyTickets                            | true                            | true                            | SELECT count(*) > 0 FROM "Ticket" WHERE "requesterId" = 1                                                                                                                                                                                                                    |
+| BR-39 Open Tickets                             | 9                               | 9                               | SELECT count(*) FROM "Ticket" WHERE "requesterId" = 1 AND "currentStatus" IN ('NEW','OPEN','IN_PROGRESS','WAITING_FOR_REQUESTER','REOPENED')                                                                                                                                 |
+| BR-41 Waiting for You                          | 2                               | 2                               | SELECT count(*) FROM "Ticket" WHERE "requesterId" = 1 AND "currentStatus" = 'WAITING_FOR_REQUESTER'                                                                                                                                                                          |
+| BR-42 Resolved (Last 30 Days)                  | 0                               | 0                               | SELECT count(*) FROM "Ticket" WHERE "requesterId" = 1 AND "resolvedAt" >= (date_trunc('day', now() AT TIME ZONE 'Asia/Bangkok') AT TIME ZONE 'Asia/Bangkok') - interval '29 days'                                                                                            |
+| BR-42 window start (Bangkok date)              | "2026-09-23"                    | "2026-09-23"                    | SELECT to_char(now() AT TIME ZONE 'Asia/Bangkok' - interval '29 days', 'YYYY-MM-DD')                                                                                                                                                                                         |
+| BR-43 Recently Updated (ticket ids)            | [2207,2206,2205,2204,2203]      | [2207,2206,2205,2204,2203]      | SELECT id FROM "Ticket" WHERE "requesterId" = 1 ORDER BY "updatedAt" DESC, id DESC LIMIT 5                                                                                                                                                                                   |
+| BR-44 Recently Resolved (ticket ids)           | [2207,2206,2199,2198]           | [2207,2206,2199,2198]           | SELECT id FROM "Ticket" WHERE "requesterId" = 1 AND "resolvedAt" IS NOT NULL ORDER BY "resolvedAt" DESC, id DESC LIMIT 5                                                                                                                                                     |
+33 values checked, 33 match.
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: IT Staff Dashboard equals raw SQL (Sarah Johnson, seeded) > cards BR-45..BR-50 9ms
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: IT Staff Dashboard equals raw SQL (Sarah Johnson, seeded) > breakdowns BR-51, BR-52 5ms
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: IT Staff Dashboard equals raw SQL (Sarah Johnson, seeded) > lists BR-53, BR-54 (ids, in order) 2ms
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: IT Staff Dashboard equals raw SQL (Sarah Johnson, seeded) > Administrator user counts BR-55 (Alex Morgan); absent for IT Staff 3ms
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: Requester Dashboard equals raw SQL (Jennifer Anderson, seeded) > cards and lists BR-39..BR-44 3ms
+ ✓ tests/lab-04/dashboard-metrics-evidence.test.ts > EVID-01: evidence table > prints every metric with its SQL, expected value, and API value 0ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > API-01 (AC-01, BR-01, BR-02): creates a Ticket and returns 201 with a unique Ticket Number 28ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > API-02 (AC-04, BR-20): rejects a missing Summary with a field-level error and inserts nothing 5ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > API-03 (AC-05, BR-21): rejects a Description under 10 characters and inserts nothing 3ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > API-04 (AC-06, BR-08): rejects a missing Requested Priority and inserts nothing 3ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > API-05 (AC-03, BR-03, BR-12): ignores a client-supplied requesterId and files the Ticket under the session owner 9ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > 401s with no session 2ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > rejects an inactive Category with INVALID_REFERENCE and inserts nothing 5ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > rejects an unknown Category with INVALID_REFERENCE and inserts nothing 5ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > rejects an inactive Related System with INVALID_REFERENCE and inserts nothing 5ms
+ ✓ tests/lab-02/create-ticket.api.test.ts > POST /api/tickets > rejects an unknown Related System with INVALID_REFERENCE and inserts nothing 4ms
+ ✓ tests/lab-03/password.unit.test.ts > hashPassword / verifyPassword (BR-09) > stores a bcrypt hash, never the plaintext, and verifies the right password 114ms
+ ✓ tests/lab-03/password.unit.test.ts > hashPassword / verifyPassword (BR-09) > rejects a wrong password and salts each hash differently 163ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > accepts 8+ chars with upper, lower, digit and special 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with too short 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with no uppercase 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with no lowercase 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with no digit 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with no special character 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects a password with empty 0ms
+ ✓ tests/lab-03/password.unit.test.ts > isStrongPassword (BR-10) > rejects non-string input 0ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > keeps every requester row and id, as a REQUESTER who must change password 2ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > BR-09: backfilled passwords are bcrypt hashes of the documented dev password, never plaintext 120ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > BR-15: emails are lower-cased and the DB rejects a mixed-case email 1ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > preserves every Ticket and Attachment row, and requesterId still resolves to a User 1ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > BR-21: itPriority is backfilled from requestedPriority; ownerId and resolved signal are null 0ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > BR-23: PENDING becomes WAITING_FOR_REQUESTER, other statuses are untouched 0ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > BR-23: enum order puts REOPENED between CLOSED and CANCELLED 1ms
+ ✓ tests/lab-03/migration.integration.test.ts > Lab 2 -> Lab 3 migration (specification.md §8.3) > new users keep getting fresh ids after the migrated rows (sequence survives the rename) 1ms
+ ✓ tests/lab-02/reference-data.api.test.ts > GET /api/categories > API-25: returns only active categories, as {id, name} 10ms
+ ✓ tests/lab-02/reference-data.api.test.ts > GET /api/categories > 401s with no session (specification.md §12-12) 1ms
+ ✓ tests/lab-02/reference-data.api.test.ts > GET /api/related-systems > API-25: returns only active related systems, as {id, name} 4ms
+ ✓ tests/lab-02/reference-data.api.test.ts > GET /api/related-systems > 401s with no session (specification.md §12-12) 1ms
+ ✓ tests/lab-01/categories-list.test.ts > GET /api/categories > returns only active categories, ordered by id ascending, as {id, name} 11ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 3 -> Lab 4 migration (specification.md §7.4) > MIG-01: keeps every Lab 1-3 row and id unchanged 3ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 3 -> Lab 4 migration (specification.md §7.4) > MIG-01: every legacy Ticket has version 1, zero Actions Taken, and an empty history 1ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 3 -> Lab 4 migration (specification.md §7.4) > MIG-02: resolvedAt = updatedAt read as UTC for Resolved/Closed, NULL otherwise, with no time zone shift 0ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 4 constraints (specification.md §7.2) > MIG-03 (BR-01): an Action Taken cannot exist without a valid Ticket or User 2ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 4 constraints (specification.md §7.2) > MIG-03: CHECKs reject follow-up without note, Done without result, blank description, version 0 2ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 4 constraints (specification.md §7.2) > MIG-03 (§7.3-5, §7.3-6): Restrict blocks deleting a Ticket or User with Actions/history; clientRequestId is unique per user 3ms
+ ✓ tests/lab-04/migration.integration.test.ts > Lab 4 constraints (specification.md §7.2) > MIG-04 (§7.3-4): every index in §7.2 exists 1ms
+ ✓ tests/lab-04/migration.integration.test.ts > Rollback and re-apply (specification.md §7.5) > MIG-05 (AC-39): the down script restores the Lab 3 schema with every Lab 1-3 row intact 14ms
+ ✓ tests/lab-04/migration.integration.test.ts > Rollback and re-apply (specification.md §7.5) > MIG-05 (AC-39): the forward migration re-applies cleanly afterward and still preserves every row 17ms
+ ✓ tests/lab-02/schema.integration.test.ts > Ticket constraints > SCHEMA-01 (BR-01): rejects a duplicate ticketNumber 10ms
+ ✓ tests/lab-02/schema.integration.test.ts > Ticket constraints > SCHEMA-02 (BR-02): defaults currentStatus to NEW and stamps createdAt/updatedAt 10ms
+ ✓ tests/lab-02/schema.integration.test.ts > Ticket constraints > SCHEMA-03: rejects a ticket whose requester, category or related system does not exist 13ms
+ ✓ tests/lab-02/schema.integration.test.ts > Ticket constraints > SCHEMA-04: required columns are NOT NULL, optional ones are nullable 9ms
+ ✓ tests/lab-02/schema.integration.test.ts > Ticket constraints > SCHEMA-05: indexes exist on the columns My Tickets filters and sorts by 3ms
+ ✓ tests/lab-02/schema.integration.test.ts > delete behaviour > SCHEMA-06: deleting a ticket cascades to its attachments 10ms
+ ✓ tests/lab-02/schema.integration.test.ts > delete behaviour > SCHEMA-07: refuses to delete a category, related system or requester still in use 18ms
+ ✓ tests/lab-01/health-check.test.ts > GET /api/health > returns ok status 61ms
+ ✓ tests/lab-02/serializable-retry.unit.test.ts > withSerializableRetry > retries a Postgres serialization failure (P2034) and returns the eventual success 12ms
+ ✓ tests/lab-02/serializable-retry.unit.test.ts > withSerializableRetry > gives up and rethrows after exhausting all attempts 48ms
+ ✓ tests/lab-02/serializable-retry.unit.test.ts > withSerializableRetry > by default tries 5 times, waiting a growing random delay before each retry 2ms
+ ✓ tests/lab-02/serializable-retry.unit.test.ts > withSerializableRetry > rethrows immediately for an error that is not a serialization failure 0ms
+ ✓ tests/lab-03/error-envelope.api.test.ts > errorEnvelope wired into the app (api-spec.md §0.2, §0.3) > a malformed JSON body is rejected as 400, not 500 11ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-02: canTransitionAction (BR-07) > permits exactly the 6 listed pairs out of 16 1ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-03: lockedFieldChanged (BR-09) > locks nothing while Planned or In Progress 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-03: lockedFieldChanged (BR-09) > leaves only follow-up fields and attachment notes editable when Done 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-03: lockedFieldChanged (BR-09) > locks every field when Cancelled 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-03: lockedFieldChanged (BR-09) > never counts an unchanged value, including an equal Date instance 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > trims text and nulls blank optional text 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > enforces lengths and required fields 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > rejects calendar values that do not exist instead of rolling them over 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > rejects a timestamp without an offset 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > requires a follow-up note only when follow-up is required, and nulls it otherwise 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > requires a Result for Done 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > rejects a future Action Date/Time only for Done, with 5 minutes of tolerance 0ms
+ ✓ tests/lab-04/action-rules.unit.test.ts > UNIT-04: payload validation (BR-05, BR-06, BR-08, BR-32) > defaults a new Action to Planned, assigned to the caller 0ms
+ ✓ tests/lab-03/error-handler.unit.test.ts > errorEnvelope > passes a body-parser 400 through as a safe 4xx, not 500 1ms
+ ✓ tests/lab-03/error-handler.unit.test.ts > errorEnvelope > passes a body-parser 413 through with its own status 0ms
+ ✓ tests/lab-03/error-handler.unit.test.ts > errorEnvelope > falls back to 500 INTERNAL_ERROR and logs for anything without a 4xx status 0ms
+ ✓ tests/lab-03/error-handler.unit.test.ts > errorEnvelope > does not log a passed-through 4xx as a server error 0ms
+ ✓ tests/lab-03/error-handler.unit.test.ts > errorEnvelope > delegates to next(err) instead of writing when headers are already sent 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > requirePasswordChangeSatisfied (api-spec.md §1.5) > 403 PASSWORD_CHANGE_REQUIRED when the caller must still change their password 1ms
+ ✓ tests/lab-03/authorization.unit.test.ts > requirePasswordChangeSatisfied (api-spec.md §1.5) > calls next when the gate is already satisfied 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > requireRole (api-spec.md §0.1 role rule) > 403 FORBIDDEN when the caller role is not in the permitted list 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > requireRole (api-spec.md §0.1 role rule) > calls next when the caller role is permitted 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > requireRole (api-spec.md §0.1 role rule) > 401 UNAUTHENTICATED instead of throwing when req.user is not set 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > isOwner (BR-03) > true only when the resource owner id equals the authenticated user id 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > isOwner (BR-03) > false for a different owner 0ms
+ ✓ tests/lab-03/authorization.unit.test.ts > isOwner (BR-03) > false when the resource has no owner (null/undefined) 0ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > bangkokDateString > puts 16:59:59.999Z and 17:00:00.000Z on different Bangkok days (AC-29) 1ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > bangkokDateString > crosses month and year boundaries 0ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > startOfBangkokDay > returns 17:00Z of the previous UTC day 0ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > startOfBangkokDay > gives the BR-42 30-day window start (today and the 29 days before it) 0ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > parseBangkokDate > maps YYYY-MM-DD to 00:00 +07:00 of that date 0ms
+ ✓ tests/lab-04/bangkok-time.unit.test.ts > parseBangkokDate > rejects anything that is not a real calendar date 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts receipt.jpg with content type image/jpeg 1ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts receipt.JPG with content type image/jpeg 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts screenshot.jpeg with content type image/jpeg 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts photo.png with content type image/png 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts photo.webp with content type image/webp 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > accepts report.pdf with content type application/pdf 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects virus.exe with content type application/x-msdownload 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects archive.zip with content type application/zip 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects noextension with content type image/jpeg 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects photo.png with content type application/octet-stream 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects ../../etc/passwd.png with content type image/png 0ms
+ ✓ tests/lab-02/attachment-filename.unit.test.ts > isAllowedAttachment > rejects ..\..\windows\file.jpg with content type image/jpeg 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > no Actions 1ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > only Cancelled 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > one Done 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > Done + Planned 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > Done + In Progress 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > Done with follow-up 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > Cancelled with follow-up is ignored 0ms
+ ✓ tests/lab-04/resolution-gate.unit.test.ts > evaluateResolutionGate > all three failing 0ms
+ ✓ tests/lab-04/ticket-workflow.unit.test.ts > nextResolvedAt > sets it to now on entering Resolved, even if one was set before 1ms
+ ✓ tests/lab-04/ticket-workflow.unit.test.ts > nextResolvedAt > keeps it on Resolved -> Closed 0ms
+ ✓ tests/lab-04/ticket-workflow.unit.test.ts > nextResolvedAt > clears it on Reopened 0ms
+ ✓ tests/lab-04/ticket-workflow.unit.test.ts > nextResolvedAt > leaves it unchanged for every other target 0ms
+ ✓ tests/lab-02/ticket-number.unit.test.ts > formatTicketNumber > zero-pads the id to 6 digits 1ms
+ ✓ tests/lab-02/ticket-number.unit.test.ts > formatTicketNumber > does not truncate an id wider than 6 digits 0ms
+ ✓ tests/lab-02/ticket-number.unit.test.ts > formatTicketNumber > uses the given year verbatim 0ms
+
+ Test Files  41 passed (41)
+      Tests  844 passed (844)
+   Start at  17:54:40
+   Duration  37.37s (transform 246ms, setup 453ms, import 3.82s, tests 30.60s, environment 2ms)
+
+Exit code: 0

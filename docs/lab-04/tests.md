@@ -565,8 +565,50 @@ also changed in Issue #70, for flakiness only; see §7.2.
 
 ## 7. Final Results
 
-Not yet run. Issue #70 records the final server/client/E2E counts and any
-gaps found here.
+### 7.1 Last Run
+
+Run on 22 Oct 2026 at commit `3ee1418` (branch
+`lab4/feat/10-test-coverage`, from `lab4-staging` `fd02fd2`), against the
+seeded Docker database. The full output is saved in
+`artifacts/lab-04/test-output/`, one file per suite, each headed by its
+date, commit, and command. Issue #71 re-runs it on `main`.
+
+| Suite | Command | Lab 1 | Lab 2 | Lab 3 | Lab 4 | Total | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Server unit + API/integration | `pnpm --filter server test` | 2 | 74 | 297 | 471 | 844 in 41 files | 844 passed, 0 failed, 0 skipped |
+| Client unit + UI component | `pnpm --filter client test` | 6 | 48 | 72 | 152 | 278 in 26 files | 278 passed, 0 failed, 0 skipped |
+| E2E (Playwright) | `pnpm e2e` | – | 3 | 26 | 38 | 67 | 67 passed, 0 failed, 0 flaky |
+| Dashboard evidence (EVID-01) | see §5 | – | – | – | 6 | 33 values | 33 of 33 match |
+
+No test is skipped, disabled, `.only`-filtered, or commented out.
+
+Flakiness check: the full suite (server, client, E2E) ran three times in a
+row at commit `5f8a2e6`, and three more times at `3ee1418` after the last
+fix below. All six runs passed with the counts above.
+
+### 7.2 Flakiness Fixes
+
+None of these weakens an assertion.
+
+| Test | Cause | Fix |
+| --- | --- | --- |
+| Random server API tests (seen as a stray `401` in `actions-taken.api.test.ts`, about 1 run in 5) | `request(app)` made supertest listen on port 0 of every interface and dial `127.0.0.1`. macOS sometimes handed out a port another local program held on 127.0.0.1 alone, so the request reached that program | `server/tests/helpers/loopback-supertest.ts` (Vitest setup file) sends `request(app)` to one app server bound to 127.0.0.1. 12,000 probe requests failed 0 times after the change, against several failures before |
+| Lab 3 UI-39, "shows the Queue, not the forbidden state, for an Administrator" (`StaffTicketQueue.test.tsx`) | The stub answered the Queue request with 403, so the test passed only when it checked the page before that response landed | The stub returns a Queue page, and the test also waits for the row |
+| API-46, "a Ticket resolved and closed today counts; one reopened today does not" (`staff-dashboard.api.test.ts`), which then failed API-51 through the leftover fixture | The status history query had no `orderBy`, so Postgres could return the rows in any order | Ordered by `changedAt`, then `id` (BR-22) |
+
+### 7.3 Bugs Found
+
+- **FR-22 / AC-45 was not implemented.** `GET /api/health` returned
+  `{ status, service }` without probing the database and had no 503 path.
+  Issue #70 added the `SELECT 1` probe with a 2-second timeout
+  (`server/src/app.ts`, api-spec.md §1.1), API-53 tests it, and the Lab 1
+  health test now expects `database: "ok"` (§6).
+- No other test exposed an application bug.
+
+### 7.4 Coverage Tooling
+
+The project has no coverage tool installed, so no line-coverage summary is
+produced (§8).
 
 ## 8. Known Limitations or Deferred Tests
 

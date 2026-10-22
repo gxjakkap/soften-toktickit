@@ -140,7 +140,15 @@ pnpm --filter server test   # unit, API/integration, authorization, migration, s
 pnpm --filter client test   # unit and UI component tests (Vitest + Testing Library)
 ```
 
+Add `--reporter=verbose` to either command to list every test by name, as the saved run output in `artifacts/lab-04/test-output/` does.
+
 Tests live by lab: `server/tests/lab-NN/`, `client/tests/lab-NN/`, and `e2e/lab-NN/`. `docs/lab-04/tests.md` maps each test ID to its file and acceptance criteria.
+
+The server suite includes a dashboard evidence check that recomputes every dashboard metric for the seeded accounts with raw SQL and compares it with the API. Run it on its own to print the comparison table:
+
+```bash
+pnpm --filter server exec vitest run tests/lab-04/dashboard-metrics-evidence.test.ts
+```
 
 ### End-to-end and visual/responsive tests (Playwright)
 
@@ -153,7 +161,7 @@ pnpm e2e
 This runs every spec under `e2e/`:
 
 - Lab 2 and Lab 3 user flows and screenshot suites (`e2e/lab-02/`, `e2e/lab-03/`). The screenshot suites write to `artifacts/lab-03/screenshots/`.
-- Lab 4 flows: Actions Taken (`e2e/lab-04/actions-taken-flow.spec.ts`), the resolution gate and conflicts (`e2e/lab-04/ticket-resolution.spec.ts`), and both dashboards with their drill-downs (`e2e/lab-04/dashboards.spec.ts`).
+- Lab 4 flows: Actions Taken (`e2e/lab-04/actions-taken-flow.spec.ts`), the resolution gate and conflicts (`e2e/lab-04/ticket-resolution.spec.ts`), both dashboards with their drill-downs (`e2e/lab-04/dashboards.spec.ts`), keyboard-only use of the dashboard and the Actions Taken form (`e2e/lab-04/accessibility.spec.ts`), and a cross-role regression journey through Lab 2-4 features plus a New York browser time zone check (`e2e/lab-04/regression.spec.ts`).
 - The hardening sweep (`e2e/lab-04/hardening.spec.ts`): every major screen for every role at 1440, 768, and 375 px, failing on any console error, unexpected failed request, horizontal page scroll, or serious/critical `@axe-core/playwright` violation, plus a Bangkok-time check with the browser set to New York.
 
 The E2E flows create their own Tickets and remove them afterwards (`pnpm --filter server clean:e2e-fixtures` runs in global setup and teardown). If the server and client aren't already running, Playwright starts them itself (see `playwright.config.ts`). Run one file with `pnpm e2e e2e/lab-04/hardening.spec.ts`.

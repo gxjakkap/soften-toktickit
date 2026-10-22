@@ -81,8 +81,22 @@ const upload = multer({
   },
 })
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'TokTickIT API' })
+// api-spec.md §1.1 (FR-22, AC-45): probes the database with SELECT 1 and a
+// 2-second timeout. A failure is a 503 that names no driver error.
+const HEALTH_DB_TIMEOUT_MS = 2000
+app.get('/api/health', async (_req, res) => {
+  let timer: NodeJS.Timeout | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timeout')), HEALTH_DB_TIMEOUT_MS)
+  })
+  try {
+    await Promise.race([prisma.$queryRaw`SELECT 1`, timeout])
+    res.json({ status: 'ok', service: 'TokTickIT API', database: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'degraded', service: 'TokTickIT API', database: 'unreachable' })
+  } finally {
+    clearTimeout(timer)
+  }
 })
 
 const unauthenticated = {

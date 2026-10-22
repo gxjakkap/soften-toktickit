@@ -85,11 +85,23 @@ describe('Ticket Queue access', () => {
 
   // Lab 4 (docs/lab-04/tests.md §6): BR-29 supersedes Lab 3 AC-37, so an
   // Administrator now sees the Queue instead of the forbidden state.
+  // The Queue API answers the Administrator with data here. Without a handler
+  // the stub returned 403, so the test only passed when it asserted before
+  // that response landed (Issue #70 flakiness fix).
   it('Lab 4 BR-29: shows the Queue, not the forbidden state, for an Administrator', async () => {
-    mockApi({ ...testUser, role: 'ADMINISTRATOR' })
+    mockApi({ ...testUser, role: 'ADMINISTRATOR' }, () => ({
+      data: [ticket()],
+      page: 1,
+      pageSize: 10,
+      totalCount: 1,
+      totalPages: 1,
+      hasAnyTickets: true,
+    }))
     renderQueue()
 
     expect(await screen.findByPlaceholderText(/search by ticket number or summary/i)).toBeTruthy()
+    const table = await screen.findByTestId('queue-table')
+    expect(within(table).getByText('TKT-2026-000101')).toBeTruthy()
     expect(screen.queryByTestId('queue-forbidden')).toBeNull()
   })
 })

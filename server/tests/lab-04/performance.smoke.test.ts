@@ -1,4 +1,4 @@
-// PERF-01, PERF-02 (tests.md §2.5); BR-35, specification.md §7.3-4.
+// PERF-01..PERF-03 (tests.md §2.5); BR-35, specification.md §7.3-4.
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../../src/app.js'
@@ -161,5 +161,26 @@ describe('PERF-02 gate and list latency', () => {
     const ms = performance.now() - start
     expect(res.status).toBe(200)
     expect(ms).toBeLessThan(200)
+  })
+})
+
+// Issue #70: the remaining list endpoints a dashboard drills into, with the
+// same 300 ms median threshold as the Queue filter above.
+describe('PERF-03 list latency', () => {
+  it.each([
+    ['staff', 'Queue, unfiltered', '/api/staff/tickets'],
+    ['requester', 'My Tickets, default', '/api/tickets'],
+    ['requester', 'My Tickets, statusGroup=active', '/api/tickets?statusGroup=active'],
+    ['requester', 'My Tickets, sortBy=updatedAt', '/api/tickets?sortBy=updatedAt&sortDir=desc'],
+  ] as const)('%s: %s median < 300 ms', async (who, _label, path) => {
+    const ms = await medianMs(() => request(app).get(path).set('Cookie', cookies[who]))
+    expect(ms).toBeLessThan(300)
+  })
+
+  it('Actions Taken list on a Ticket with 50 Actions median < 300 ms', async () => {
+    const ms = await medianMs(() =>
+      request(app).get(`/api/staff/tickets/${gateTicketId}/actions`).set('Cookie', cookies.staff),
+    )
+    expect(ms).toBeLessThan(300)
   })
 })

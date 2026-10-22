@@ -7,7 +7,7 @@ import { AuthProvider } from '../../src/AuthContext'
 import { testAdminUser, testStaffUser, testUser } from '../helpers/auth'
 import type { StaffTicketDetail } from '../../src/types'
 
-// UI-39..UI-50 — AC-34, AC-37, AC-41, AC-42, AC-44: docs/lab-04 ui-spec.md
+// UI-39..UI-51 — AC-34, AC-37, AC-41, AC-42, AC-44: docs/lab-04 ui-spec.md
 // §5, §11 (FR-19, FR-20, FR-21, FR-24). Issue #69 hardening fixes: section
 // order, shared feedback states, busy state, kept input, and accessible
 // modals.
@@ -415,5 +415,108 @@ describe('UI-49: obsolete Lab 2 badge name removed (ui-spec.md §11)', () => {
     renderAt('/staff/tickets/101')
     const badge = await screen.findByTestId('status-badge')
     expect(badge.className).toContain('zg-badge-status-waiting')
+  })
+})
+
+// Issue #70 gap analysis: the last three busy-protected submits with no
+// one-request-per-click test (FR-21, BR-28).
+describe('UI-51: duplicate-submit protection on the remaining forms (FR-21, BR-28)', () => {
+  const dana = {
+    id: 40,
+    name: 'Dana Lee',
+    email: 'dana.lee@example.com',
+    role: 'IT_STAFF',
+    isActive: true,
+  }
+
+  function stubAdminWith(method: 'PATCH', target: string) {
+    let release!: (r: Response) => void
+    const calls = { count: 0 }
+    stubApi(testAdminUser, (url, init) => {
+      if (!init?.method && url.startsWith('/api/admin/users'))
+        return json({ data: [dana], totalCount: 1 })
+      if (init?.method === method && url === target) {
+        calls.count++
+        return new Promise<Response>((resolve) => (release = resolve))
+      }
+      return undefined
+    })
+    return { calls, release: (r: Response) => release(r) }
+  }
+
+  it('Change Password: two clicks send one request while busy', async () => {
+    let release!: (r: Response) => void
+    let posts = 0
+    stubApi({ ...testUser, mustChangePassword: true }, (url, init) => {
+      if (init?.method === 'POST' && url === '/api/auth/change-password') {
+        posts++
+        return new Promise<Response>((resolve) => (release = resolve))
+      }
+      return undefined
+    })
+    renderAt('/change-password')
+    const user = userEvent.setup()
+    await user.type(
+      await screen.findByLabelText(/^current \(temporary\) password/i, { selector: 'input' }),
+      'DevPass123!',
+    )
+    await user.type(screen.getByLabelText(/^new password/i, { selector: 'input' }), 'N3w!Passw0rd')
+    await user.type(
+      screen.getByLabelText(/^confirm new password/i, { selector: 'input' }),
+      'N3w!Passw0rd',
+    )
+    const submit = screen.getByRole('button', { name: /continue/i })
+    await user.click(submit)
+    await user.click(submit)
+    expect(submit.getAttribute('aria-busy')).toBe('true')
+    expect(submit).toHaveProperty('disabled', true)
+    expect(posts).toBe(1)
+    release(serverError())
+    await waitFor(() =>
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeTruthy(),
+    )
+  })
+
+  it('Admin edit user: two clicks on Save Changes send one PATCH', async () => {
+    const api = stubAdminWith('PATCH', '/api/admin/users/40')
+    renderAt('/admin/users')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Edit Dana Lee' }))
+    const panel = screen.getByTestId('user-panel')
+    const name = within(panel).getByLabelText(/full name/i)
+    await user.clear(name)
+    await user.type(name, 'Dana Lee-Park')
+    const save = within(panel).getByRole('button', { name: 'Save Changes' })
+    await user.click(save)
+    await user.click(save)
+    const busy = within(panel).getByRole('button', { name: 'Saving…' })
+    expect(busy.getAttribute('aria-busy')).toBe('true')
+    expect(api.calls.count).toBe(1)
+    api.release(serverError())
+    await within(panel).findByRole('alert')
+    expect((within(panel).getByLabelText(/full name/i) as HTMLInputElement).value).toBe(
+      'Dana Lee-Park',
+    )
+  })
+
+  it('Admin set new password: two clicks on Save Password send one PATCH', async () => {
+    const api = stubAdminWith('PATCH', '/api/admin/users/40/password')
+    renderAt('/admin/users')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Edit Dana Lee' }))
+    const panel = screen.getByTestId('user-panel')
+    await user.click(within(panel).getByRole('button', { name: /set new password/i }))
+    await user.type(within(panel).getByLabelText('New Initial Password'), 'An0ther!Passw0rd')
+    const save = within(panel).getByRole('button', { name: 'Save Password' })
+    await user.click(save)
+    await user.click(save)
+    const busy = within(panel).getByRole('button', { name: 'Saving…' })
+    expect(busy).toHaveProperty('disabled', true)
+    expect(api.calls.count).toBe(1)
+    api.release(serverError())
+    await waitFor(() => expect(within(panel).queryByRole('button', { name: 'Saving…' })).toBeNull())
+    expect((within(panel).getByLabelText('New Initial Password') as HTMLInputElement).value).toBe(
+      'An0ther!Passw0rd',
+    )
   })
 })

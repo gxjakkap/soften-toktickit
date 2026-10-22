@@ -1,11 +1,13 @@
 # Lab 4 Test Plan and Results
 
-This is the first pass of the Lab 4 test plan, written with the engineering
-contract (Issue #61) and before any implementation. It is derived from
-`specification.md` (FR-01–25, BR-01–55, AC-01–47, §7 data changes) and
-`api-spec.md`. Every row's Final status is **Planned**. Each implementation
-issue moves its rows to Pass (or records why not), and Issue #70 does the
-gap analysis and final reconciliation.
+This is the Lab 4 test plan and its results. The first pass was written
+with the engineering contract (Issue #61), before any implementation, from
+`specification.md` (FR-01–25, BR-01–55, AC-01–47, §7 data changes),
+`api-spec.md`, and `ui-spec.md`. Each implementation issue (#62–#69) filled
+in its own rows. Issue #70 reconciled the plan: it walked every acceptance
+criterion forward to its tests, compared the plan with the test files,
+wrote the missing tests, and set the Final column from the last full run
+(§7). A row's Final value is the result of that run, never a prediction.
 
 Earlier labs' acceptance criteria stay in force. `docs/lab-02/tests.md` and
 `docs/lab-03/tests.md` still apply. Lab 3 tests that change because this
@@ -14,7 +16,9 @@ changed them.
 
 Test IDs restart for Lab 4. Each test file opens with a comment naming its
 `API-nn`/`UI-nn`/… IDs and the ACs it covers (repository convention,
-`CLAUDE.md`).
+`CLAUDE.md`). Each test, or the `describe` block around it, carries its Test
+ID in its name, so `grep -rn "API-05" server/tests/lab-04` finds the exact
+test a row describes.
 
 ## 1. Test Strategy
 
@@ -50,8 +54,42 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
   database plus 2,000 generated Tickets and 6,000 Actions.
 - **E2E**: Playwright full flows for Actions Taken, resolution, dashboards
   and drill-down, and a cross-role regression tour.
+- **Dashboard evidence**: one file recomputes every dashboard value for
+  seeded users with raw SQL that shares no code with the handlers, and
+  prints a metric/SQL/expected/API table (EVID-01, grading Part 5).
 
-## 2. Planned Tests
+### 1.1 Coverage by Test Type
+
+Every test type the handout requires, with the rows that cover it:
+
+| Type | Test IDs |
+| --- | --- |
+| Unit | UNIT-01–UNIT-08 |
+| API / integration | API-01–API-58, EVID-01 |
+| UI component | UI-01–UI-51 |
+| UI style | STYLE-01–STYLE-03, UI-48, UI-49, HARD-03 |
+| Responsive | STYLE-01, STYLE-02, HARD-01 (1440/768/375 on every major screen), the responsive cases in `e2e/lab-04/dashboards.spec.ts` |
+| Authorization | SEC-01–SEC-04, API-01, API-17, API-27, API-37, API-43, API-56, API-57, plus Lab 3 SEC-01–SEC-05 (§9) |
+| Workflow | API-20–API-35, API-56, API-57, UI-24–UI-31, E2E-03–E2E-07 |
+| Migration / regression | MIG-01–MIG-09, E2E-12, and the Lab 1–3 regression map (§9) |
+| Performance smoke | PERF-01–PERF-03 |
+| E2E | E2E-01–E2E-13, A11Y-02 |
+
+### 1.2 Coverage of Handout §10
+
+| Handout §10 area | Test IDs |
+| --- | --- |
+| All UI | UI-01–UI-51; HARD-01 opens every major screen for every role |
+| Dashboard calculations | API-38, API-44–API-47, API-52, API-58, EVID-01, E2E-08, E2E-09 |
+| Drill-down | API-41, API-50, API-42, API-51, UI-02, UI-09, UI-34–UI-37, E2E-08, E2E-09 |
+| Role restrictions | SEC-01–SEC-04, API-01, API-17, API-27, API-37, API-43, API-56, API-57, UI-22, UI-32, UI-40 |
+| Concurrent and stale updates | API-11, API-14, API-28, API-29, API-31, UI-18, UI-20, UI-28, E2E-06 |
+| Safe failures | API-53, API-54, UI-04, UI-10, UI-19, UI-37, UI-40, UI-43–UI-46, UI-50, HARD-01 |
+| Responsive behavior | STYLE-01, STYLE-02, HARD-01 |
+| Accessibility | A11Y-01, A11Y-02, HARD-01, HARD-03, UI-23, UI-47 |
+| Complete Labs 1–3 regression | MIG-07–MIG-09, E2E-12, §9 |
+
+## 2. Tests
 
 ### 2.1 Unit
 
@@ -112,6 +150,8 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | API-33 | API | api-spec.md §3.5 | Detail adds `version`, `resolvedAt`, `resolutionGate` | Values match DB; `resolutionGate` equals what the status endpoint would decide | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | API-34 | API | AC-26, BR-29, BR-30 | Administrator parity | Admin: Queue 200, Detail 200, claim, reassign (incl. to an Admin), priority, status, comment, Internal Note, Action create/update all succeed | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | API-35 | API | BR-30, §11-15 | Assignable users list | `/api/staff/it-staff-users` returns active IT Staff and Administrators with `role`, name-ascending; excludes inactive and Requesters | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| API-56 | Authorization / Workflow | AC-21, BR-16, BR-29 | Administrator column of the matrix ("BR-16: an Administrator is refused …") | The 47 pairs IT Staff can't perform are 409 `INVALID_TRANSITION` for an Administrator too, with status, version, and history unchanged (the 17 permitted pairs are in API-20) | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| API-57 | Authorization / Workflow | AC-22, BR-17 | Requester column of the matrix ("BR-17: a Requester is refused …") | All 64 pairs, including the 17 permitted ones, are 403 `FORBIDDEN` on the Requester's own Ticket, with status, version, and history unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 
 **Requester dashboard** (`server/tests/lab-04/requester-dashboard.api.test.ts`):
 
@@ -139,13 +179,20 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | API-50 | API | AC-30, BR-38 | Drill-down equals list | Each ticket-count metric's `drillDown` query on `GET /api/staff/tickets` returns `totalCount` = value; BR-45 returns `ticketCount` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
 | API-51 | API | api-spec.md §4.1 | Queue new filters | `statusGroup`, `resolvedFrom`/`resolvedTo` (inclusive Bangkok dates), `followUp=pending`, `openActionAssigneeId`, `sortBy=resolvedAt` (nulls last); invalid values and `resolvedTo < resolvedFrom` → 400 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
 | API-52 | API | AC-31, BR-37 | Zero metrics | Caller with no owned Tickets and no Actions: `myActiveTickets`, `myOpenActions` = 0, list `[]` | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| API-58 | API | AC-31, BR-37, BR-38, BR-50 | Resolved Today zero ("Resolved Today is 0 with its drill-down intact …", in the API-52 block) | With the clock on a Bangkok day that has no resolutions, `resolvedToday` is `{ value: 0, drillDown }` and the drill-down's `totalCount` is 0 | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+
+**Dashboard metric evidence** (`server/tests/lab-04/dashboard-metrics-evidence.test.ts`):
+
+| Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
+| --- | --- | --- | --- | --- | --- | --- |
+| EVID-01 | API / Evidence | AC-28, AC-02, AC-33, BR-39–BR-55 | Every dashboard value for seeded Sarah Johnson (IT Staff), Jennifer Anderson (Requester), and Alex Morgan (Administrator user counts) against raw SQL written from the BR definitions, with no shared code | All 33 values (cards, "across N tickets", 8 status and 3 priority breakdowns, list ids in order, 6 user counts, the 30-day window start) equal their SQL; the metric/SQL/expected/API table is printed and saved in `artifacts/lab-04/test-output/dashboard-metrics-evidence.txt` | `server/tests/lab-04/dashboard-metrics-evidence.test.ts` | Pass |
 
 **Health and error envelope** (`server/tests/lab-04/health-and-errors.api.test.ts`):
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| API-53 | API | AC-45, FR-22 | Health | 200 `database: ok` normally; with the DB probe mocked to throw, 503 `database: unreachable` and no error text | `server/tests/lab-04/health-and-errors.api.test.ts` | Planned |
-| API-54 | API | api-spec.md §0.2 | Safe 500 on new endpoints | A forced Prisma error in the Action create and dashboard handlers returns 500 `INTERNAL_ERROR` with the generic message only | `server/tests/lab-04/health-and-errors.api.test.ts` | Planned |
+| API-53 | API | AC-45, FR-22 | Health | 200 `database: ok` normally; with the DB probe mocked to throw, 503 `database: unreachable` and no error text; a probe that hangs past 2 s is also 503 | `server/tests/lab-04/health-and-errors.api.test.ts` | Pass (Issue #70 implemented FR-22, which no earlier issue had built; see §7.3) |
+| API-54 | API | api-spec.md §0.2 | Safe 500 on new endpoints | A forced Prisma error in the Action create and both dashboard handlers returns 500 `INTERNAL_ERROR` with the generic message only | `server/tests/lab-04/health-and-errors.api.test.ts` | Pass |
 
 **Route ids** (`server/tests/lab-04/route-ids.api.test.ts`):
 
@@ -157,10 +204,10 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| SEC-01 | Security | api-spec.md §6, FR-11, BR-12, BR-17, BR-29 | Endpoint × role matrix | Every row of api-spec.md §6 for every role: 401 unauthenticated; 403 each denied role; each allowed role reaches the handler | `server/tests/lab-04/authorization-matrix.api.test.ts` | Planned |
-| SEC-02 | Security | BR-12, BR-31 | No existence leak | Requester GET actions/status-history on another Requester's Ticket → 404 body exactly `{error}` | `server/tests/lab-04/authorization-matrix.api.test.ts` | Planned |
-| SEC-03 | Security | BR-12, AC-06 | Requester cannot write Actions by any path | POST/PATCH to staff and requester Action paths all non-2xx; DB row count unchanged | `server/tests/lab-04/authorization-matrix.api.test.ts` | Planned |
-| SEC-04 | Security | Lab 3 BR-04 | Internal Notes still private | Requester detail, actions, history, and dashboard responses never contain a seeded Internal Note's text | `server/tests/lab-04/authorization-matrix.api.test.ts` | Planned |
+| SEC-01 | Security | api-spec.md §6, FR-11, BR-12, BR-17, BR-29, AC-32 | Endpoint × role matrix | Every Lab 4 endpoint in api-spec.md §6 for every role: 401 unauthenticated; 403 each denied role; each allowed role reaches the handler. The Lab 1–3 rows, with Administrator now allowed on `/api/staff/*`, stay in `server/tests/lab-03/authorization-matrix.api.test.ts` | `server/tests/lab-04/authorization-matrix.api.test.ts` | Pass |
+| SEC-02 | Security | BR-12, BR-31 | No existence leak | Requester GET actions/status-history on another Requester's Ticket → 404 body exactly `{error}` | `server/tests/lab-04/authorization-matrix.api.test.ts` | Pass |
+| SEC-03 | Security | BR-12, AC-06 | Requester cannot write Actions by any path | POST/PATCH to staff and requester Action paths all non-2xx; DB row count unchanged | `server/tests/lab-04/authorization-matrix.api.test.ts` | Pass |
+| SEC-04 | Security | Lab 3 BR-04 | Internal Notes still private | Requester detail, actions, history, and dashboard responses never contain a fixture Internal Note's text, while the staff detail does | `server/tests/lab-04/authorization-matrix.api.test.ts` | Pass |
 
 ### 2.4 Migration / Regression
 
@@ -172,9 +219,9 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | MIG-04 | Migration | §7.3-4 | Indexes exist | Every index in §7.2 is present | `server/tests/lab-04/migration.integration.test.ts` | Pass |
 | MIG-05 | Migration | AC-39, §7.5 | Rollback and re-apply | Down script returns to the Lab 3 schema with every Lab 1–3 row intact (Lab 3 MIG checks pass); forward migration re-applies cleanly | `server/tests/lab-04/migration.integration.test.ts` | Pass |
 | MIG-06 | Migration | AC-40, §7.6 | Seed idempotency and coverage | Two runs, identical rows and ids; Tickets with 0, 1, many Actions; all Action statuses; ≥2 pending follow-ups; resolved-today Ticket; Emma has zero Tickets; Nattapong zero open Actions; history `fromStatus` is `null` only on `→ NEW` creation entries; seeded Resolved/Closed (except the legacy-style one) pass the gate; inactive assignee present | `server/tests/lab-04/schema-seed.integration.test.ts` | Pass |
-| MIG-07 | Regression | AC-43, FR-23 | Lab 1–3 server suites | `server/tests/lab-01..03` pass, changed only per §6 | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
-| MIG-08 | Regression | AC-43, FR-23 | Lab 1–3 client suites | `client/tests/lab-01..03` pass, changed only per §6 | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
-| MIG-09 | Regression | AC-43, FR-23 | Lab 2–3 E2E suites | `e2e/lab-02`, `e2e/lab-03` pass, changed only per §6 | `e2e/lab-02/`, `e2e/lab-03/` | Planned |
+| MIG-07 | Regression | AC-43, FR-23 | Lab 1–3 server suites | `server/tests/lab-01..03` pass, changed only per §6 | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass (§7) |
+| MIG-08 | Regression | AC-43, FR-23 | Lab 1–3 client suites | `client/tests/lab-01..03` pass, changed only per §6 | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass (§7) |
+| MIG-09 | Regression | AC-43, FR-23 | Lab 2–3 E2E suites | `e2e/lab-02`, `e2e/lab-03` pass, changed only per §6 | `e2e/lab-02/`, `e2e/lab-03/` | Pass (§7) |
 
 ### 2.5 Performance Smoke
 
@@ -182,6 +229,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | --- | --- | --- | --- | --- | --- | --- |
 | PERF-01 | Performance | BR-35, §7.3-4 | Dashboard latency | With 2,000 extra Tickets and 6,000 Actions, `GET /api/dashboard/staff` and `/requester` median of 10 calls < 300 ms locally | `server/tests/lab-04/performance.smoke.test.ts` | Pass |
 | PERF-02 | Performance | §7.3-4 | Gate and list latency | Status change to Resolved on a Ticket with 50 Actions < 200 ms; Queue with `followUp=pending&statusGroup=active` < 300 ms | `server/tests/lab-04/performance.smoke.test.ts` | Pass |
+| PERF-03 | Performance | FR-15, §7.3-4 | Remaining drill-down lists | Same data set; median of 10 calls < 300 ms for the unfiltered Queue, My Tickets (default, `statusGroup=active`, `sortBy=updatedAt`), and the Actions Taken list on a Ticket with 50 Actions | `server/tests/lab-04/performance.smoke.test.ts` | Pass |
 
 ### 2.6 UI Component
 
@@ -246,7 +294,7 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UI-35 | UI | AC-47 | My Tickets URL filters | `/tickets?statusGroup=active` and `resolvedFrom` applied with chips | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-36 | UI | AC-47 | User Management URL role | `/admin/users?role=IT_STAFF` applies role filter chip | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
 | UI-37 | UI | ui-spec.md §2.5 | Invalid URL filter | 400 `INVALID_FILTER` shows safe banner with Clear filters | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Pass |
-| UI-38 | UI | AC-37 | Bangkok times on screens | With `TZ` ≠ Bangkok, My Tickets, both Ticket Details, and dashboards render Bangkok times | `client/tests/lab-04/NavigationAndFilters.test.tsx` | Planned |
+| UI-38 | UI | AC-37, FR-18, BR-33 | Bangkok times on screens | With `TZ=America/New_York` and an instant that is 6 Oct in New York but 7 Oct in Bangkok, every `<time>` on My Tickets, both Ticket Details, and both dashboards shows the Bangkok date or time | `client/tests/lab-04/BangkokTime.test.tsx` | Pass |
 
 **Final hardening, Issue #69** (`client/tests/lab-04/Hardening.test.tsx`):
 
@@ -264,16 +312,17 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | UI-48 | UI | ui-spec.md §12 | Status and priority badges | Every Ticket status and priority badge has a text label and an icon | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 | UI-49 | UI | ui-spec.md §11 | Obsolete badge name | Waiting for Requester uses `.zg-badge-status-waiting` | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 | UI-50 | UI | FR-20, FR-21, AC-44 | Remove Attachment and Problem Appears Resolved, request in flight then 500 | Cancel, Close, and Esc can't dismiss the dialog mid-request; after the failure the dialog shows the safe message and keeps the reason | `client/tests/lab-04/Hardening.test.tsx` | Pass |
+| UI-51 | UI | FR-21, BR-28, AC-44 | Duplicate submit on the remaining busy-protected forms (Change Password, Admin edit user, Admin set new password) | Two clicks send one request; the button is busy and disabled; after a 500 the typed values stay | `client/tests/lab-04/Hardening.test.tsx` | Pass |
 
 ### 2.7 UI Style / Responsive / Accessibility
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` | Partial (both dashboards' 3/2/1 card columns, list columns, and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
-| STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` | Planned |
-| STYLE-03 | Visual/Responsive | AC-43 | Lab 2/3 screens still clean | Re-run Lab 3 screenshot specs; no new overflow | `e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts` | Planned |
+| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/dashboards.spec.ts` (STYLE-01 cases); screenshots: `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` (Issue #71) | Partial (both dashboards' 3/2/1 card columns, list columns, and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
+| STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/hardening.spec.ts` (HARD-01 Ticket Detail cases), `e2e/lab-04/actions-taken-flow.spec.ts` (E2E-01 long-text check); screenshots: `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` (Issue #71) | Partial (both Ticket Details with Actions pass the `scrollWidth` check at 1440/768/375 in HARD-01, and the long unbroken text check passes in E2E-01; the screenshot files are Issue #71's scope) |
+| STYLE-03 | Visual/Responsive | AC-43 | Lab 2/3 screens still clean | Re-run Lab 3 screenshot specs; no new overflow | `e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts` (Lab 3 STYLE tests, unchanged) | Pass |
 | A11Y-01 | Accessibility | AC-42, ui-spec.md §9 | Automated scan | `@axe-core/playwright` on both dashboards, both Ticket Detail screens (Actions open), Queue, My Tickets: zero serious/critical violations | `e2e/lab-04/hardening.spec.ts` (HARD-01 runs the scan on every screen, not only these) | Pass |
-| A11Y-02 | Accessibility | AC-42 | Keyboard-only | Tab through staff dashboard reaches every card link in order with visible focus; Enter on a card drills down; Actions form opens/closes by keyboard with focus return | `e2e/lab-04/accessibility.spec.ts` | Planned |
+| A11Y-02 | Accessibility | AC-42 | Keyboard-only | Tab through staff dashboard reaches the six card links in ui-spec order, every stop has an accessible name and a visible ring; Enter on a card drills down; the Actions form opens by Enter with focus on its heading, Esc closes it with focus back on Add Action, and a keyboard-only save works | `e2e/lab-04/accessibility.spec.ts` | Pass |
 | HARD-01 | Accessibility / Responsive | FR-19, FR-24, AC-34, AC-41, AC-43, ui-spec.md §11 | Every major screen per role (Requester, empty Requester, IT Staff, Administrator, password-change and inactive accounts) at 1440/768/375, including forbidden, not-found, invalid-filter, no-results, empty, validation, and dialog states | No console error or warning; no failed same-origin request other than the case's expected 4xx; `scrollWidth` ≤ viewport; zero serious/critical axe violations | `e2e/lab-04/hardening.spec.ts` | Pass |
 | HARD-02 | Visual | AC-37, BR-33 | Bangkok time under a New York browser | Queue date and Ticket Detail date/time equal the Bangkok rendering of the API instant; Bangkok-time hint shown on Ticket Detail | `e2e/lab-04/hardening.spec.ts` | Pass |
 | HARD-03 | Accessibility | AC-42, ui-spec.md §9 | Focus ring | Header link gets a white ring on the green header; page links get the Zen Green ring | `e2e/lab-04/hardening.spec.ts` | Pass |
@@ -291,64 +340,159 @@ Test IDs restart for Lab 4. Each test file opens with a comment naming its
 | E2E-07 | E2E | AC-25 | Reopen | Resolved → Closed → Reopened; Resolved blocked again after adding a Planned Action | `e2e/lab-04/ticket-resolution.spec.ts` | Pass (the Planned Action is recorded through the Actions Taken API) |
 | E2E-08 | E2E | AC-28, AC-30 | Staff dashboard drill-down | Each card's value equals the destination list's "Showing … of N" | `e2e/lab-04/dashboards.spec.ts` | Pass |
 | E2E-09 | E2E | AC-02, AC-30, AC-31 | Requester dashboard | Jennifer sees own metrics and drill-down matches; Emma sees empty state and Create Ticket | `e2e/lab-04/dashboards.spec.ts` | Pass |
-| E2E-10 | E2E | AC-33, AC-26 | Administrator | Admin lands on dashboard with User Accounts; drill to User Management filtered; opens Queue and records an Action | `e2e/lab-04/dashboards.spec.ts` | Partial (dashboard landing, User Accounts, and User Management drill-down pass; Queue and Action steps are covered by E2E-01/E2E-03) |
+| E2E-10 | E2E | AC-33, AC-26 | Administrator | Admin lands on dashboard with User Accounts; drill to User Management filtered; opens the Queue from the navigation, claims a Ticket, changes its status, posts an Internal Note, and records an Action through the UI | `e2e/lab-04/dashboards.spec.ts` | Pass |
 | E2E-11 | E2E | AC-36 | Landing per role | Each seeded role lands on `/dashboard` after login | `e2e/lab-04/dashboards.spec.ts` | Pass |
-| E2E-12 | E2E | AC-43, FR-23 | Cross-role regression tour | Login/logout, first-login password change, Create Ticket with attachment, My Tickets search, Public Comment, Internal Note privacy, claim/reassign, User Management create/deactivate, all in one run with no console errors | `e2e/lab-04/regression.spec.ts` | Planned |
-| E2E-13 | E2E | AC-37 | Time zone | Browser context `timezoneId: 'America/New_York'` shows Bangkok times on Ticket Detail and dashboards | `e2e/lab-04/regression.spec.ts` | Planned |
+| E2E-12 | E2E | AC-43, FR-23, AC-14, AC-19, AC-02 | Cross-role regression journey | Requester logs in, creates a Ticket with an attachment, and finds it by search; IT Staff A claims it from the Queue, starts work, posts a Public Comment and an Internal Note, and records a Done Action; IT Staff B records a second Done Action and resolves it (Owner still A); the Requester sees the comment and both Actions but not the note, and the dashboard's Resolved (Last 30 Days) and Recently Resolved update; the Administrator deactivates a staff user (login refused) and reactivates them (login reaches the first-login password change); logout between roles; no console error other than the expected 401/403, no 5xx | `e2e/lab-04/regression.spec.ts` | Pass |
+| E2E-13 | E2E | AC-37 | Time zone | Browser context `timezoneId: 'America/New_York'`: every `<time>` on the Requester dashboard, My Tickets, Requester Ticket Detail, staff dashboard, and staff Ticket Detail shows Bangkok date or time | `e2e/lab-04/regression.spec.ts` | Pass |
 
 ## 3. Acceptance-Criterion Traceability Matrix
 
-| AC | Covered by |
-| --- | --- |
-| AC-01 | API-03, UI-12, E2E-01 |
-| AC-02 | API-36, UI-07, E2E-09 |
-| AC-03 | API-04 |
-| AC-04 | UNIT-04, API-05, UI-13 |
-| AC-05 | API-06, UI-15, E2E-01 |
-| AC-06 | API-01, API-17, SEC-03, E2E-02 |
-| AC-07 | API-17, UI-22, E2E-02 |
-| AC-08 | API-11, UI-18 |
-| AC-09 | UNIT-04, API-08, UI-14 |
-| AC-10 | UNIT-03, API-09, API-10 |
-| AC-11 | UNIT-03, API-10, UI-16, E2E-01 |
-| AC-12 | API-13, UI-21 |
-| AC-13 | API-14 |
-| AC-14 | API-15, E2E-01 |
-| AC-15 | API-02 |
-| AC-16 | UNIT-01, API-21, UI-27, E2E-03, E2E-04 |
-| AC-17 | UNIT-01, API-22, E2E-03 |
-| AC-18 | UNIT-01, API-23 |
-| AC-19 | API-24, UI-26, E2E-03 |
-| AC-20 | API-26, UI-30, E2E-05 |
-| AC-21 | API-20, UNIT-08 |
-| AC-22 | API-27, SEC-01 |
-| AC-23 | API-28, UI-28, E2E-06 |
-| AC-24 | API-30 |
-| AC-25 | UNIT-06, API-25, E2E-07 |
-| AC-26 | API-34, UI-31, E2E-10 |
-| AC-27 | UI-24, UI-25, UI-26, E2E-03 |
-| AC-28 | API-38, API-44, E2E-08 |
-| AC-29 | UNIT-05, API-46 |
-| AC-30 | API-41, API-50, UI-02, UI-09, E2E-08, E2E-09 |
-| AC-31 | API-40, API-52, UI-03, UI-08, E2E-09 |
-| AC-32 | API-37, API-43, SEC-01 |
-| AC-33 | API-49, UI-05, E2E-10 |
-| AC-34 | UI-04, UI-10, UI-40 |
-| AC-35 | API-39, API-48 |
-| AC-36 | UI-32, UI-33, E2E-11 |
-| AC-37 | UNIT-07, UI-38, E2E-13, HARD-02 |
-| AC-38 | MIG-01, MIG-02 |
-| AC-39 | MIG-05 |
-| AC-40 | MIG-06 |
-| AC-41 | STYLE-01, STYLE-02, HARD-01 |
-| AC-42 | UI-23, UI-47, A11Y-01, A11Y-02, HARD-03 |
-| AC-43 | MIG-07, MIG-08, MIG-09, STYLE-03, E2E-12 |
-| AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46, UI-50 |
-| AC-45 | API-53 |
-| AC-46 | API-29 |
-| AC-47 | UI-34, UI-35, UI-36 |
+Built forward from `specification.md` §9: each AC was read first, then the
+tests that prove it were listed (and written where missing). Final is the
+AC's result in the last full run: Pass only when every listed test passed.
 
-Every AC-01–AC-47 maps to at least one planned test.
+| AC | Covered by | Final |
+| --- | --- | --- |
+| AC-01 | API-03, UI-12, E2E-01 | Pass |
+| AC-02 | API-36, UI-07, E2E-09, EVID-01, E2E-12 | Pass |
+| AC-03 | API-04 | Pass |
+| AC-04 | UNIT-04, API-05, UI-13 | Pass |
+| AC-05 | API-06, UI-15, E2E-01 | Pass |
+| AC-06 | API-01, API-17, SEC-01, SEC-02, SEC-03, E2E-02 | Pass |
+| AC-07 | API-17, UI-22, E2E-02, E2E-12 | Pass |
+| AC-08 | API-11, UI-18 | Pass |
+| AC-09 | UNIT-04, API-08, UI-14 | Pass |
+| AC-10 | UNIT-03, API-09, API-10 | Pass |
+| AC-11 | UNIT-03, API-10, UI-16, E2E-01 | Pass |
+| AC-12 | API-13, UI-21 | Pass |
+| AC-13 | API-14, UI-20 | Pass |
+| AC-14 | API-15, E2E-01, E2E-12 | Pass |
+| AC-15 | API-02 | Pass |
+| AC-16 | UNIT-01, API-21, UI-27, E2E-03, E2E-04 | Pass |
+| AC-17 | UNIT-01, API-22, E2E-03 | Pass |
+| AC-18 | UNIT-01, API-23 | Pass |
+| AC-19 | API-24, UI-26, E2E-03, E2E-12 | Pass |
+| AC-20 | API-26, UI-30, E2E-05 | Pass |
+| AC-21 | API-20, API-56, UNIT-08, UI-24 | Pass |
+| AC-22 | API-27, API-57, SEC-01 | Pass |
+| AC-23 | API-28, UI-28, E2E-06 | Pass |
+| AC-24 | API-30 | Pass |
+| AC-25 | UNIT-06, API-25, E2E-07 | Pass |
+| AC-26 | API-34, UI-31, E2E-10 | Pass |
+| AC-27 | UI-24, UI-25, UI-26, E2E-03 | Pass |
+| AC-28 | API-38, API-44, EVID-01, E2E-08 | Pass |
+| AC-29 | UNIT-05, API-46 | Pass |
+| AC-30 | API-41, API-50, UI-02, UI-09, E2E-08, E2E-09 | Pass |
+| AC-31 | API-40, API-52, API-58, UI-03, UI-08, E2E-09 | Pass |
+| AC-32 | API-37, API-43, SEC-01 | Pass |
+| AC-33 | API-49, UI-05, EVID-01, E2E-10 | Pass |
+| AC-34 | UI-04, UI-10, UI-40, HARD-01 | Pass |
+| AC-35 | API-39, API-48 | Pass |
+| AC-36 | UI-32, UI-33, E2E-11 | Pass |
+| AC-37 | UNIT-07, UI-38, HARD-02, E2E-13 | Pass |
+| AC-38 | MIG-01, MIG-02 | Pass |
+| AC-39 | MIG-05 | Pass |
+| AC-40 | MIG-06 | Pass |
+| AC-41 | STYLE-01, HARD-01 (STYLE-02 screenshots: Issue #71) | Pass |
+| AC-42 | UI-23, UI-47, A11Y-01, A11Y-02, HARD-03 | Pass |
+| AC-43 | MIG-07, MIG-08, MIG-09, STYLE-03, E2E-12, §9 | Pass |
+| AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46, UI-50, UI-51 | Pass |
+| AC-45 | API-53 | Pass |
+| AC-46 | API-29 | Pass |
+| AC-47 | UI-34, UI-35, UI-36 | Pass |
+
+**47 of 47 ACs map to at least one test, and every one passed in the
+last run. No AC is without a test.** AC-41's screenshot files belong to
+Issue #71; its no-scroll, no-clipping assertions run here (STYLE-01,
+HARD-01).
+
+### 3.1 Requirement Traceability Matrix (FR / BR → Tests)
+
+Every functional requirement and business rule maps to at least one test.
+FR-25 (README) is a document requirement, checked by hand.
+
+| Requirement | Covered by |
+| --- | --- |
+| FR-01 | API-03, UI-12, E2E-01, E2E-12 |
+| FR-02 | API-02, UI-11 |
+| FR-03 | API-09, API-10, UI-16, UI-17 |
+| FR-04 | API-03, API-04 |
+| FR-05 | API-17, UI-22, E2E-02, E2E-12 |
+| FR-06 | API-14, UI-20 |
+| FR-07 | UNIT-08, API-20, API-56, UI-24 |
+| FR-08 | UNIT-01, API-21, API-22, API-23, UI-25, UI-27, E2E-03, E2E-04 |
+| FR-09 | API-24, API-30, UI-26, UI-29, E2E-03 |
+| FR-10 | API-11, API-28, API-29, UI-18, UI-28, E2E-06 |
+| FR-11 | API-34, SEC-01, UI-31, E2E-10 |
+| FR-12 | API-36–API-42, UI-07–UI-10, E2E-09, EVID-01 |
+| FR-13 | API-43–API-52, API-58, UI-01–UI-06, E2E-08, EVID-01 |
+| FR-14 | API-49, UI-05, E2E-10, EVID-01 |
+| FR-15 | API-41, API-50, UI-02, UI-09, E2E-08, E2E-09, PERF-03 |
+| FR-16 | API-42, API-51, UI-34–UI-37 |
+| FR-17 | UI-32, UI-33, E2E-11 |
+| FR-18 | UNIT-07, UI-38, HARD-02, E2E-13 |
+| FR-19 | UI-04, UI-10, UI-37, UI-40, HARD-01 |
+| FR-20 | UI-18, UI-19, UI-43–UI-46, UI-50, UI-51 |
+| FR-21 | API-14, API-28, UI-20, UI-43, UI-45, UI-50, UI-51 |
+| FR-22 | API-53 |
+| FR-23 | MIG-07–MIG-09, STYLE-03, E2E-12, §9 |
+| FR-24 | UI-41, UI-49, HARD-01 |
+| FR-25 | Manual: the README test commands are the ones run for §7 (Issue #70) |
+| BR-01 | API-03, API-19 |
+| BR-02 | API-15, E2E-01, E2E-12 |
+| BR-03 | API-04 |
+| BR-04 | API-06, API-18, UI-15, E2E-01 |
+| BR-05 | UNIT-04, API-07 |
+| BR-06 | UNIT-04, API-05, UI-13 |
+| BR-07 | UNIT-02, API-09, UI-17 |
+| BR-08 | UNIT-04, API-08, UI-14 |
+| BR-09 | UNIT-03, API-10, UI-16 |
+| BR-10 | API-13, API-32, UI-21 |
+| BR-11 | API-15, API-34 |
+| BR-12 | API-01, API-17, SEC-01, SEC-02, SEC-03, UI-22 |
+| BR-13 | API-02, UI-11 |
+| BR-14 | API-14, UI-20 |
+| BR-15 | API-42, API-51, EVID-01 |
+| BR-16 | UNIT-08, API-20, API-56, UI-24 |
+| BR-17 | API-27, API-57, SEC-01 |
+| BR-18 | UNIT-01, API-21, API-22, API-23, UI-25, E2E-03 |
+| BR-19 | API-21, API-31, E2E-04 |
+| BR-20 | API-26, UI-30, E2E-05 |
+| BR-21 | UNIT-06, API-24, API-25, E2E-07 |
+| BR-22 | API-24, API-30, UI-29 |
+| BR-23 | API-32, API-45 |
+| BR-24 | API-28, API-29, UI-28 |
+| BR-25 | API-11, API-12, API-16 |
+| BR-26 | API-11, API-28, UI-18 |
+| BR-27 | API-16 |
+| BR-28 | UI-20, UI-43, UI-45, UI-51 |
+| BR-29 | API-34, API-56, SEC-01, UI-31, E2E-10 |
+| BR-30 | API-34, API-35, UI-31 |
+| BR-31 | API-36, SEC-02, E2E-09 |
+| BR-32 | UNIT-04, API-07 |
+| BR-33 | UNIT-07, UI-38, HARD-02, E2E-13 |
+| BR-34 | UNIT-05, API-38, API-46, API-51, API-58 |
+| BR-35 | PERF-01, UI-06, EVID-01 |
+| BR-36 | API-39, API-48 |
+| BR-37 | API-40, API-52, API-58, UI-03 |
+| BR-38 | API-41, API-50, API-58, E2E-08, E2E-09 |
+| BR-39 | API-38, UI-07, EVID-01 |
+| BR-40 | API-40, UI-08, E2E-09, EVID-01 |
+| BR-41 | API-38, EVID-01 |
+| BR-42 | API-38, EVID-01, E2E-12 |
+| BR-43 | API-39, EVID-01 |
+| BR-44 | API-39, EVID-01, E2E-12 |
+| BR-45 | API-44, API-45, EVID-01 |
+| BR-46 | API-44, EVID-01 |
+| BR-47 | API-44, EVID-01 |
+| BR-48 | API-44, API-45, EVID-01 |
+| BR-49 | API-44, EVID-01 |
+| BR-50 | API-44, API-46, API-58, EVID-01 |
+| BR-51 | API-47, EVID-01 |
+| BR-52 | API-47, EVID-01 |
+| BR-53 | API-48, EVID-01 |
+| BR-54 | API-48, EVID-01 |
+| BR-55 | API-49, UI-05, EVID-01 |
 
 ## 4. Responsive and Visual Checklist
 
@@ -383,6 +527,12 @@ pnpm e2e                    # E2E, screenshots, accessibility
 pnpm test                   # all three in sequence
 ```
 
+The dashboard evidence table (EVID-01) prints when its file runs on its own:
+
+```bash
+pnpm --filter server exec vitest run tests/lab-04/dashboard-metrics-evidence.test.ts
+```
+
 ## 6. Lab 3 Tests Changed by This Contract
 
 These Lab 3 tests assert behavior this contract deliberately changes. Each
@@ -407,18 +557,110 @@ in the test file header. Nothing else in Lab 1–3 may change.
 | UI-14 (`client/tests/lab-02/RequesterTicketDetail.test.tsx`) | FR-09 | The new read-only "Status History" section matches the old `queryByLabelText(/^status/i)` check, so it now asserts no status combobox instead; same intent |
 | Fixture cleanup in the Lab 2/3 API tests that create Tickets through the API or change status, and `server/scripts/clean-e2e-fixtures.ts` | BR-22, §7.3-5 | History and Action rows are FK Restrict, so `afterAll` deletes them before the Tickets; no assertion changed |
 | "Login forgot-password link" (`client/tests/lab-03/Login.test.tsx`) | FR-24 | Lab 3 ui-spec §2 allowed an inert "Forgot your password?" control "if shown at all". Issue #69 removes it as an unfinished control, so the test asserts it is absent |
+| "returns ok status" (`server/tests/lab-01/health-check.test.ts`) | FR-22, api-spec.md §1.1 | The 200 body gains `database: "ok"` (Issue #70). `status` and `service` are unchanged; the exact-match assertion includes the new field |
+
+No Lab 1–3 test failed for any other reason in the Issue #70 runs, so no
+regression was found. The Lab 3 Administrator Queue test (UI-39 above) was
+also changed in Issue #70, for flakiness only; see §7.2.
 
 ## 7. Final Results
 
-Not yet run. Issue #70 records the final server/client/E2E counts and any
-gaps found here.
+### 7.1 Last Run
+
+Run on 22 Oct 2026 at commit `3ee1418` (branch
+`lab4/feat/10-test-coverage`, from `lab4-staging` `fd02fd2`), against the
+seeded Docker database. The full output is saved in
+`artifacts/lab-04/test-output/`, one file per suite, each headed by its
+date, commit, and command. Issue #71 re-runs it on `main`.
+
+| Suite | Command | Lab 1 | Lab 2 | Lab 3 | Lab 4 | Total | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Server unit + API/integration | `pnpm --filter server test` | 2 | 74 | 297 | 471 | 844 in 41 files | 844 passed, 0 failed, 0 skipped |
+| Client unit + UI component | `pnpm --filter client test` | 6 | 48 | 72 | 152 | 278 in 26 files | 278 passed, 0 failed, 0 skipped |
+| E2E (Playwright) | `pnpm e2e` | – | 3 | 26 | 38 | 67 | 67 passed, 0 failed, 0 flaky |
+| Dashboard evidence (EVID-01) | see §5 | – | – | – | 6 | 33 values | 33 of 33 match |
+
+No test is skipped, disabled, `.only`-filtered, or commented out.
+
+Flakiness check: the full suite (server, client, E2E) ran three times in a
+row at commit `5f8a2e6`, and three more times at `3ee1418` after the last
+fix below. All six runs passed with the counts above.
+
+### 7.2 Flakiness Fixes
+
+None of these weakens an assertion.
+
+| Test | Cause | Fix |
+| --- | --- | --- |
+| Random server API tests (seen as a stray `401` in `actions-taken.api.test.ts`, about 1 run in 5) | `request(app)` made supertest listen on port 0 of every interface and dial `127.0.0.1`. macOS sometimes handed out a port another local program held on 127.0.0.1 alone, so the request reached that program | `server/tests/helpers/loopback-supertest.ts` (Vitest setup file) sends `request(app)` to one app server bound to 127.0.0.1. 12,000 probe requests failed 0 times after the change, against several failures before |
+| Lab 3 UI-39, "shows the Queue, not the forbidden state, for an Administrator" (`StaffTicketQueue.test.tsx`) | The stub answered the Queue request with 403, so the test passed only when it checked the page before that response landed | The stub returns a Queue page, and the test also waits for the row |
+| API-46, "a Ticket resolved and closed today counts; one reopened today does not" (`staff-dashboard.api.test.ts`), which then failed API-51 through the leftover fixture | The status history query had no `orderBy`, so Postgres could return the rows in any order | Ordered by `changedAt`, then `id` (BR-22) |
+
+### 7.3 Bugs Found
+
+- **FR-22 / AC-45 was not implemented.** `GET /api/health` returned
+  `{ status, service }` without probing the database and had no 503 path.
+  Issue #70 added the `SELECT 1` probe with a 2-second timeout
+  (`server/src/app.ts`, api-spec.md §1.1), API-53 tests it, and the Lab 1
+  health test now expects `database: "ok"` (§6).
+- No other test exposed an application bug.
+
+### 7.4 Coverage Tooling
+
+The project has no coverage tool installed, so no line-coverage summary is
+produced (§8).
 
 ## 8. Known Limitations or Deferred Tests
 
-- PERF-01/02 thresholds are smoke checks on a developer machine, not load
+- Global staff metrics (Unassigned, Follow-Ups Pending, High Priority, the
+  Tickets-by-Status breakdown) can't reach 0 at the API level without
+  emptying the shared seeded database. Their zero rendering is UI-03, the
+  caller-scoped metrics' zero is API-52, Resolved Today's zero is API-58,
+  and every Requester metric's zero is API-40.
+- The project has no coverage tool (no `@vitest/coverage-*` package), and
+  Issue #70 doesn't add one. Coverage is argued through the matrices in §3
+  instead of a line-coverage number.
+- The `artifacts/lab-04/screenshots/` files (STYLE-01, STYLE-02) are Issue
+  #71's scope. The layout assertions behind them run here.
+- EVID-01 compares the API with SQL run a moment later. At the instant of
+  a Bangkok midnight the two could straddle the day boundary; the
+  boundary itself is proven by UNIT-05 and API-46 with a fixed clock.
+- PERF-01–03 thresholds are smoke checks on a developer machine, not load
   tests. They catch a missing index or an N+1 query, not production
   capacity (handout §4.2 excludes production-scale operations).
 - The Lab 3 limitation on AC-26 (a truly empty system-wide Ticket table
   tested only at the mocked UI layer) still applies. The Lab 4 Requester
   empty state (BR-40) has no such limit, because it is per-Requester and
   Emma Watson has zero Tickets in the shared database.
+
+## 9. Labs 1–3 Regression Map
+
+The Lab 1–3 suites run unchanged against the Lab 4 schema and seed (except
+the §6 rows), so each earlier requirement keeps the test that proved it.
+Lab 2 IDs refer to `docs/lab-02/tests.md`, Lab 3 IDs to
+`docs/lab-03/tests.md`. E2E-12 crosses the same features in one Lab 4
+journey.
+
+| Earlier behavior | Tests (lab: ID) | Files |
+| --- | --- | --- |
+| Lab 1 health check | Lab 1 health test; Lab 4 API-53 | `server/tests/lab-01/health-check.test.ts`, `client/tests/lab-01/app-check-system-*.test.tsx` |
+| Create Ticket with validation | Lab 2: API-01–API-04, UI-05–UI-08, E2E-01; Lab 3: API-27–API-30 | `server/tests/lab-02/create-ticket.api.test.ts`, `client/tests/lab-02/CreateTicket.test.tsx`, `e2e/lab-02/requester-ticket-flow.spec.ts` |
+| Attachment type, size, and count limits | Lab 2: API-15–API-18, API-23, UI-09, UI-16, UNIT-02 | `server/tests/lab-02/attachments.api.test.ts`, `client/tests/lab-02/AttachmentSection.test.tsx` |
+| Soft-removed attachment behavior | Lab 2: API-20, API-21, UI-15, E2E-03, SCHEMA-06; Lab 3: SEC-03, SEC-04 | `server/tests/lab-02/attachments.api.test.ts`, `e2e/lab-02/requester-ticket-flow.spec.ts` |
+| My Tickets search, filter, sort, pagination | Lab 2: API-07–API-12, UI-10–UI-13; Lab 4: API-42 | `server/tests/lab-02/my-tickets.api.test.ts`, `client/tests/lab-02/MyTickets.test.tsx` |
+| Ticket Detail ownership | Lab 2: API-13, API-14, E2E-02; Lab 3: API-34, SEC-02 | `server/tests/lab-02/ticket-detail.api.test.ts`, `server/tests/lab-03/requester-tickets.api.test.ts` |
+| Login: valid, invalid, inactive | Lab 3: API-01, API-05, API-06, UI-02, UI-04, UI-05 | `server/tests/lab-03/auth.api.test.ts`, `client/tests/lab-03/Login.test.tsx`, `e2e/lab-03/authentication.spec.ts` |
+| Mandatory password change | Lab 3: API-15, API-25, UI-07, UI-12; Lab 4: UI-42 | `server/tests/lab-03/auth.api.test.ts`, `client/tests/lab-03/ChangePassword.test.tsx` |
+| Logout | Lab 3: API-13, UI-20; Lab 4: E2E-12 | `server/tests/lab-03/auth.api.test.ts`, `client/tests/lab-03/AuthGuards.test.tsx` |
+| Role navigation | Lab 3: UI-16–UI-19; Lab 4: UI-32, E2E-11 | `client/tests/lab-03/AuthGuards.test.tsx` |
+| Direct API authorization | Lab 3: SEC-01, API-19–API-26, API-82; Lab 4: SEC-01 | `server/tests/lab-03/authorization-matrix.api.test.ts`, `server/tests/lab-03/authorization.api.test.ts` |
+| IT Staff Queue | Lab 3: API-46–API-56 and the Queue UI tests | `server/tests/lab-03/staff-queue.api.test.ts`, `client/tests/lab-03/StaffTicketQueue.test.tsx` |
+| Claim and reassign | Lab 3: API-61–API-68; Lab 4: API-29, API-34 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| IT Priority | Lab 3: API-69, API-70 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| Public Comments vs Internal Notes | Lab 3: API-36–API-41, API-75–API-81, SEC-05; Lab 4: SEC-04, E2E-12 | `server/tests/lab-03/comments-notes.api.test.ts`, `e2e/lab-03/staff-ticket-flow.spec.ts` |
+| Admin: create user, duplicate email | Lab 3: API-87, API-88, API-95 | `server/tests/lab-03/users-admin.api.test.ts`, `e2e/lab-03/user-administration.spec.ts` |
+| Admin: edit, one role, activate/deactivate | Lab 3: API-89, API-93, API-94; Lab 4: E2E-12 (deactivate, then reactivate) | `server/tests/lab-03/users-admin.api.test.ts`, `e2e/lab-04/regression.spec.ts` |
+| Admin: new initial password | Lab 3: API-99, API-100 | `server/tests/lab-03/users-admin.api.test.ts` |
+| Admin: self-deactivation and last-active-Administrator blocks | Lab 3: API-97, API-98 | `server/tests/lab-03/users-admin.api.test.ts`, `e2e/lab-03/user-administration.spec.ts` |
+| Non-Administrator forbidden from User Management | Lab 3: API-82, UI-19 | `server/tests/lab-03/users-admin.api.test.ts` |
+

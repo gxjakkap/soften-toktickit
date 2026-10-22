@@ -1,0 +1,350 @@
+TokTickIT Lab 4 - client unit and UI component suite (run 3 of 3)
+Date: 2026-10-22 17:55:18 +07
+Branch: lab4/feat/10-test-coverage (from lab4-staging fd02fd2)
+Commit: 3ee14181be920fec6cac4c993ab80de1fbda7742
+Command: pnpm --filter client test --reporter=verbose
+
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> client@0.0.0 test /Users/jakka/Code/soften-toktickit/client
+> vitest run --reporter=verbose
+
+
+ RUN  v4.1.10 /Users/jakka/Code/soften-toktickit/client
+
+ ✓ tests/lab-02/CreateTicket.test.tsx > Create Ticket initial state > shows read-only system-generated fields pre-filled/placeholder, distinct from editable fields 63ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32 navigation per role > lists the permitted items for IT Staff with Dashboard first 182ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue access > AC-35: shows the forbidden state for a Requester, with no Queue request made 150ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue access > Lab 4 BR-29: shows the Queue, not the forbidden state, for an Administrator 35ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > shows the empty-queue state, not filters, when zero Tickets exist system-wide 35ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from NEW 165ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from OPEN 73ms
+ ✓ tests/lab-03/UserManagement.test.tsx > forbidden state (AC-35) > shows the full-page forbidden state to IT Staff and makes no admin request 154ms
+ ✓ tests/lab-03/Login.test.tsx > Login validation > shows field-level errors when submitted empty, without calling the API 203ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Create Ticket initial state > populates Category and Related System from the reference-data APIs 84ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Create Ticket initial state > marks every required field with a visible asterisk before any submit attempt 42ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-39: IT Staff Ticket Detail section order (ui-spec.md §5) > places Attachments after Internal Notes and before Status History 193ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-40: shared not-found and forbidden states (ui-spec.md §11) > shows the not-found card as the page heading with one way back 39ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-40: shared not-found and forbidden states (ui-spec.md §11) > shows the forbidden state, with a heading, when the API answers 403 23ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-40: shared not-found and forbidden states (ui-spec.md §11) > shows the forbidden state on a list screen when the API answers 403 15ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > AC-25: shows the no-results state with Clear Filters, distinct from the empty state 49ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > shows a safe failure banner with retry on a server error 50ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > renders seeded data in both the desktop table and the mobile card list, with badges 42ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from IN_PROGRESS 31ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from WAITING_FOR_REQUESTER 27ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from RESOLVED 50ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-11 (FR-02, BR-13): list mode > shows every column in server order, with non-color cues for Cancelled and Inactive 329ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-01 metric cards > renders the six cards in ui-spec order with their values and "across N tickets" 302ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-01 metric cards > AC-37: shows "Updated" and list times in Bangkok time 44ms
+ ✓ tests/lab-03/UserManagement.test.tsx > list (AC-27, BR-39) > renders every seeded user with name, email, role, status and an Edit action 203ms
+ ✓ tests/lab-03/UserManagement.test.tsx > list (AC-27, BR-39) > shows User Management and Ticket Queue in the Administrator nav 15ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-41: invalid drill-down filter offers one Clear filters (ui-spec.md §2.5) > hides the header Clear Filters while the banner offers its own 93ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-42: password reset mid-session (Lab 3 FR-02) > sends the user to Change Password when the API says a change is required 42ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > renders "Unassigned" for a Ticket with no Owner 19ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue states > shows the default "Sorted oldest first" indicator on first load 18ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from CLOSED 31ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from REOPENED 26ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-24 (AC-27, BR-16): only permitted transitions are offered > from CANCELLED 20ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-25 (AC-27, BR-18): gate failing > shows "Resolved (blocked)" disabled with each reason linked to #actions-taken 45ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-11 (FR-02, BR-13): list mode > shows the empty state with Add Action 67ms
+ ✓ tests/lab-03/UserManagement.test.tsx > list (AC-27, BR-39) > shows a safe error with Retry when loading fails 65ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32 navigation per role > lists the permitted items for an Administrator with Dashboard first 80ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-33 landing > sends IT Staff from / to /dashboard 44ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-33 landing > sends an Administrator from / to /dashboard 12ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > AC-01: signs in and routes to the Requester default landing screen 250ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-25 (AC-27, BR-18): gate failing > shows no callout and an enabled Resolved option when the gate passes 25ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-11 (FR-02, BR-13): list mode > shows a scoped error with Retry when the list fails 112ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-02 drill-down links > points every card, breakdown row, list row, and "View all" at the documented target 201ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-03 zero values and empty lists > shows 0 with the empty helper, keeps the link, and shows each list message 53ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-04 loading, failure, and forbidden > shows skeletons while the first load is pending, with no numbers 12ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-33 landing > lands IT Staff on /dashboard after signing in 233ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-26 (AC-19, AC-27): successful change > sends version, then updates the badge and Status History without a reload 115ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-26 (AC-19, AC-27): successful change > disables every workflow control while a change is in flight (no double submit) 40ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-04 loading, failure, and forbidden > shows the safe error with Retry, and Retry recovers 77ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-04 loading, failure, and forbidden > shows the full-page forbidden state on a 403 14ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > shows the Busy state while the request is in flight 234ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-33 landing > still sends a user who must change their password to Change Password 166ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-33 landing > keeps a deep link to a Queue URL instead of redirecting to the dashboard 15ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-27 (AC-16): server RESOLUTION_BLOCKED > reverts the select and shows the backend message and callout from details.reasons 61ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-28 (AC-23, BR-26): server STALE_UPDATE > status: reverts the control and shows the conflict banner with latest values 68ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-05 (AC-04, AC-26): blank Summary > shows a field-level error directly under Summary and never calls the create API 560ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-05 Administrator variant > shows User Accounts with a link per role for an Administrator 78ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-05 Administrator variant > has no User Accounts section for IT Staff 32ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > requests the drill-down params from the URL and shows each as a chip 58ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > names the owner and open-action assignee chips for another user 85ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue interactions > AC-22: typing a search term narrows the list and calls the API with search 424ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-28 (AC-23, BR-26): server STALE_UPDATE > priority: reverts the control and shows the conflict banner with latest values 93ms
+ ✓ tests/lab-03/UserManagement.test.tsx > search and role filter (AC-28, BR-38) > searches by name or email as the Administrator types 407ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-43: comment composers are busy while posting and keep input on failure (FR-20, FR-21) > Add a comment: one request per click, busy state, draft kept after a 500 454ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > shows the Lab 3 filters from the URL in the Filters panel, with "me" as the owner 89ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-06 refresh > refetches and updates the "Updated" time without a page reload 106ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue interactions > AC-23: choosing a filter opens the panel, shows a removable chip, and calls the API with it 157ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-28 (AC-23, BR-26): server STALE_UPDATE > owner: reverts the control and shows the conflict banner with latest values 64ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > AC-05: shows the invalid-credentials banner, clears password, keeps email 235ms
+ ✓ tests/lab-03/UserManagement.test.tsx > search and role filter (AC-28, BR-38) > filters by role and shows a removable chip 132ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > UI-06 refresh > keeps the last good numbers visible with an error notice when a refresh fails 104ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > Navigation and access (AC-36) > marks Dashboard as the current page in the IT Staff nav 46ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx > Navigation and access (AC-36) > renders the Requester Dashboard for a Requester without calling the staff endpoint 26ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-05 (AC-04, AC-26): blank Summary > clears the error once the Requester fills the field in, without a second submit 259ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > removing a chip drops the param from the URL and the next request 56ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue interactions > BR-32: clicking a sortable column header toggles sortBy/sortDir 50ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-28 (AC-23, BR-26): server STALE_UPDATE > Reload latest refetches the Ticket and clears the banner 113ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-29 (FR-09, BR-22): Status History > lists entries oldest first with badges, name, role, and Bangkok time 25ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-29 (FR-09, BR-22): Status History > says so for a legacy Ticket with no entries 18ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx > Ticket Queue interactions > AC-24: pagination shows "Showing X to Y of Z" and Next loads page 2 130ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > AC-06: shows a distinct inactive-account banner 150ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > writes a Filters panel change and a sort change back to the URL 140ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > Clear Filters removes every filter param 54ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-43: comment composers are busy while posting and keep input on failure (FR-20, FR-21) > Add an internal note: one request per click, busy state, draft kept after a 500 292ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-12 (AC-01, FR-01, AC-27): create > posts the form with a clientRequestId, shows the row, and refreshes the resolution gate 656ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-29 (FR-09, BR-22): Status History > shows the latest 10 with a Show all toggle beyond that 82ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-30 (AC-20, BR-20): the Requester indication stays advisory > staff view shows the indication, but Resolved is still driven only by resolutionGate 29ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > UI-31 (AC-26, BR-29, BR-30): Administrator detail > shows every workflow control and lists Administrators with a role suffix 42ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > shows a safe generic banner on a server/network failure, not the raw server message 146ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > moves a page past the end to the last page and shows its rows 26ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > Requester Ticket Detail (BR-17, BR-20) > has no staff status controls, and shows the read-only Status History 34ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx > Requester Ticket Detail (BR-17, BR-20) > labels "Problem Appears Resolved" as a request and never changes the status 57ms
+ ✓ tests/lab-03/Login.test.tsx > Login submit > AC-02: routes a mustChangePassword account straight to Change Password 155ms
+ ✓ tests/lab-03/Login.test.tsx > Login forgot-password link > is not shown, since password resets are Administrator-only 9ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > AC-05: Description under 10 characters > shows a field-level error under Description and does not call the create API 281ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-44: Requester comment keeps its draft after a network failure (FR-20) > shows the safe message and keeps the text 176ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-13 (AC-04, BR-06): follow-up note > appears and becomes required only while Follow-Up Required is checked 235ms
+ ✓ tests/lab-03/UserManagement.test.tsx > search and role filter (AC-28, BR-38) > shows the no-results state with Clear Filters 523ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-14 (AC-09, BR-08): Result required for Done > marks Result required for Done and blocks an empty one 191ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > validates the form before sending anything 170ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-45: admin user form is busy while saving and keeps input on failure (FR-20, FR-21) > keeps every field after a 500 and sends one request per click 325ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > clears the search box when the nav link drops the search from the URL 443ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-34 Ticket Queue URL filters > shows an unknown filter value as typed in its chip 49ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-37 invalid URL filter > shows the safe banner with Clear filters, which recovers 40ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > AC-06: no Requested Priority chosen > shows a field-level error under Requested Priority and does not call the create API 492ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > AC-06: no Requested Priority chosen > has no priority pre-selected 20ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-37 invalid URL filter > Clear filters also drops an unknown sort the route refuses 44ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-36 User Management URL role > applies role from the URL as the request filter and a chip 35ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-15 (AC-05): server field errors > shows INVALID_ASSIGNEE under Assigned To and keeps the input 230ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-46: Change Password keeps the fields after a server failure (FR-20) > keeps what the user typed and shows the safe message 234ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-47: confirmation dialogs manage focus (ui-spec.md §9) > moves focus in, keeps Tab inside, closes on Esc, and returns focus 83ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > offers exactly one single-select role, no multi-select 58ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > AC-02: the mandatory gate > redirects a user who does not need a password change away from this screen 135ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-15 (AC-05): server field errors > maps a VALIDATION_ERROR field onto that input 161ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Public Comments (FR-10, ui-spec.md §4) > shows an empty state when there are no comments yet 55ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Public Comments (FR-10, ui-spec.md §4) > lists existing comments oldest-first with author name, role badge, and timestamp 15ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > renders the three cards in ui-spec.md §3 order with the server values 143ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > welcomes the signed-in Requester by name under the Dashboard title 27ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > submits, closes the panel, reloads the list and shows a success message 322ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-16 (BR-09, AC-11, BR-25): edit a Done Action > locks the finished fields and sends the version with only the changes 127ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > Live password-rule checklist > marks each rule met as the New Password field satisfies it 133ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-50: confirmation dialogs stay open while their request is in flight (FR-20, FR-21) > Remove Attachment keeps the dialog, the reason, and shows the error after a 500 139ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-50: confirmation dialogs stay open while their request is in flight (FR-20, FR-21) > Problem Appears Resolved keeps the dialog and shows the error after a 500 69ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-48: Status and priority badges carry text and an icon (ui-spec.md §12) > renders an icon in every status and priority badge on Ticket Detail 16ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-49: obsolete Lab 2 badge name removed (ui-spec.md §11) > Waiting for Requester uses the renamed waiting badge style 9ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Ticket Detail access > shows the forbidden state for a Requester, with no detail request made 42ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Ticket Detail read-only info > renders Ticket No., Requester, Requested Priority, and Description 43ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > marks Waiting for You with a warning icon while it is above 0 65ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > lists recently updated and recently resolved Tickets, each linking to Ticket Detail 30ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > duplicates no My Tickets features: no search, filters, or pagination 23ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-07 cards and lists (FR-12, AC-02) > reads only its own endpoint, never a staff one 17ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Ticket Detail read-only info > shows the safe error state with retry on a load failure 69ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Ownership > shows Claim on an unassigned Ticket and sets the caller as Owner on click 67ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-17 (BR-07): edit status options > offers only permitted next statuses and confirms Cancelled inline 139ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-09 drill-down links (AC-30) > links each card to the drill-down the server returned 41ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-09 drill-down links (AC-30) > opens My Tickets with the Waiting for Requester filter visible in its controls 74ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > Confirm password mismatch > shows a live mismatch error before submit 161ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-36 User Management URL role > clears the search box when the nav link drops the search from the URL 441ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32/UI-33 Requester navigation and landing > lists Dashboard, My Tickets, and Create Ticket, with My Tickets active on /tickets 11ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32/UI-33 Requester navigation and landing > sends a Requester from / to /dashboard 14ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-06 (AC-07): double-submit > shows a busy/disabled Submit and only one Ticket is created 503ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Ownership > hides Claim once owned by someone else, and Reassign changes the Owner select 93ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > puts a duplicate-email conflict under Email Address and keeps the input 301ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-09 drill-down links (AC-30) > opens My Tickets with an "Active only" chip from Open Tickets 66ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-09 drill-down links (AC-30) > sends "View all my tickets" to My Tickets sorted by last update 24ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-08 zero and empty states (AC-31, BR-37, BR-40) > shows 0 with each helper and keeps every link active 46ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Public Comments (FR-10, ui-spec.md §4) > posts a new comment and appends it to the list without a reload, then clears the input 356ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Public Comments (FR-10, ui-spec.md §4) > disables Post Comment while the draft is empty or whitespace-only 52ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-51: duplicate-submit protection on the remaining forms (FR-21, BR-28) > Change Password: two clicks send one request while busy 234ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > IT Priority and Status > submits an IT Priority change 54ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > IT Priority and Status > only offers permitted transitions from the current status (specification.md §7) 32ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > IT Priority and Status > reverts the Status select and shows an error on a 409 INVALID_TRANSITION 46ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-18 (AC-08, AC-44, BR-26): stale update > shows the latest values, keeps the typed input, and reloads only on request 213ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32/UI-33 Requester navigation and landing > lands a Requester on /dashboard after signing in 157ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-08 zero and empty states (AC-31, BR-37, BR-40) > shows each list empty message 37ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-08 zero and empty states (AC-31, BR-37, BR-40) > replaces cards and lists with one Create Ticket prompt when there are no Tickets 21ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > shows skeleton cards while loading 8ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > shows the safe banner with no numbers, and Retry recovers 31ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > Submit > AC-02: on success, lands on the role default screen with no confirmation screen 235ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Public Comments (FR-10, ui-spec.md §4) > shows a safe error message when posting fails, without losing the draft 120ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Problem Appears Resolved (FR-11, BR-24, BR-25) > is hidden once the Ticket is Closed 17ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-51: duplicate-submit protection on the remaining forms (FR-21, BR-28) > Admin edit user: two clicks on Save Changes send one PATCH 133ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx > Public Comments vs. Internal Notes > renders both in visually distinct sections and posts into the correct one 156ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > shows a safe banner for a forbidden or server failure and keeps the form open 233ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Problem Appears Resolved (FR-11, BR-24, BR-25) > opens a confirmation dialog, then shows a success badge in place of the button 64ms
+ ✓ tests/lab-03/RequesterTicketDetail.test.tsx > Problem Appears Resolved (FR-11, BR-24, BR-25) > does not call the API when the dialog is cancelled 46ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32/UI-33 Requester navigation and landing > still sends a Requester who must change their password to Change Password 145ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-32/UI-33 Requester navigation and landing > keeps a deep link to a filtered My Tickets URL 11ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > applies statusGroup and resolvedFrom from the URL as request params and chips 12ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > shows a status drill-down in the Current Status control 7ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > applies the "View all" sort by last update 12ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > keeps the last good numbers when a refresh fails 56ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > shows the full-page forbidden state if the API answers 403 10ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > never renders the Requester view or calls its endpoint for IT Staff 7ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > UI-10 loading, failure, and forbidden (AC-34) > never renders the Requester view or calls its endpoint for an Administrator 8ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > Quick actions and navigation (AC-36) > offers a Create Ticket link that opens the Create Ticket screen 42ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > Quick actions and navigation (AC-36) > marks only the current item on /dashboard 18ms
+ ✓ tests/lab-04/Hardening.test.tsx > UI-51: duplicate-submit protection on the remaining forms (FR-21, BR-28) > Admin set new password: two clicks on Save Password send one PATCH 163ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > Quick actions and navigation (AC-36) > marks only the current item on /tickets 25ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > Quick actions and navigation (AC-36) > marks only the current item on /tickets/new 18ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx > Quick actions and navigation (AC-36) > keeps My Tickets active on a Ticket Detail page 16ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > removes a chip from the URL and the request 45ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > writes filter and sort changes back to the URL and resets the page 75ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > never forwards a hand-edited requesterId, so the scope cannot widen (AC-02) 11ms
+ ✓ tests/lab-03/UserManagement.test.tsx > create user (AC-29, BR-10, BR-15, BR-33) > Cancel closes the panel and discards input 132ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-19 (AC-44, FR-20): server or network failure > shows a safe banner and keeps every entered value after a 500 294ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > Submit > shows a field-level error under Current password when it is wrong 222ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > shows the safe banner with Clear filters for an invalid param, which recovers 49ms
+ ✓ tests/lab-04/NavigationAndFilters.test.tsx > UI-35 My Tickets URL filters > Clear filters also drops an unknown sort the route refuses 38ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-07 (AC-08): server failure preserves entered values > shows a safe error message and keeps the form values, creating nothing 490ms
+ ✓ tests/lab-03/ChangePassword.test.tsx > Submit > disables Continue and shows a live error when New equals Current 180ms
+ ✓ tests/lab-03/UserManagement.test.tsx > edit user (FR-22) > pre-fills the form and sends only the changed fields 106ms
+ ✓ tests/lab-03/UserManagement.test.tsx > edit user (FR-22) > shows the duplicate-email error under Email Address on edit 203ms
+ ✓ tests/lab-03/UserManagement.test.tsx > edit user (FR-22) > shows the server’s safety-rule message when it rejects the edit 90ms
+ ✓ tests/lab-03/UserManagement.test.tsx > self-deactivation and last-Administrator controls (FR-25, FR-26, AC-31, AC-32) > disables the Active toggle on the Administrator’s own row, with an explanation 70ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-19 (AC-44, AC-41): layout switch while editing > keeps the edit form and its input when the viewport crosses 768px 227ms
+ ✓ tests/lab-03/UserManagement.test.tsx > self-deactivation and last-Administrator controls (FR-25, FR-26, AC-31, AC-32) > disables Active and Role for the only active Administrator 61ms
+ ✓ tests/lab-03/UserManagement.test.tsx > self-deactivation and last-Administrator controls (FR-25, FR-26, AC-31, AC-32) > leaves other users’ Active toggle enabled 68ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-20 (BR-28, BR-14, AC-44): duplicate protection > holds the form open while saving and reuses the clientRequestId on retry 302ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-21 (AC-12, BR-10): non-active Ticket > hides Add Action and Edit and explains how to record more 46ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-08 (AC-01): success > shows the generated Ticket Number after a successful submit 527ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > UI-15 (AC-14, AC-15): active vs removed attachment presentation > shows a Download action for an active attachment and none for a removed one 94ms
+ ✓ tests/lab-03/UserManagement.test.tsx > set new initial password (FR-23, BR-37) > is collapsed by default and absent when creating 144ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-21 (AC-12, BR-10): non-active Ticket > shows TICKET_NOT_ACTIONABLE in the panel with Reload ticket 186ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-22 (AC-07, BR-12): Requester view > shows every field read-only from the Requester endpoint 54ms
+stderr | tests/lab-01/app-check-system-failure.test.tsx > SystemCheck > shows system status offline when the health check fails
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/app-check-system-failure.test.tsx > SystemCheck > shows system status offline when the health check fails
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/app-check-system-failure.test.tsx > SystemCheck > shows system status offline when the health check fails
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-01/app-check-system-failure.test.tsx > SystemCheck > shows system status offline when the health check fails 25ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > UI-15 (AC-14, AC-15): active vs removed attachment presentation > does not offer a Remove action for an already-removed attachment 7ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > UI-15 (AC-14, AC-15): active vs removed attachment presentation > points the Download link at the attachment download endpoint 15ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > UI-16 (AC-10): upload control at the 5-active-attachment cap > disables the upload control and explains the limit once 5 active attachments exist 4ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > UI-16 (AC-10): upload control at the 5-active-attachment cap > does not count a removed attachment toward the 5-active cap 4ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: uploading a new file > adds an uploaded file to the active attachment list on success 43ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: uploading a new file > rejects an oversized file client-side without calling the upload API 22ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > the zone really is New York here 6ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > My Tickets 70ms
+ ✓ tests/lab-03/UserManagement.test.tsx > set new initial password (FR-23, BR-37) > rejects a weak password locally, then sets a valid one 264ms
+ ✓ tests/lab-02/MyTickets.test.tsx > My Tickets states > UI-10 (AC-20, BR-30): shows the empty-account state, not filters, when the Requester owns zero Tickets 155ms
+ ✓ tests/lab-02/MyTickets.test.tsx > My Tickets states > UI-11 (AC-19, BR-30): shows the no-results state with Clear Filters, distinct from the empty state 44ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Unauthenticated access > redirects a direct URL to a protected screen to Login 100ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Role-scoped navigation > shows only Requester destinations for a Requester 28ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Role-scoped navigation > shows Dashboard and the Ticket Queue for IT Staff 34ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Role-scoped navigation > shows Dashboard, Ticket Queue, and User Management for an Administrator 20ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Wrong-role direct URL access > shows the forbidden state, not an error banner, for a Requester hitting the Queue 13ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: uploading a new file > shows a per-file error with Retry when the server rejects the upload 42ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > Requester Ticket Detail 45ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > Requester Dashboard 24ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > IT Staff Ticket Detail 35ms
+ ✓ tests/lab-04/BangkokTime.test.tsx > UI-38: Bangkok times on every Lab 4 screen under a New York process (AC-37) > IT Staff Dashboard 52ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > UI-23 (AC-42): keyboard > tabs through the form in order, and Esc cancels back to Add Action 183ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > Dashboard drill-down anchor > focuses the Actions Taken heading when opened at #actions-taken 52ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx > Dashboard drill-down anchor > leaves focus alone without the anchor 38ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: removing an attachment with confirmation > opens a confirmation dialog with an optional reason before soft-removing 124ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: removing an attachment with confirmation > does not remove the attachment when the dialog is cancelled 61ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx > AttachmentSection: loading/empty states > shows an empty-state message when there are no attachments 2ms
+ ✓ tests/lab-02/MyTickets.test.tsx > My Tickets states > UI-12 (AC-18): pagination shows the correct "Showing X to Y of Z" text and Next loads page 2 134ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > UI-14 (AC-24): read-only rendering > renders all Ticket fields read-only with no Comment/Status/IT Priority controls 168ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > UI-14 (AC-24): read-only rendering > shows the attachment section with the ticket’s attachments 35ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > RequesterTicketDetail: loading state > shows a loading indicator before the ticket resolves 2ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > RequesterTicketDetail: not-found / ownership failure (AC-03) > shows a safe not-found message when the API returns 404, revealing nothing about the ticket 17ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > RequesterTicketDetail: API failure state > shows a safe error banner with a retry action on a server error 37ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Wrong-role direct URL access > shows the forbidden state for IT Staff hitting My Tickets 27ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Wrong-role direct URL access > shows the forbidden state for a Requester hitting User Management 12ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > RequesterTicketDetail: empty attachments state > shows a no-attachments message when the ticket has none 12ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx > RequesterTicketDetail: badges > shows the Requested Priority and Current Status as labeled badges 18ms
+ ✓ tests/lab-03/AuthGuards.test.tsx > Logout > clears the session and blocks further access to protected routes 109ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-08 (AC-01): success > resets to a blank form on Create Another 515ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > UI-09 (AC-11): oversized file, client-side > rejects a 6MB file before any upload request fires 57ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > AC-12: unsupported file type, client-side > rejects a .exe file before any upload request fires 45ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > AC-10: attachment count cap on Create Ticket > rejects a 6th selected file with a limit-reached message 48ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: click/keyboard opens the file browser > clicking the dropzone opens the (now hidden) native file input 34ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: click/keyboard opens the file browser > pressing Enter while the dropzone is focused opens the file browser 22ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: click/keyboard opens the file browser > is keyboard-reachable via Tab and exposes an accessible name 43ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: drag and drop > adds a valid file dropped onto the dropzone 26ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: drag and drop > shows a dragover visual state while dragging and clears it on drop 26ms
+ ✓ tests/lab-02/MyTickets.test.tsx > My Tickets states > UI-13 (AC-16): typing a search term narrows the list 418ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments dropzone: drag and drop > rejects an oversized dropped file with the same client-side message as file-picker uploads 27ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments: paste an image from the clipboard > adds a pasted image to the attachment list 22ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments: paste an image from the clipboard > synthesizes a filename with the right extension for a nameless clipboard image 25ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > Attachments: paste an image from the clipboard > ignores a plain-text paste (e.g. into Summary) and does not touch attachments 31ms
+stderr | tests/lab-01/app-check-system-success.test.tsx > SystemCheck > shows system status online and categories after a successful check
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/app-check-system-success.test.tsx > SystemCheck > shows system status online and categories after a successful check
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/app-check-system-success.test.tsx > SystemCheck > shows system status online and categories after a successful check
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/app-check-system-success.test.tsx > SystemCheck > shows system status online and categories after a successful check
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-01/app-check-system-success.test.tsx > SystemCheck > shows system status online and categories after a successful check 43ms
+stderr | tests/lab-01/category-list-success.test.tsx > CategoryList > renders categories once the request resolves
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/category-list-success.test.tsx > CategoryList > renders categories once the request resolves
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/category-list-success.test.tsx > CategoryList > renders categories once the request resolves
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-01/category-list-success.test.tsx > CategoryList > renders categories once the request resolves 27ms
+stderr | tests/lab-01/category-list-loading.test.tsx > CategoryList > shows a loading state before the request resolves
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/category-list-loading.test.tsx > CategoryList > shows a loading state before the request resolves
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-04/datetime.test.ts > UNIT-07: Bangkok date formatter > renders an instant as Bangkok date and time under a non-Bangkok zone 1ms
+ ✓ tests/lab-04/datetime.test.ts > UNIT-07: Bangkok date formatter > rolls the date at Bangkok midnight, not the browser midnight 0ms
+ ✓ tests/lab-04/datetime.test.ts > UNIT-07: Bangkok date formatter > abbreviates September as "Sep" in every format 0ms
+ ✓ tests/lab-01/category-list-loading.test.tsx > CategoryList > shows a loading state before the request resolves 11ms
+stderr | tests/lab-01/category-list-error.test.tsx > CategoryList > shows an error state when the request fails
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from NEW 1ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from OPEN 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from IN_PROGRESS 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from WAITING_FOR_REQUESTER 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from RESOLVED 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from CLOSED 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from REOPENED 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server transition matrices > agree on the permitted set from CANCELLED 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server agree on the active statuses 0ms
+ ✓ tests/lab-04/ticket-status-parity.test.ts > client and server agree on the Action Status transitions 0ms
+stderr | tests/lab-01/app-initial-render.test.tsx > SystemCheck > renders the check system button with no status shown yet
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-01/app-initial-render.test.tsx > SystemCheck > renders the check system button with no status shown yet 13ms
+stderr | tests/lab-01/category-list-error.test.tsx > CategoryList > shows an error state when the request fails
+The current testing environment is not configured to support act(...)
+
+stderr | tests/lab-01/category-list-error.test.tsx > CategoryList > shows an error state when the request fails
+The current testing environment is not configured to support act(...)
+
+ ✓ tests/lab-01/category-list-error.test.tsx > CategoryList > shows an error state when the request fails 14ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > inline attachment retry after Ticket creation > shows a per-file error with an inline Retry that re-attempts the same upload 427ms
+ ✓ tests/lab-02/CreateTicket.test.tsx > STYLE-01: field state CSS classes > applies read-only, editable, invalid, and busy classes as appropriate 249ms
+
+ Test Files  26 passed (26)
+      Tests  278 passed (278)
+   Start at  17:55:18
+   Duration  6.35s (transform 2.08s, setup 0ms, import 6.72s, tests 28.52s, environment 14.86s)
+
+Exit code: 0

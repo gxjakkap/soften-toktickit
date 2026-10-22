@@ -8,5 +8,7 @@ export default defineConfig({
     // Serializable attachment transactions (app.ts) collide on Postgres'
     // page-level predicate locks and fail with spurious write conflicts.
     fileParallelism: false,
+    // See the file header: keeps supertest from dialing a foreign listener.
+    setupFiles: ['./tests/helpers/loopback-supertest.ts'],
   },
 })

@@ -277,7 +277,12 @@ describe('API-46 Resolved Today boundary (BR-50, BR-34, AC-29)', () => {
     expect(await resolvedToday()).toBe(before)
     // The history still records the resolution; the metric follows
     // resolvedAt, which Reopened cleared (BR-21, specification.md §7.3-2).
-    const history = await prisma.ticketStatusHistory.findMany({ where: { ticketId } })
+    // BR-22 order: without orderBy, Postgres may return the rows in any order
+    // (Issue #70 flakiness fix).
+    const history = await prisma.ticketStatusHistory.findMany({
+      where: { ticketId },
+      orderBy: [{ changedAt: 'asc' }, { id: 'asc' }],
+    })
     expect(history.map((h) => h.toStatus)).toEqual(['RESOLVED', 'CLOSED', 'REOPENED'])
 
     // Now an active Ticket; drop it so the fixture counts below stay exact.

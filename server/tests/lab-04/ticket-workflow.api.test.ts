@@ -7,7 +7,7 @@ import { hashPassword } from '../../src/lib/password.js'
 import { TICKET_STATUSES, canTransition } from '../../src/lib/ticket-status.js'
 import { loginCookie } from '../helpers/auth.js'
 
-// API-20..API-35 (AC-16..AC-26, AC-46): docs/lab-04
+// API-20..API-35, API-56, API-57 (AC-16..AC-26, AC-46): docs/lab-04
 // api-spec.md §3 and specification.md §5.2-5.4 (BR-16..BR-24, BR-26,
 // BR-29, BR-30). Every call goes straight to the API, so nothing here relies
 // on the UI hiding an option. Most Actions Taken fixtures are written
@@ -143,6 +143,38 @@ describe('API-20 (AC-21, BR-16): all 64 status pairs as IT Staff', () => {
     expect(res.status).toBe(200)
     expect(res.body.currentStatus).toBe(to)
   })
+
+  // Issue #70: the Administrator column of the matrix also rejects the 47
+  // pairs IT Staff can't perform, with nothing changed.
+  it.each(pairs.filter(([from, to]) => !canTransition(from, to)))(
+    'API-56 (BR-16): an Administrator is refused %s -> %s like IT Staff',
+    async (from, to) => {
+      const ticket = await createTicket(from)
+      if (to === 'RESOLVED') await addAction(ticket.id, 'DONE')
+      const res = await setStatus(cookies.admin, ticket.id, to)
+      expect(res.status).toBe(409)
+      expect(res.body.error.code).toBe('INVALID_TRANSITION')
+      const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })
+      expect(after).toMatchObject({ currentStatus: from, version: 1 })
+      expect(await historyOf(ticket.id)).toHaveLength(0)
+    },
+  )
+
+  // Issue #70: the Requester column is empty. Every one of the 64 pairs is
+  // 403 on the Requester's own Ticket, permitted pairs included.
+  it.each(pairs)(
+    'API-57 (BR-17): a Requester is refused %s -> %s on their own Ticket',
+    async (from, to) => {
+      const ticket = await createTicket(from)
+      if (to === 'RESOLVED') await addAction(ticket.id, 'DONE')
+      const res = await setStatus(cookies.requester, ticket.id, to)
+      expect(res.status).toBe(403)
+      expect(res.body.error.code).toBe('FORBIDDEN')
+      const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })
+      expect(after).toMatchObject({ currentStatus: from, version: 1 })
+      expect(await historyOf(ticket.id)).toHaveLength(0)
+    },
+  )
 })
 
 describe('API-27 (AC-22, BR-17): a Requester never changes status', () => {
@@ -168,7 +200,7 @@ describe('API-27 (AC-22, BR-17): a Requester never changes status', () => {
   })
 })
 
-describe('API-21..API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls', () => {
+describe('API-21, API-22, API-23 (AC-16..AC-18, BR-18, BR-19): resolution gate via direct API calls', () => {
   const cases: [string, [ActionStatus, boolean][], string[]][] = [
     ['no Actions', [], ['NO_DONE_ACTION']],
     ['only Cancelled', [['CANCELLED', false]], ['NO_DONE_ACTION']],

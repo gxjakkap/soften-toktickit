@@ -1,7 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
-import { loginViaApi, loginViaUi, REQUESTERS, SEED_PASSWORD, VIEWPORTS } from '../lab-02/helpers'
+import {
+  createTicketViaApi,
+  loginViaApi,
+  loginViaUi,
+  REQUESTERS,
+  SEED_PASSWORD,
+  VIEWPORTS,
+} from '../lab-02/helpers'
 
-// E2E-08, E2E-09, E2E-10, E2E-11, STYLE-01 — AC-02, AC-28, AC-30, AC-31,
+// E2E-08, E2E-09, E2E-10, E2E-11, STYLE-01 — AC-02, AC-26, AC-28, AC-30, AC-31,
 // AC-33, AC-36, AC-41: docs/lab-04 ui-spec.md §1, §3, §4, §10. Both
 // dashboards against the seeded database. Expected numbers come from
 // GET /api/dashboard/{staff,requester} in the same session, never hardcoded.
@@ -121,6 +128,41 @@ test('E2E-10: an Administrator lands on the dashboard with User Accounts and dri
   await link.click()
   await expect(page).toHaveURL(staff.drillDown)
   await expect(page.getByRole('button', { name: 'Remove filter: Role: IT Staff' })).toBeVisible()
+})
+
+// E2E-10 (AC-26, BR-29): Issue #70 completes the row. From the dashboard,
+// the Administrator works a Ticket in the Queue exactly as IT Staff would.
+test('E2E-10: an Administrator uses the Queue, claims, changes status, notes, and records an Action', async ({
+  page,
+}) => {
+  await loginViaApi(page.request, REQUESTERS.jennifer.email)
+  const ticket = await createTicketViaApi(page.request, { summary: `Admin parity ${Date.now()}` })
+  await loginViaUi(page, ADMIN, SEED_PASSWORD, '**/dashboard')
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Ticket Queue' })
+    .click()
+  await page.getByPlaceholder(/search by ticket number or summary/i).fill(ticket.ticketNumber)
+  await page.getByRole('link', { name: ticket.ticketNumber }).click()
+
+  await page.getByRole('button', { name: 'Claim' }).click()
+  await expect(page.getByLabel(/ticket owner/i).locator('option:checked')).toHaveText(/Alex Morgan/)
+  await page.getByLabel(/current status/i).selectOption('OPEN')
+  await expect(page.getByTestId('status-badge')).toHaveText('Open')
+  const note = `Administrator note ${Date.now()}`
+  await page.getByLabel(/add an internal note/i).fill(note)
+  await page.getByRole('button', { name: 'Post Internal Note' }).click()
+  await expect(page.getByText(note)).toBeVisible()
+
+  const area = page.locator('#actions-taken')
+  await area.getByRole('button', { name: 'Add Action' }).click()
+  await area
+    .locator('form')
+    .getByLabel(/action description/i)
+    .fill('Administrator checked the dock.')
+  await area.locator('form').getByRole('button', { name: 'Save Action' }).click()
+  await expect(area.getByTestId('action-row')).toHaveCount(1)
+  await expect(area.getByTestId('action-row')).toContainText('Alex Morgan')
 })
 
 type TicketItem = { id: number; ticketNumber: string }

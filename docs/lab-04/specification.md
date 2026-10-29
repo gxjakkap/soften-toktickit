@@ -810,3 +810,11 @@ schema or API and are costly to change after Issue #62 starts;
     (BR-18) keeps reporting `OPEN_ACTIONS`. Staff find the Action from the
     Ticket, where the assignee carries an "Inactive" badge (ui-spec.md
     §5.2), and either reassign it to an active user (BR-04) or cancel it.
+21. **(reversible) Release screenshots use the hardening widths.** Issue #71
+    captures `artifacts/lab-04/screenshots/` at 1440, 768, and 375 px, the
+    widths HARD-01 already checks, with an on-demand script
+    (`e2e/lab-04/capture-screenshots.ts`, `pnpm screenshots`) instead of a
+    spec in the default E2E run, so `pnpm e2e` doesn't rewrite committed
+    images. It replaces the Issue #61 draft in ui-spec.md §13 (1280/820/390
+    px from `screenshots.spec.ts`) and adds `workflow/` and `regression/`
+    folders for grading Parts 7 and 8. Confirmed with the product owner.

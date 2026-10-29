@@ -505,18 +505,34 @@ and #69:
       routed the ten remaining `toLocaleString` dates through the shared
       formatter.*
 
+Re-checked on 29 Oct 2026 for the release (Issue #71): every item still
+holds. `artifacts/lab-04/evidence/visual-accessibility-checklist.md` links
+each item to its screenshots and records the hardening E2E re-run.
+
 ## 13. Screenshot Paths
 
-Captured by Playwright (`e2e/lab-04/screenshots.spec.ts`) at desktop
-(1280 × 800), tablet (820 × 1180), and mobile (390 × 844), each with a
-`document.body.scrollWidth` ≤ viewport assertion:
+Captured by Playwright (`e2e/lab-04/capture-screenshots.ts`, run on demand
+with `pnpm screenshots`) at desktop (1440 px), tablet (768 px), and mobile
+(375 px), the same widths HARD-01 checks. Each capture asserts
+`document.documentElement.scrollWidth` ≤ the viewport width first. Files are
+named `<viewport>-<state>.png` under `artifacts/lab-04/screenshots/`:
 
-- `artifacts/lab-04/screenshots/staff-dashboard/{desktop,tablet,mobile}.png`
-  plus `admin-{desktop,tablet,mobile}.png` (with User Accounts) and
-  `empty-list.png`
-- `artifacts/lab-04/screenshots/requester-dashboard/{desktop,tablet,mobile}.png`
-  plus `empty-state.png`
-- `artifacts/lab-04/screenshots/actions-taken/{desktop,tablet,mobile}.png`
-  (IT Staff Ticket Detail with several Actions), plus `create-form.png`,
-  `edit-done-locked.png`, `validation.png`, `conflict.png`,
-  `resolution-blocked.png`, and `requester-readonly-{desktop,mobile}.png`
+- `staff-dashboard/`: with data, the seeded zero scope (My Open Actions 0),
+  loading, safe failure, the Administrator variant, two drill-downs into
+  the filtered Queue, and the forbidden state for a Requester
+- `requester-dashboard/`: with data, zero metric cards, the empty state,
+  the Waiting for You and Open Tickets drill-downs into My Tickets, and the
+  forbidden state for IT Staff
+- `actions-taken/`: several Actions by different staff, create mode,
+  validation, edit mode (In Progress and locked Done), the conflict notice,
+  cancel, inactive assignee shown and rejected, the Requester read-only
+  view, and Resolve blocked then available
+- `workflow/`: permitted status options per status and role, the server's
+  resolution-gate rejection, status history (staff and Requester), and the
+  Requester's advisory action
+- `regression/`: one desktop capture per Lab 2–3 feature
+
+`artifacts/lab-04/screenshots/README.md` lists every file with what it shows
+and the grading part it supports. This list replaces the Issue #61 draft
+(`screenshots.spec.ts` at 1280/820/390 px), as recorded in specification.md
+§11-21.

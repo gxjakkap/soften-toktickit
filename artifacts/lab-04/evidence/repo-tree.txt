@@ -1,0 +1,336 @@
+# Repository tree of lab4/feat/11-release-integration (captured 29 Oct 2026).
+# Every file git tracks or would add: node_modules/, build output, generated Prisma
+# client, uploads, test results, env files, and .git are excluded by .gitignore.
+# Directories with more than six screenshots show a count instead of each name.
+# 432 files.
+
+.
+├── .agents/
+│   └── skills/
+│       └── unslop/
+│           └── SKILL.md
+├── .claude/
+│   ├── skills/
+│   │   └── unslop
+│   └── settings.json
+├── .github/
+│   ├── scripts/
+│   │   ├── build-test-summary.mjs
+│   │   ├── openrouter-report.mjs
+│   │   ├── post-pr-report.mjs
+│   │   └── review-guide.mjs
+│   └── workflows/
+│       ├── ci.yml
+│       └── pr-test-results.yml
+├── .husky/
+│   ├── commit-msg
+│   └── pre-commit
+├── artifacts/
+│   ├── lab-02/
+│   │   └── screenshots/
+│   │       ├── create-ticket/
+│   │       │   └── [9 .png files]
+│   │       ├── dev-requester-selection/
+│   │       │   ├── active-dropdown.png
+│   │       │   ├── change-requester-action.png
+│   │       │   ├── failure.png
+│   │       │   ├── loading.png
+│   │       │   ├── screen.png
+│   │       │   └── selected-user-display.png
+│   │       ├── my-tickets/
+│   │       │   └── [11 .png files]
+│   │       └── ticket-detail/
+│   │           └── [10 .png files]
+│   ├── lab-03/
+│   │   └── screenshots/
+│   │       ├── authentication/
+│   │       │   ├── change-password-desktop.png
+│   │       │   ├── change-password-mobile.png
+│   │       │   ├── change-password-tablet.png
+│   │       │   ├── desktop.png
+│   │       │   ├── mobile.png
+│   │       │   └── tablet.png
+│   │       ├── create-ticket/
+│   │       │   └── [9 .png files]
+│   │       ├── my-tickets/
+│   │       │   └── [11 .png files]
+│   │       ├── staff-queue/
+│   │       │   ├── desktop.png
+│   │       │   ├── mobile.png
+│   │       │   └── tablet.png
+│   │       ├── staff-ticket-detail/
+│   │       │   ├── desktop.png
+│   │       │   ├── mobile.png
+│   │       │   └── tablet.png
+│   │       ├── ticket-detail/
+│   │       │   └── [10 .png files]
+│   │       └── user-management/
+│   │           ├── desktop.png
+│   │           ├── mobile.png
+│   │           └── tablet.png
+│   └── lab-04/
+│       ├── evidence/
+│       │   ├── git-log-graph.txt
+│       │   ├── lab4-pull-requests.md
+│       │   ├── repo-tree.txt
+│       │   └── visual-accessibility-checklist.md
+│       ├── screenshots/
+│       │   ├── actions-taken/
+│       │   │   └── [42 .png files]
+│       │   ├── regression/
+│       │   │   └── [8 .png files]
+│       │   ├── requester-dashboard/
+│       │   │   └── [19 .png files]
+│       │   ├── staff-dashboard/
+│       │   │   └── [25 .png files]
+│       │   ├── workflow/
+│       │   │   └── [33 .png files]
+│       │   └── README.md
+│       └── test-output/
+│           ├── client.txt
+│           ├── dashboard-metrics-evidence.txt
+│           ├── e2e.txt
+│           └── server-unit-api.txt
+├── client/
+│   ├── public/
+│   │   └── favicon.svg
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── attachment-validation.ts
+│   │   │   ├── datetime.ts
+│   │   │   ├── password-rules.ts
+│   │   │   ├── role-routes.ts
+│   │   │   └── ticket-status.ts
+│   │   ├── ActionsTaken.tsx
+│   │   ├── App.tsx
+│   │   ├── AppShell.tsx
+│   │   ├── AttachmentSection.tsx
+│   │   ├── AuthContext.tsx
+│   │   ├── CategoryList.tsx
+│   │   ├── ChangePassword.tsx
+│   │   ├── CreateTicket.tsx
+│   │   ├── DashboardParts.tsx
+│   │   ├── FeedbackState.tsx
+│   │   ├── Login.tsx
+│   │   ├── MetricCard.tsx
+│   │   ├── ModalDialog.tsx
+│   │   ├── MyTickets.tsx
+│   │   ├── PasswordChecklist.tsx
+│   │   ├── PasswordField.tsx
+│   │   ├── RequesterDashboard.tsx
+│   │   ├── RequesterTicketDetail.tsx
+│   │   ├── StaffDashboard.tsx
+│   │   ├── StaffTicketDetail.tsx
+│   │   ├── StaffTicketQueue.tsx
+│   │   ├── StatusHistory.tsx
+│   │   ├── SystemCheck.tsx
+│   │   ├── UserManagement.tsx
+│   │   ├── apiClient.ts
+│   │   ├── badges.tsx
+│   │   ├── main.tsx
+│   │   ├── types.ts
+│   │   ├── useAuth.ts
+│   │   ├── useDashboard.ts
+│   │   └── zen-green.css
+│   ├── tests/
+│   │   ├── helpers/
+│   │   │   └── auth.ts
+│   │   ├── lab-01/
+│   │   │   ├── app-check-system-failure.test.tsx
+│   │   │   ├── app-check-system-success.test.tsx
+│   │   │   ├── app-initial-render.test.tsx
+│   │   │   ├── category-list-error.test.tsx
+│   │   │   ├── category-list-loading.test.tsx
+│   │   │   └── category-list-success.test.tsx
+│   │   ├── lab-02/
+│   │   │   ├── AttachmentSection.test.tsx
+│   │   │   ├── CreateTicket.test.tsx
+│   │   │   ├── MyTickets.test.tsx
+│   │   │   └── RequesterTicketDetail.test.tsx
+│   │   ├── lab-03/
+│   │   │   ├── AuthGuards.test.tsx
+│   │   │   ├── ChangePassword.test.tsx
+│   │   │   ├── Login.test.tsx
+│   │   │   ├── RequesterTicketDetail.test.tsx
+│   │   │   ├── StaffTicketDetail.test.tsx
+│   │   │   ├── StaffTicketQueue.test.tsx
+│   │   │   └── UserManagement.test.tsx
+│   │   └── lab-04/
+│   │       ├── ActionsTaken.test.tsx
+│   │       ├── BangkokTime.test.tsx
+│   │       ├── Hardening.test.tsx
+│   │       ├── NavigationAndFilters.test.tsx
+│   │       ├── RequesterDashboard.test.tsx
+│   │       ├── StaffDashboard.test.tsx
+│   │       ├── TicketWorkflow.test.tsx
+│   │       ├── datetime.test.ts
+│   │       └── ticket-status-parity.test.ts
+│   ├── .env.example
+│   ├── .oxlintrc.json
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   ├── README.md
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── docs/
+│   ├── lab-01/
+│   │   ├── ai_use.md
+│   │   ├── reviewer.md
+│   │   └── tests.md
+│   ├── lab-02/
+│   │   ├── ai_use.md
+│   │   ├── api-spec.md
+│   │   ├── reviewer.md
+│   │   ├── specification.md
+│   │   ├── tests.md
+│   │   └── ui-spec.md
+│   ├── lab-03/
+│   │   ├── ai_use.md
+│   │   ├── api-spec.md
+│   │   ├── reviewer.md
+│   │   ├── specification.md
+│   │   ├── tests.md
+│   │   └── ui-spec.md
+│   └── lab-04/
+│       ├── api-spec.md
+│       ├── specification.md
+│       ├── tests.md
+│       └── ui-spec.md
+├── e2e/
+│   ├── lab-02/
+│   │   ├── fixtures/
+│   │   │   ├── valid-photo.png
+│   │   │   └── valid-report.pdf
+│   │   ├── helpers.ts
+│   │   └── requester-ticket-flow.spec.ts
+│   ├── lab-03/
+│   │   ├── authentication.spec.ts
+│   │   ├── requester-comments-and-resolved.spec.ts
+│   │   ├── screenshots.spec.ts
+│   │   ├── staff-and-admin-screenshots.spec.ts
+│   │   ├── staff-ticket-flow.spec.ts
+│   │   └── user-administration.spec.ts
+│   ├── lab-04/
+│   │   ├── accessibility.spec.ts
+│   │   ├── actions-taken-flow.spec.ts
+│   │   ├── capture-screenshots.ts
+│   │   ├── dashboards.spec.ts
+│   │   ├── hardening.spec.ts
+│   │   ├── regression.spec.ts
+│   │   └── ticket-resolution.spec.ts
+│   ├── clean-fixtures.ts
+│   ├── global-setup.ts
+│   └── global-teardown.ts
+├── server/
+│   ├── prisma/
+│   │   ├── migrations/
+│   │   │   ├── 20260816122445_add_category/
+│   │   │   │   └── migration.sql
+│   │   │   ├── 20260902174250_add_requester_user/
+│   │   │   │   └── migration.sql
+│   │   │   ├── 20260903055355_add_ticket_attachment_related_system/
+│   │   │   │   └── migration.sql
+│   │   │   ├── 20260919100000_users_auth_comments/
+│   │   │   │   └── migration.sql
+│   │   │   ├── 20261007101745_actions_taken_workflow/
+│   │   │   │   └── migration.sql
+│   │   │   └── migration_lock.toml
+│   │   ├── rollback/
+│   │   │   └── 20261007101745_actions_taken_workflow.down.sql
+│   │   ├── schema.prisma
+│   │   └── seed.ts
+│   ├── scripts/
+│   │   └── clean-e2e-fixtures.ts
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── action-rules.ts
+│   │   │   ├── attachment-validation.ts
+│   │   │   ├── auth-context.ts
+│   │   │   ├── authorization.ts
+│   │   │   ├── bangkok-time.ts
+│   │   │   ├── error-handler.ts
+│   │   │   ├── optimistic-version.ts
+│   │   │   ├── password.ts
+│   │   │   ├── serializable-retry.ts
+│   │   │   ├── ticket-number.ts
+│   │   │   └── ticket-status.ts
+│   │   ├── app.ts
+│   │   ├── db.ts
+│   │   └── index.ts
+│   ├── tests/
+│   │   ├── helpers/
+│   │   │   ├── auth.ts
+│   │   │   └── loopback-supertest.ts
+│   │   ├── lab-01/
+│   │   │   ├── categories-list.test.ts
+│   │   │   └── health-check.test.ts
+│   │   ├── lab-02/
+│   │   │   ├── attachment-filename.unit.test.ts
+│   │   │   ├── attachments.api.test.ts
+│   │   │   ├── create-ticket.api.test.ts
+│   │   │   ├── my-tickets.api.test.ts
+│   │   │   ├── reference-data.api.test.ts
+│   │   │   ├── schema.integration.test.ts
+│   │   │   ├── seed-idempotency.integration.test.ts
+│   │   │   ├── serializable-retry.unit.test.ts
+│   │   │   ├── ticket-detail.api.test.ts
+│   │   │   └── ticket-number.unit.test.ts
+│   │   ├── lab-03/
+│   │   │   ├── auth.api.test.ts
+│   │   │   ├── authorization-matrix.api.test.ts
+│   │   │   ├── authorization.api.test.ts
+│   │   │   ├── authorization.unit.test.ts
+│   │   │   ├── comments-notes.api.test.ts
+│   │   │   ├── error-envelope.api.test.ts
+│   │   │   ├── error-handler.unit.test.ts
+│   │   │   ├── migration.integration.test.ts
+│   │   │   ├── password.unit.test.ts
+│   │   │   ├── requester-tickets.api.test.ts
+│   │   │   ├── schema-seed.integration.test.ts
+│   │   │   ├── staff-queue.api.test.ts
+│   │   │   ├── staff-ticket-detail.api.test.ts
+│   │   │   └── users-admin.api.test.ts
+│   │   └── lab-04/
+│   │       ├── action-rules.unit.test.ts
+│   │       ├── actions-taken.api.test.ts
+│   │       ├── authorization-matrix.api.test.ts
+│   │       ├── bangkok-time.unit.test.ts
+│   │       ├── dashboard-metrics-evidence.test.ts
+│   │       ├── health-and-errors.api.test.ts
+│   │       ├── migration.integration.test.ts
+│   │       ├── performance.smoke.test.ts
+│   │       ├── requester-dashboard.api.test.ts
+│   │       ├── resolution-gate.unit.test.ts
+│   │       ├── route-ids.api.test.ts
+│   │       ├── schema-seed.integration.test.ts
+│   │       ├── staff-dashboard.api.test.ts
+│   │       ├── ticket-workflow.api.test.ts
+│   │       └── ticket-workflow.unit.test.ts
+│   ├── uploads/
+│   │   └── .gitkeep
+│   ├── .env.example
+│   ├── .oxlintrc.json
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   ├── package.json
+│   ├── prisma.config.ts
+│   ├── tsconfig.json
+│   └── vitest.config.ts
+├── .gitignore
+├── .oxfmtrc.json
+├── AGENTS.md
+├── CLAUDE.md
+├── README.md
+├── commitlint.config.js
+├── docker-compose.yaml
+├── package.json
+├── playwright.config.ts
+├── playwright.screenshots.config.ts
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+├── skills-lock.json
+└── tsconfig.json

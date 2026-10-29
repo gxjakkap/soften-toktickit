@@ -1,0 +1,102 @@
+# git log --graph --oneline --decorate --exclude='refs/t3/*' --exclude=refs/stash --all --since=2026-10-05
+# Lab 4 sprint, from the engineering contract (Issue #61) to the release branch. Every branch and remote ref after git fetch;
+# the excludes drop local editor checkpoints and the stash, which are not part of the repository. Captured 2026-10-29 on lab4/feat/11-release-integration.
+
+*   db60408 (HEAD -> lab4/feat/11-release-integration, origin/lab4-staging, lab4-staging) Merge pull request #85 from gxjakkap/lab4/feat/10-test-coverage
+|\  
+| * f837aad (origin/lab4/feat/10-test-coverage, lab4/feat/10-test-coverage) docs: record lab 4 final test results and run output
+| * 3ee1418 test: order status history in the resolved today reopen check
+| * 5f8a2e6 test: complete lab 4 test plan with regression and gap coverage
+| * 0a9dd5b fix: probe the database in the health check
+|/  
+*   fd02fd2 Merge pull request #84 from gxjakkap/lab4/feat/9-final-hardening
+|\  
+| * 0e51c03 (origin/lab4/feat/9-final-hardening, lab4/feat/9-final-hardening) fix: answer 404 instead of 500 for route ids past the int4 range
+| * 3e97d2d fix: keep confirmation dialogs open while their request is in flight
+| * ca0e432 docs: tick the lab 4 visual and accessibility checklist with its evidence
+| * 07a14d5 test: check the focus ring on header and page links
+| * 4e9a308 fix: make the focus ring visible on header controls and plain links
+| * 7d97305 docs: bring the readme setup, test, and demo instructions up to date for lab 4
+| * ccfc166 test: add axe, console, network, and overflow checks across every screen
+| * 951e73d fix: label queue card priorities and tidy mobile pagination and status history
+| * c6c4b73 chore: remove the inert forgot password button and rename the waiting badge style
+| * 3857b52 fix: resolve axe violations and add focus management to confirmation dialogs
+| * 1644404 fix: show the busy spinner on every submit button while it saves
+| * 9e22b6c fix: share forbidden, not-found, error, and empty states across every screen
+| * 0560143 fix: move attachments below internal notes on staff ticket detail
+| * 1040ffd fix: abbreviate September as Sep in Bangkok dates
+| * d447050 fix: show every ticket, comment, note, and list date in Bangkok time
+|/  
+*   5f1b491 Merge pull request #83 from gxjakkap/lab4/feat/8-requester-dashboard-ui
+|\  
+| * a6142c7 (origin/lab4/feat/8-requester-dashboard-ui, lab4/feat/8-requester-dashboard-ui) fix: let clear filters drop an invalid sort on my tickets and the queue
+| * bc96e2c fix: drop the tagline from the requester dashboard welcome
+| * 9ef15d5 fix: mark waiting for you with an icon and warning value instead of a side border
+| * 74b22ab feat: add requester dashboard with my tickets drill-down filters
+|/  
+*   dcf0536 Merge pull request #82 from gxjakkap/lab4/feat/7-staff-dashboard-ui
+|\  
+| * 4ff68be (origin/lab4/feat/7-staff-dashboard-ui, lab4/feat/7-staff-dashboard-ui) test: cover the default retry count and backoff delays
+| * 4860efb fix: clamp the queue page and keep search boxes in step with the url
+| * 9de4e63 fix: back off with jitter between serializable transaction retries
+| * 591a4cd feat: add it staff dashboard ui with queue drill-down filters
+|/  
+*   a85b4f8 Merge pull request #80 from gxjakkap/lab4/feat/5-actions-taken-ui
+|\  
+| *   e59d541 (origin/lab4/feat/5-actions-taken-ui, lab4/feat/5-actions-taken-ui) Merge branch 'lab4-staging' into lab4/feat/5-actions-taken-ui
+| |\  
+| |/  
+|/|   
+* |   294b2f8 Merge pull request #81 from gxjakkap/lab4/fix/ci-test-report
+|\ \  
+| * | 2cc3c1d (origin/lab4/fix/ci-test-report, lab4/fix/ci-test-report) fix: pass test reporter flags without a literal double dash
+|/ /  
+| * c208215 fix: keep an open action edit across the mobile breakpoint
+| * d606f2d fix: keep the action form open while a save is in flight
+| * 2f380f2 feat: add actions taken section to ticket detail screens
+|/  
+*   b550f94 Merge pull request #79 from gxjakkap/lab4/feat/6-dashboard-api
+|\  
+| * af87334 (origin/lab4/feat/6-dashboard-api, lab4/feat/6-dashboard-api) feat: add requester and staff dashboard apis
+|/  
+*   7b95c55 Merge pull request #78 from gxjakkap/lab4/feat/4-ticket-workflow
+|\  
+| *   0dce6f6 (origin/lab4/feat/4-ticket-workflow, lab4/feat/4-ticket-workflow) Merge remote-tracking branch 'origin/lab4-staging' into lab4/feat/4-ticket-workflow
+| |\  
+| |/  
+|/|   
+* |   59156b6 Merge pull request #77 from gxjakkap/lab4/feat/3-actions-taken-api
+|\ \  
+| * | 00f9477 (origin/lab4/feat/3-actions-taken-api) fix: reject nonexistent calendar dates in action time
+| * | 40d8210 feat: add actions taken api
+|/ /  
+| * 04dc74f feat: enforce ticket workflow, resolution gate, and status history
+|/  
+*   0765b84 Merge pull request #76 from gxjakkap/lab4/feat/2-actions-taken-migration
+|\  
+| * eb7bb82 (origin/lab4/feat/2-actions-taken-migration, lab4/feat/2-actions-taken-migration) feat: add actions taken migration, rollback, and seed
+|/  
+*   e968589 Merge pull request #72 from gxjakkap/lab4/feat/1-engineering-contract
+|\  
+| * ef65d53 (origin/lab4/feat/1-engineering-contract, lab4/feat/1-engineering-contract) docs: address contract review on action time, backfill zone, and replay order
+| *   b85324b Merge remote-tracking branch 'origin/lab4-staging' into lab4/feat/1-engineering-contract
+| |\  
+| |/  
+|/|   
+* |   efaef53 Merge pull request #75 from gxjakkap/main
+|\ \  
+| * \   924385d (origin/main, origin/HEAD) Merge pull request #74 from gxjakkap/ci/pr-bot-comments
+| |\ \  
+| | * | 684b973 (origin/ci/pr-bot-comments, ci/pr-bot-comments) ci: post review guide and test results as separate comments
+| |/ /  
+| | *   4dc645f Merge branch 'lab4-staging' into lab4/feat/1-engineering-contract
+| | |\  
+| |_|/  
+|/| |   
+* | | b5b4681 Merge pull request #73 from gxjakkap/main
+|/ /  
+* | 683ba38 (main) Merge pull request #60 from gxjakkap/ci/pr-review-guide-bot
+* | 90b102f (origin/ci/pr-review-guide-bot, ci/pr-review-guide-bot) ci: add AI review guide to PR report
+ /  
+* 70eadeb docs: add sprint 4 engineering contract
+* 11ba039 docs: point identity seam at auth-context

@@ -5,6 +5,7 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "e2e": "playwright test",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "test": "pnpm --filter server test && pnpm --filter client test && pnpm e2e",
     "prepare": "husky"
   },
@@ -33,7 +34,7 @@
       "oxlint",
       "oxfmt"
     ],
-    "playwright.config.ts": [
+    "playwright*.config.ts": [
       "oxlint",
       "oxfmt"
     ]

@@ -63,5 +63,5 @@ Three PRs outside the issue list merged into `lab4-staging` without a review: [#
 ## Issue 11, Release integration: [PR #86](https://github.com/gxjakkap/soften-toktickit/pull/86)
 
 - Changes requested, 30 Oct 2026: "Requesting changes, only for the two docs. The screenshots, the capture script and the `.gitignore` all look good." `ai_use.md` should be `ai-use.md`, it needs 6 to 10 key prompts and a My Reflection, this file needs the comments, responses, and approvals, and the PR description still lists both docs as missing. Also recommended fixing the Cancelled Ticket copy in Actions Taken.
-- Response, 30 Oct 2026: Renamed the file to `ai-use.md`, cut it to ten prompts with a My Reflection at the end, added every review round to this file, and updated the PR description.
+- Response, 30 Oct 2026: Renamed the file to `ai-use.md`, cut it to ten prompts with a My Reflection at the end, added every review round to this file, and updated the PR description. A Cancelled Ticket's Actions Taken helper now says "This ticket is Cancelled. Actions can't be added." instead of telling staff to reopen it, with ui-spec §5.2, UI-21, and the `workflow/*-status-cancelled-final.png` screenshots updated to match. The specification status now reads Final.
 - Approval: pending.

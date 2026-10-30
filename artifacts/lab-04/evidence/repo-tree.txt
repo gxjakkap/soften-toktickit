@@ -1,8 +1,8 @@
-# Repository tree of lab4/feat/11-release-integration (captured 29 Oct 2026).
+# Repository tree of lab4/feat/11-release-integration (captured 30 Oct 2026).
 # Every file git tracks or would add: node_modules/, build output, generated Prisma
 # client, uploads, test results, env files, and .git are excluded by .gitignore.
 # Directories with more than six screenshots show a count instead of each name.
-# 432 files.
+# 434 files.
 
 .
 ├── .agents/
@@ -196,7 +196,9 @@
 │   │   ├── tests.md
 │   │   └── ui-spec.md
 │   └── lab-04/
+│       ├── ai-use.md
 │       ├── api-spec.md
+│       ├── reviewer.md
 │       ├── specification.md
 │       ├── tests.md
 │       └── ui-spec.md

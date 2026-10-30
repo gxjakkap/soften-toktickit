@@ -1,5 +1,7 @@
 # AI Use
 
+Ten key prompts from Lab 4: the planning prompt, then the prompts for Issues 1 to 7, 9 and 10. Issue 8 is left out because its prompt has the same shape as Issue 7's, for the Requester side. Issue 11 is left out because it is release prep with no feature work. My Reflection is at the end.
+
 ## Prompt drafting
 I used Claude Opus 5.5 with thinking level high to digest the stakeholder request and separate it to small issues.
 
@@ -578,87 +580,6 @@ When done:
 ### Reflection
 Some inconsistencies with the specs, which was caught in the review process.
 
-## Issue 8
-
-I used Claude Opus 5.5 with thinking level high on Claude Code to develop the admin user manager functionality.
-
-### Actual prompt
-```
-/caveman ultra
-
-We're continuing Lab 4 (CPE 334, TokTickIT project), Issue #8: "Requester Dashboard UI."
-
-Caveman mode applies only to your chat replies to me. Code, comments, docs, commit messages, and the PR description must be normal, complete English.
-
-If you have questions at any point, use AskUserQuestion to ask me. Don't guess on layout, metrics, or navigation the spec doesn't cover.
-
-First, pull the latest lab4-staging and create a new branch from it: lab4/feat/8-requester-dashboard-ui
-Check that #6 (Dashboard APIs) and #7 (IT Staff Dashboard UI) have merged. If #7 hasn't, stop and ask me, because this issue reuses its shared dashboard components.
-
-Find the "Requester Dashboard UI" issue on my Kanban board (github.com/users/gxjakkap/projects/5) and move it to "Started".
-
-Context: #2-#7 are merged into lab4-staging. #7 built shared dashboard components (metric cards, lists, states, refresh) in a shared folder. Reuse them. Don't fork or restyle them. If one needs a small generalization to fit the Requester case (e.g. a prop for a different empty message or link target), make that change minimal and backward compatible, and confirm StaffDashboard.test.tsx still passes.
-
-Before writing anything:
-- Read docs/lab-04/ui-spec.md (the Requester dashboard: cards, lists, quick actions, responsive arrangement, states, navigation and landing rules, the accessibility checklist), specification.md (Requester dashboard metric BRs, AC-02, other related ACs), and api-spec.md (the Requester dashboard endpoint, drill-down params, the My Tickets filter params from #6).
-- Read the merged #6 Requester endpoint and #7's shared components, routing, and nav changes.
-- Read the Lab 2/3 My Tickets screen (filters and URL query handling) and the Requester app shell.
-- Look at the handout mockup for the Requester dashboard (section 8.2): welcome header, metric cards (My Open Tickets, In Progress, Resolved, Closed, each with "View all"), "My Recent Tickets" with status badges, and Quick Actions (Create Ticket, View My Tickets). Follow ui-spec.md where it differs.
-
-Your task:
-
-1. Route and navigation
-   - Add the Requester dashboard route. Only Requesters reach it; IT Staff/Admin going to the URL directly get the forbidden state or a redirect per ui-spec (the backend stays the authority).
-   - The nav and landing behavior follows ui-spec exactly. The mockup shows "My Tickets" and "Create Ticket" in the Requester nav with no separate Dashboard item, so check whether the spec adds a Dashboard nav item or makes the dashboard the Requester home. If the spec is unclear, ask me. Either way, active-page indication (visual plus aria-current) must stay correct on every Requester page.
-   - The post-login landing page for Requesters follows ui-spec, without breaking deep links or the mandatory password-change redirect.
-
-2. Metric cards
-   - One card per Requester metric from #6, in ui-spec order, built with #7's shared card. Each card has an accessible drill-down with a descriptive name ("View 3 open tickets", not just "View all").
-   - Drill-down uses #6's target and lands on My Tickets with the matching filters applied and visible in My Tickets' filter controls. If My Tickets doesn't read filters from the URL yet, add that, keeping its existing search/sort/pagination behavior unchanged.
-   - Zero values show as 0 with the spec's empty wording.
-
-3. Lists
-   - Attention-required Tickets (e.g. Waiting for Requester) placed where the Requester will notice them, per ui-spec, each linking to Ticket Detail where they can reply via Public Comments.
-   - Recently updated and recently resolved Tickets per spec: Ticket number, title, status badge (text, not color only), and Bangkok time via client/src/lib/datetime.ts. Each row links to Ticket Detail.
-   - Empty states per ui-spec for each list, worded for a Requester (e.g. no tickets yet, with a link to create one).
-   - Don't duplicate the full My Tickets screen: short lists only, at the spec's limits, with "View all" going to My Tickets.
-
-4. Quick actions
-   - Create Ticket and View My Tickets (or per ui-spec), as real links with clear labels. No placeholder controls.
-
-5. States and behavior
-   - Reuse #7's loading skeletons, forbidden state, safe failure with retry, and keep-last-good-data-on-refresh-failure behavior.
-   - Welcome header using the authenticated Requester's name.
-
-6. Ownership protection
-   - The UI only shows what #6's Requester endpoint returns. Never call staff endpoints from Requester screens. Confirm that a drill-down into My Tickets still can't surface another Requester's Tickets, even with hand-edited URL params.
-
-7. Responsive and accessibility
-   - Desktop: card row plus a two-column lower section, as in the mockup. Tablet: wrapped grid. Mobile: single column, no horizontal page scroll, no clipped labels.
-   - Semantic headings, lists, and landmarks; logical keyboard order; visible focus; non-color status cues; screen-reader-friendly card values.
-
-8. Tests
-   - client/.../lab-04 tests/RequesterDashboard.test.tsx (the real client test location): renders every Requester metric card from mocked #6 data; zero values; drill-down targets match #6; attention-required, recent, and resolved lists render and link correctly; empty states; loading; forbidden for staff roles; safe failure with retry; quick actions point to working routes; nav active state.
-   - My Tickets tests for reading drill-down filters from the URL, if you added that, including hand-edited params that try to widen the scope.
-   - Extend e2e/lab-04/dashboards.spec.ts with the Requester part: log in as a seeded Requester with non-zero data, check card counts match the database (through the API or a test helper, not hardcoded numbers), click a drill-down, confirm My Tickets shows the same count with filters visible, open an attention-required Ticket, use Create Ticket from quick actions; log in as the seeded Requester with zero data and check the zero and empty states; log in as a second Requester and confirm none of the first Requester's Tickets appear anywhere (AC-02); try the Requester dashboard URL as IT Staff.
-   - Responsive checks at desktop/tablet/mobile widths using the Lab 3 approach.
-   - Update docs/lab-04/tests.md: only the rows for this issue (real paths and status).
-   - Run the full suite (Lab 2/3, #2-#7, plus these) and confirm nothing regressed, especially StaffDashboard.test.tsx, the #7 parts of dashboards.spec.ts, and the Lab 2/3 My Tickets, Create Ticket, and Ticket Detail tests.
-
-Do not change dashboard API behavior or the staff dashboard's look. If #6's Requester response is missing something ui-spec needs, flag it in the PR and ask me rather than patching the API here. Screenshots for grading happen in #11. Don't touch docs/lab-04/ai-use.md or reviewer.md.
-
-When done:
-- Commit on this branch.
-- Open a PR against lab4-staging named exactly "[Lab 4] 8: Requester Dashboard UI".
-- Request a review from fakekase (`--reviewer fakekase`).
-- Link the PR to the GitHub issue (Closes #<issue number>). Use the issue description as the base for the PR description and run it through unslop. Summarize the cards and lists, drill-down into My Tickets, nav and landing behavior, any shared-component changes, ownership checks, and key decisions.
-- Move the Kanban card to "PR Review".
-- Report back with the PR link, the test output summary, and any spec or API gaps.
-```
-
-### Reflection
-Worked almost perfectly, just some small bugs caught in review process.
-
 ## Issue 9
 
 I used Claude Opus 5.5 with thinking level high on Claude Code to finalize the UI for this sprint.
@@ -805,66 +726,10 @@ When done:
 ### Reflection
 It checked every tests and ran it. Got a straight pass from the reviewer.
 
-## Issue 11
+## My Reflection
 
-I used Claude Opus 5.5 with thinking level high on Claude Code to prepare the release, check all the docs, and capture E2E screenshots. Further than that, as in `ai_use.md` and `reviewer.md`, I didn't use AI to write those, and also the releasing of staging branch to main.
+**Specification agent.** Writing the contract first with Claude Sonnet 5 in Issue 1 paid off. It produced four documents that mostly agreed with each other and with Lab 3, and every later prompt could point at a rule ID instead of explaining the feature again. The gaps it left were between documents and at the edges: a rule that was only in api-spec, a migration backfill that depended on the database time zone, and no place in the order of checks for an idempotent replay. My reviewer found all three before any code was written, which was much cheaper than finding them later.
 
-### Actual prompt
+**Coding agents.** With the contract in place, Claude Opus 5.5 implemented each issue close to the spec and wrote the tests along with the code. It missed the same two kinds of thing each time. One was state while a request is still in flight, like a form or dialog that could close mid-save. The other was input with the right shape but an impossible value, like 31 February, a page past the end, or an id bigger than int4. It covered what the spec spelled out and not much past it. Peer review caught these on six of the ten feature PRs. When I gave the agent the reviewer's steps, it fixed them and added a test that failed on the old code.
 
-```
-/caveman ultra
-
-We're finishing Lab 4 (CPE 334, TokTickIT project), Issue #11: "Release integration." This part is release prep on a feature branch. The merge to main happens in a separate step after I review.
-
-Caveman mode applies only to your chat replies to me. Docs, commit messages, and the PR description must be normal, complete English.
-
-If you have questions at any point, use AskUserQuestion to ask me.
-
-First, pull the latest lab4-staging and create a new branch from it: lab4/feat/11-release-integration
-Check that #1-#10 have all merged into lab4-staging. If any haven't, stop and ask me.
-
-Find the "Release integration" issue on my Kanban board (github.com/users/gxjakkap/projects/5) and move it to "Started".
-
-Before doing anything, read docs/lab-04/specification.md (the Definition of Done), ui-spec.md (the visual and accessibility checklist), tests.md, the README, and handout section 14 (the grading parts) so the evidence lines up with what's graded.
-
-Your task:
-
-1. Definition of Done audit (read-only first)
-   - Go through every DoD item in specification.md and every FR/AC, and check each against the code, tests, and tests.md on lab4-staging.
-   - Check the required repo structure from handout section 12: every docs, server test, client test, e2e, and artifacts path exists. ai-use.md and reviewer.md are mine; just confirm they exist and don't edit them. If they're missing, tell me.
-   - Check README setup, migration, seed, test, and demo instructions by following them from a clean clone and a fresh database. Fix any step that doesn't work as written.
-   - Check .gitignore covers env files, uploads, node_modules, build output, test artifacts that shouldn't be committed, and local databases.
-   - Output a status table (item, status, evidence, gap). If anything is a real gap in product behavior, stop and ask me before fixing. This issue isn't the place for feature work.
-
-2. Screenshots (artifacts/lab-04/screenshots/)
-   - Run the app from a fresh migrate and seed. Use Playwright (a script you commit, e.g. e2e/lab-04/capture-screenshots.ts, so it's reproducible) to capture desktop (1440), tablet (768), and mobile (375) screenshots.
-   - staff-dashboard/: IT Staff dashboard with data, an empty state (the seeded zero-data scope), loading, forbidden (Requester hitting the URL), safe failure, the Admin variant, and a drill-down landing in the filtered Queue.
-   - requester-dashboard/: with data, zero-data Requester, attention-required list, drill-down landing in filtered My Tickets, and staff hitting the Requester dashboard URL.
-   - actions-taken/: a Ticket with multiple Actions Taken by different IT Staff, create mode, the follow-up note validation error, edit mode, the 409 conflict notice, inactive-assignee rejection and status changes (if the spec has them), the Requester read-only view, and the Resolve transition becoming available once the gate is met.
-   - Add a workflow/ folder: status controls showing only permitted transitions for different statuses/roles, the resolution gate error, the Requester advisory action, and the status history in stable order.
-   - Add a regression/ folder with one shot each: login, change password, My Tickets, Create Ticket, Ticket Detail with attachments, Public Comments vs Internal Notes, Ticket Queue, Admin User Management.
-   - Use descriptive file names (e.g. staff-dashboard/desktop-with-data.png). Make sure screenshots are readable without zoom: no dev overlays, devtools, or cursor. Add artifacts/lab-04/screenshots/README.md listing every file with a one-line description and the grading part it supports.
-
-3. Visual and accessibility checklist
-   - Confirm the ui-spec.md checklist #9 completed still holds on the current lab4-staging. Link each item to a screenshot file where one applies. Re-run the #9 hardening E2E (console errors, overflow, axe) and record the result.
-
-4. Repository evidence for grading Part 1
-   - Save to artifacts/lab-04/evidence/: the output of `git log --graph --oneline --decorate --all` covering the Lab 4 sprint (feature branches merging into lab4-staging), the repo directory tree (excluding node_modules, build output, and .git), and a list of the Lab 4 PRs with title, number, link, reviewer, and merge status (`gh pr list --base lab4-staging --state all`).
-
-5. Tests
-   - Run the full suite on this branch and confirm it matches #10's results. If anything fails, stop and tell me.
-
-Don't change application behavior, and don't touch ai-use.md or reviewer.md.
-
-When done:
-- Commit on this branch (the screenshot script, screenshots, evidence files, any README/.gitignore fixes).
-- Open a PR against lab4-staging named exactly "[Lab 4] 11: Release integration".
-- Request a review from fakekase (`--reviewer fakekase`).
-- Link the PR to the GitHub issue (Refs #<issue number>, not Closes, since this issue closes with the main merge). Use the issue description as the base for the PR description and run it through unslop. Include the DoD status table, the screenshot index, and any gaps.
-- Move the Kanban card to "PR Review".
-- Report back with the PR link, the DoD table, and anything you need from me.
-```
-
-### Reflection
-
-Straightforward. Checks all required docs and report back what's missing. It also captured all required E2E screenshots.
+**What I'd keep.** Planning every issue in one conversation and having it draft each issue's prompt kept the prompts consistent. Telling the agent to ask with AskUserQuestion stopped it from making scope calls on its own. I still had to read and edit every prompt before using it, and a human reviewer still found things the agent and I both missed.

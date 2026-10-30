@@ -679,6 +679,18 @@ describe('UI-21 (AC-12, BR-10): non-active Ticket', () => {
     expect(area.queryByRole('button', { name: /edit/i })).toBeNull()
   })
 
+  it('does not tell staff to reopen a Cancelled Ticket (BR-16)', async () => {
+    mockStaffApi({
+      actions: [[action({ status: 'CANCELLED' })]],
+      details: [staffDetail({ currentStatus: 'CANCELLED' })],
+    })
+    renderAt('/staff/tickets/101')
+    const area = await section()
+    expect(area.getByText("This ticket is Cancelled. Actions can't be added.")).toBeTruthy()
+    expect(area.queryByText(/reopen/i)).toBeNull()
+    expect(area.queryByRole('button', { name: 'Add Action' })).toBeNull()
+  })
+
   it('shows TICKET_NOT_ACTIONABLE in the panel with Reload ticket', async () => {
     mockStaffApi({
       details: [staffDetail(), staffDetail({ currentStatus: 'RESOLVED' })],

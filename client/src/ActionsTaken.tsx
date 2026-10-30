@@ -245,7 +245,10 @@ function ActionsTaken({
       {asStaff ? (
         !active && (
           <p className="zg-helper" style={{ marginTop: 'var(--zg-space-2)' }}>
-            This ticket is {STATUS_LABEL[ticketStatus]}. Reopen it to record more actions.
+            {/* ui-spec.md §5.2: Cancelled is final (BR-16), so it can't be reopened. */}
+            {ticketStatus === 'CANCELLED'
+              ? "This ticket is Cancelled. Actions can't be added."
+              : `This ticket is ${STATUS_LABEL[ticketStatus]}. Reopen it to record more actions.`}
           </p>
         )
       ) : (

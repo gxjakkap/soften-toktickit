@@ -267,7 +267,7 @@ Every test type the handout requires, with the rows that cover it:
 | UI-18 | UI | AC-08, AC-44, BR-26 | Stale update | 409 shows conflict banner with latest values; typed input kept; Reload latest refreshes form | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-19 | UI | AC-44, FR-20 | Network/500 failure | Safe banner inside panel; all entered values kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-20 | UI | BR-28, FR-21 | Double click | Two rapid clicks on Save send one request; retry after network error reuses the same `clientRequestId` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
-| UI-21 | UI | AC-12, BR-10 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions." | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-21 | UI | AC-12, BR-10, BR-16 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions.", or "Actions can't be added." with no reopen hint on a Cancelled Ticket | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-22 | UI | AC-07, BR-12 | Requester view | Requester Ticket Detail shows every field read-only; no Add/Edit buttons or form; uses `/api/tickets/:id/actions` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-23 | UI | AC-42 | Keyboard | Tab order through form; Esc cancels and returns focus to trigger | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 

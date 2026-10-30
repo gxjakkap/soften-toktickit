@@ -230,7 +230,9 @@ inside a `.zg-card`, heading "Actions Taken" with a count ("Actions Taken
 
 **Toolbar**: primary **+ Add Action** (top-right of the section). Hidden
 when the Ticket is not active (BR-10) and replaced by the helper "This
-ticket is <status>. Reopen it to record more actions."
+ticket is <status>. Reopen it to record more actions." A Cancelled Ticket
+can't be reopened (BR-16), so it shows "This ticket is Cancelled. Actions
+can't be added." instead.
 
 **List mode**:
 

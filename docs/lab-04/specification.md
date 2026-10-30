@@ -1,7 +1,8 @@
 # Lab 4 Sprint Engineering Specification
 
-Status: **Draft — engineering contract for Issue #61, written before any
-Lab 4 implementation.** It extends `docs/lab-03/specification.md`; every
+Status: **Final — reviewed and implemented.** Issue #61 wrote this
+engineering contract before any Lab 4 implementation, and it merged in
+PR #72 before the first implementation PR opened. It extends `docs/lab-03/specification.md`; every
 Lab 1–3 requirement stays in force unless a rule below explicitly
 supersedes it (each supersession is listed in
 [§11 Assumptions and Decisions](#11-assumptions-and-decisions)).

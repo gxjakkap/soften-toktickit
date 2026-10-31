@@ -267,7 +267,7 @@ Every test type the handout requires, with the rows that cover it:
 | UI-18 | UI | AC-08, AC-44, BR-26 | Stale update | 409 shows conflict banner with latest values; typed input kept; Reload latest refreshes form | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-19 | UI | AC-44, FR-20 | Network/500 failure | Safe banner inside panel; all entered values kept | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-20 | UI | BR-28, FR-21 | Double click | Two rapid clicks on Save send one request; retry after network error reuses the same `clientRequestId` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
-| UI-21 | UI | AC-12, BR-10 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions." | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| UI-21 | UI | AC-12, BR-10, BR-16 | Non-active Ticket | + Add Action and Edit hidden; helper "Reopen it to record more actions.", or "Actions can't be added." with no reopen hint on a Cancelled Ticket | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-22 | UI | AC-07, BR-12 | Requester view | Requester Ticket Detail shows every field read-only; no Add/Edit buttons or form; uses `/api/tickets/:id/actions` | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | UI-23 | UI | AC-42 | Keyboard | Tab order through form; Esc cancels and returns focus to trigger | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 
@@ -282,7 +282,7 @@ Every test type the handout requires, with the rows that cover it:
 | UI-28 | UI | AC-23 | Server `STALE_UPDATE` on status/owner/priority | Select reverts; conflict banner with latest values; Reload latest | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | UI-29 | UI | FR-09, BR-22 | Status History | Oldest-first entries with badges, name, role, Bangkok time; legacy empty message "No status changes recorded yet."; Show all toggle beyond 10 | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | UI-30 | UI | AC-20 | Requester "appears resolved" | Badge on staff view; Resolved option state driven only by `resolutionGate` | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
-| UI-31 | UI | AC-26 | Administrator detail | Admin sees all controls incl. Actions Taken; Owner dropdown lists Admins with role suffix | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass for the workflow controls and Owner list; the Actions Taken section arrives with #65 |
+| UI-31 | UI | AC-26 | Administrator detail | Admin sees all controls incl. Actions Taken; Owner dropdown lists Admins with role suffix | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass for the workflow controls and Owner list; the Administrator recording an Action is covered by E2E-10 |
 
 **Navigation and drill-down destinations** (`client/tests/lab-04/NavigationAndFilters.test.tsx`):
 
@@ -318,8 +318,8 @@ Every test type the handout requires, with the rows that cover it:
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
 | --- | --- | --- | --- | --- | --- | --- |
-| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/dashboards.spec.ts` (STYLE-01 cases); screenshots: `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` (Issue #71) | Partial (both dashboards' 3/2/1 card columns, list columns, and no horizontal scroll pass in `e2e/lab-04/dashboards.spec.ts`; screenshots with #11) |
-| STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/hardening.spec.ts` (HARD-01 Ticket Detail cases), `e2e/lab-04/actions-taken-flow.spec.ts` (E2E-01 long-text check); screenshots: `e2e/lab-04/screenshots.spec.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` (Issue #71) | Partial (both Ticket Details with Actions pass the `scrollWidth` check at 1440/768/375 in HARD-01, and the long unbroken text check passes in E2E-01; the screenshot files are Issue #71's scope) |
+| STYLE-01 | Visual/Responsive | AC-41, ui-spec.md §10, §13 | Staff and Requester dashboards | Desktop/tablet/mobile screenshots; `scrollWidth` ≤ viewport; card columns 3/2/1 | `e2e/lab-04/dashboards.spec.ts` (STYLE-01 cases); screenshots: `e2e/lab-04/capture-screenshots.ts` → `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard}/*.png` (Issue #71) | Pass (card columns and no horizontal scroll in `dashboards.spec.ts`; every screenshot asserts no horizontal scroll at 1440/768/375 before capture) |
+| STYLE-02 | Visual/Responsive | AC-41 | Actions Taken (staff + requester) | Table on desktop/tablet, cards on mobile; create, locked-edit, validation, conflict, blocked-resolution states captured; no overflow with long unbroken text | `e2e/lab-04/hardening.spec.ts` (HARD-01 Ticket Detail cases), `e2e/lab-04/actions-taken-flow.spec.ts` (E2E-01 long-text check); screenshots: `e2e/lab-04/capture-screenshots.ts` → `artifacts/lab-04/screenshots/actions-taken/*.png` (Issue #71) | Pass (HARD-01 and E2E-01 as before; every screenshot asserts no horizontal scroll at 1440/768/375 before capture) |
 | STYLE-03 | Visual/Responsive | AC-43 | Lab 2/3 screens still clean | Re-run Lab 3 screenshot specs; no new overflow | `e2e/lab-03/screenshots.spec.ts`, `e2e/lab-03/staff-and-admin-screenshots.spec.ts` (Lab 3 STYLE tests, unchanged) | Pass |
 | A11Y-01 | Accessibility | AC-42, ui-spec.md §9 | Automated scan | `@axe-core/playwright` on both dashboards, both Ticket Detail screens (Actions open), Queue, My Tickets: zero serious/critical violations | `e2e/lab-04/hardening.spec.ts` (HARD-01 runs the scan on every screen, not only these) | Pass |
 | A11Y-02 | Accessibility | AC-42 | Keyboard-only | Tab through staff dashboard reaches the six card links in ui-spec order, every stop has an accessible name and a visible ring; Enter on a card drills down; the Actions form opens by Enter with focus on its heading, Esc closes it with focus back on Add Action, and a keyboard-only save works | `e2e/lab-04/accessibility.spec.ts` | Pass |
@@ -393,7 +393,7 @@ AC's result in the last full run: Pass only when every listed test passed.
 | AC-38 | MIG-01, MIG-02 | Pass |
 | AC-39 | MIG-05 | Pass |
 | AC-40 | MIG-06 | Pass |
-| AC-41 | STYLE-01, HARD-01 (STYLE-02 screenshots: Issue #71) | Pass |
+| AC-41 | STYLE-01, STYLE-02, HARD-01 | Pass |
 | AC-42 | UI-23, UI-47, A11Y-01, A11Y-02, HARD-03 | Pass |
 | AC-43 | MIG-07, MIG-08, MIG-09, STYLE-03, E2E-12, §9 | Pass |
 | AC-44 | UI-18, UI-19, UI-43, UI-44, UI-45, UI-46, UI-50, UI-51 | Pass |
@@ -402,9 +402,8 @@ AC's result in the last full run: Pass only when every listed test passed.
 | AC-47 | UI-34, UI-35, UI-36 | Pass |
 
 **47 of 47 ACs map to at least one test, and every one passed in the
-last run. No AC is without a test.** AC-41's screenshot files belong to
-Issue #71; its no-scroll, no-clipping assertions run here (STYLE-01,
-HARD-01).
+last run. No AC is without a test.** AC-41's screenshot files were added
+in Issue #71 (`artifacts/lab-04/screenshots/README.md`).
 
 ### 3.1 Requirement Traceability Matrix (FR / BR → Tests)
 
@@ -586,6 +585,11 @@ Flakiness check: the full suite (server, client, E2E) ran three times in a
 row at commit `5f8a2e6`, and three more times at `3ee1418` after the last
 fix below. All six runs passed with the counts above.
 
+Release check (Issue #71): the same three commands ran on 29 Oct 2026 on
+`lab4/feat/11-release-integration` (from `lab4-staging` `db60408`), on
+Linux against a freshly migrated and seeded database: 844, 278, and 67
+passed, 0 failed, 0 skipped, matching the table.
+
 ### 7.2 Flakiness Fixes
 
 None of these weakens an assertion.
@@ -620,8 +624,9 @@ produced (§8).
 - The project has no coverage tool (no `@vitest/coverage-*` package), and
   Issue #70 doesn't add one. Coverage is argued through the matrices in §3
   instead of a line-coverage number.
-- The `artifacts/lab-04/screenshots/` files (STYLE-01, STYLE-02) are Issue
-  #71's scope. The layout assertions behind them run here.
+- The screenshot script (`e2e/lab-04/capture-screenshots.ts`) runs on
+  demand (`pnpm screenshots`), not in `pnpm e2e`, so it isn't counted in
+  §7.1. Its no-horizontal-scroll assertions duplicate HARD-01's.
 - EVID-01 compares the API with SQL run a moment later. At the instant of
   a Bangkok midnight the two could straddle the day boundary; the
   boundary itself is proven by UNIT-05 and API-46 with a fixed clock.

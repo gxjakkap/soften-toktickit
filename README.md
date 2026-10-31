@@ -166,6 +166,16 @@ This runs every spec under `e2e/`:
 
 The E2E flows create their own Tickets and remove them afterwards (`pnpm --filter server clean:e2e-fixtures` runs in global setup and teardown). If the server and client aren't already running, Playwright starts them itself (see `playwright.config.ts`). Run one file with `pnpm e2e e2e/lab-04/hardening.spec.ts`.
 
+### Lab 4 screenshots
+
+The release screenshots in `artifacts/lab-04/screenshots/` come from `e2e/lab-04/capture-screenshots.ts`, which `pnpm e2e` doesn't run. To recapture them, start from a freshly migrated and seeded database (the dashboards show the seeded numbers), then run from the repo root:
+
+```bash
+pnpm screenshots
+```
+
+It overwrites the PNGs at 1440, 768, and 375 px and fails if any page scrolls horizontally. `artifacts/lab-04/screenshots/README.md` describes each file.
+
 ### Everything, one command
 
 ```bash

@@ -1,7 +1,8 @@
 # Lab 4 Sprint Engineering Specification
 
-Status: **Draft — engineering contract for Issue #61, written before any
-Lab 4 implementation.** It extends `docs/lab-03/specification.md`; every
+Status: **Final — reviewed and implemented.** Issue #61 wrote this
+engineering contract before any Lab 4 implementation, and it merged in
+PR #72 before the first implementation PR opened. It extends `docs/lab-03/specification.md`; every
 Lab 1–3 requirement stays in force unless a rule below explicitly
 supersedes it (each supersession is listed in
 [§11 Assumptions and Decisions](#11-assumptions-and-decisions)).
@@ -810,3 +811,11 @@ schema or API and are costly to change after Issue #62 starts;
     (BR-18) keeps reporting `OPEN_ACTIONS`. Staff find the Action from the
     Ticket, where the assignee carries an "Inactive" badge (ui-spec.md
     §5.2), and either reassign it to an active user (BR-04) or cancel it.
+21. **(reversible) Release screenshots use the hardening widths.** Issue #71
+    captures `artifacts/lab-04/screenshots/` at 1440, 768, and 375 px, the
+    widths HARD-01 already checks, with an on-demand script
+    (`e2e/lab-04/capture-screenshots.ts`, `pnpm screenshots`) instead of a
+    spec in the default E2E run, so `pnpm e2e` doesn't rewrite committed
+    images. It replaces the Issue #61 draft in ui-spec.md §13 (1280/820/390
+    px from `screenshots.spec.ts`) and adds `workflow/` and `regression/`
+    folders for grading Parts 7 and 8. Confirmed with the product owner.

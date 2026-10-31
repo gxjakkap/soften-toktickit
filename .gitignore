@@ -1,14 +1,16 @@
 # dependencies
 node_modules/
 
-# env files
+# env files (the committed templates are .env.example)
 .env
-.env.local
+.env.*
+!.env.example
 
 # build output
 dist/
 dist-ssr/
 server/src/generated/
+*.tsbuildinfo
 
 # uploaded attachments (specification.md §11-6: local disk, gitignored)
 server/uploads/*
@@ -24,6 +26,17 @@ pnpm-debug.log*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# test reports written by the CI commands (.github/workflows/ci.yml) and coverage
+*-test-results.json
+coverage/
+
+# local database files: README backups (pg_dump) and any file-based database
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
 
 # editor / OS
 .vscode/*

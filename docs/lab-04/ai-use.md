@@ -35,95 +35,77 @@ I used Claude Sonnet 5 with thinking level medium on Claude Code to draft the sp
 ```
 /caveman ultra
 
-We're setting up Lab 4 (CPE 334, TokTickIT project). Create all Sprint 4 GitHub issues in this repo and add them to my Kanban board.
+We're starting Lab 4 (CPE 334, TokTickIT project), Issue #1: "Sprint 4 engineering contract."
 
-Caveman mode applies only to your chat replies to me. Issue titles and bodies must be normal, complete English.
+Caveman mode applies only to your chat replies to me. Every file you write (specs, tests.md, PR description) must be normal, complete, professional English.
 
-If you have questions at any point, use AskUserQuestion to ask me.
+If you have questions at any point, use AskUserQuestion to ask me. Don't guess on anything that changes scope.
 
-Setup:
-- Kanban board: github.com/users/gxjakkap/projects/5 (same board as Lab 3). Run `gh project field-list 5 --owner gxjakkap` to find the Status field and its options. New issues go in the first column (Backlog/Todo, whatever it's called). If the column names look different from Lab 3, ask me.
-- Labels: every issue gets both `lab4` and `feature`. Check `gh label list` first and create any label that's missing.
-- Check whether any Lab 4 issues already exist (`gh issue list --label lab4 --state all`). If any do, stop and ask me before creating duplicates.
-- Don't create branches or write any code. Issues only.
+First, create and switch to a new branch from lab4-staging: lab4/feat/1-engineering-contract
+(If lab4-staging doesn't exist yet, create it from the current main first and push it.)
 
-Each issue body uses this structure:
-## Scope
-## Branch
-## Depends on
-## Done when
+Find the matching GitHub issue for "Sprint 4 engineering contract" on my Kanban board (github.com/users/gxjakkap/projects/5) and move it to "Started".
 
-"Depends on" uses sprint indexes (e.g. "Sprint item 2") on the first pass. Once every issue exists, edit each body to replace those with the real GitHub issue references (#NN).
+Before writing anything:
+- Read the Lab 4 handout PDF. If you can't find it, use AskUserQuestion to ask me for the path.
+- Read docs/lab-03/specification.md, ui-spec.md, api-spec.md, and tests.md. Match their format, numbering style, and section structure.
+- Read the current codebase on lab4-staging: Prisma schema, migrations, seed, API routes, authorization middleware, Ticket status handling, the Requester/IT Staff/Admin screens, and the Zen Green components. The spec must describe changes to what actually exists, not a fresh design.
 
-Issues to create, in this order:
+Your task: write the Sprint 4 engineering contract as:
+- docs/lab-04/specification.md
+- docs/lab-04/ui-spec.md
+- docs/lab-04/api-spec.md
+- docs/lab-04/tests.md (first pass: the planned tests table, with "Planned" as the final status)
 
-1. Title: "Sprint 4 engineering contract"
-   Branch: lab4/feat/1-engineering-contract
-   Scope: Write docs/lab-04/specification.md, ui-spec.md, api-spec.md, and a first-pass tests.md. Cover numbered FR/BR/AC, the full Ticket status transition matrix, the resolution gate, dashboard metric definitions (calculation, empty state, drill-down, Asia/Bangkok day boundaries), Actions Taken data design, migration/rollback decisions, the API contract with conflict handling, and the Product Definition of Done. Must merge before any implementation PR (graded evidence).
-   Depends on: none
-   Done when: all four docs merged into lab4-staging; every AC maps to at least one planned test.
+specification.md uses the exact 11 sections from handout section 9, in order:
+1. Sprint Goal
+2. Stakeholder Request (own words, not copied)
+3. Scope (included + explicitly excluded; carry over the full exclusion list from handout 4.2)
+4. Functional Requirements (numbered FR-xx: Actions Taken, workflow, dashboards, hardening)
+5. Business Rules (numbered BR-xx). Must include at least:
+   - BR-01: an Action Taken belongs to exactly one Ticket
+   - BR-02: the Ticket Owner coordinates, but an Action Taken may be performed by a different IT Staff member
+   - performedBy is set from the authenticated user, never from the request body
+   - Follow-up Note is required when Follow-Up Required is true
+   - Requesters can read Actions Taken on their own Tickets only and can never write them
+   - the complete Ticket status transition matrix: statuses New, Open, In Progress, Waiting for Requester, Resolved, Closed, Reopened, Cancelled, with which role may perform each transition
+   - the resolution gate, enforced by the backend even when a client bypasses the UI
+   - the Requester "problem appears resolved" action is advisory and never changes status to Resolved
+   - stale/concurrent update handling (optimistic concurrency via a version or updatedAt check, returning 409)
+   - date/time rules (stored UTC, displayed and dashboard day boundaries in Asia/Bangkok)
+   - every dashboard metric as its own rule: exact name, exact calculation, empty behavior, drill-down destination
+6. UI Specification Summary (reference ui-spec.md)
+7. Data Changes: ActionTaken model, fields, types, FKs, indexes for dashboard queries, migration strategy, legacy Tickets with zero Actions Taken, rollback/recovery approach, seed plan. Justify at least two DB design decisions.
+8. API Contract summary (reference api-spec.md)
+9. Acceptance Criteria (AC-xx, Given/When/Then, covering the full scope. Include AC-01 and AC-02 from handout 9.1, adapted to our design)
+10. Definition of Done (product-completion checklist the coding agent will use for every later issue; extend Lab 3's)
+11. Assumptions and Decisions (only meaningful choices not fixed by the handout)
 
-2. Title: "DB migration: Actions Taken + seed"
-   Branch: lab4/feat/2-actions-taken-migration
-   Scope: Prisma ActionTaken model per specification.md (ticket FK, performedBy, action date/time, description, result, follow-up required, follow-up note, attachment notes, concurrency version, timestamps, plus assignee/status if the contract adds them). Indexes for dashboard queries. Concurrency field on Ticket if missing. Migration preserves all Lab 1-3 data, with a documented and tested rollback/recovery approach. Idempotent seed: Tickets with zero, one, and many Actions Taken; every status; assigned and unassigned; data for both zero and non-zero dashboard metrics.
-   Depends on: 1
-   Done when: migration runs cleanly on a Lab 3 database; seed can run twice with no duplicates; migration test passes.
+Three decisions to settle. The handout contradicts itself on each. For each one, propose an option and confirm with me via AskUserQuestion before writing it into the spec:
+a) Assignee and status on Actions Taken. The stakeholder field list (handout section 3 / 8.3) has no assignee or status. AC-01 mentions an "approved assignee," and grading Part 6 asks to demo "assign, complete, cancel, inactive-assignee rejection." My lean: add an assignedTo (IT Staff/Admin, must be active) and an action status (e.g. Planned / In Progress / Done / Cancelled) so the graded demo is possible.
+b) The resolution gate rule. My lean: a Ticket can't move to Resolved unless it has at least one non-cancelled Action Taken and no Action Taken with an unresolved follow-up.
+c) Staff dashboard content. Grading Part 5 asks for "current-user Actions Taken," so include a "My recent actions" card or list next to the metric cards in the mockup.
 
-3. Title: "Actions Taken API"
-   Branch: lab4/feat/3-actions-taken-api
-   Scope: List, create, and update endpoints per api-spec.md. performedBy is taken from the session. Follow-up note is required when follow-up is needed. Requesters get read-only access on their own Tickets; IT Staff and Admin can write. Stale updates return 409. Duplicate submits are safely handled. Safe error shapes throughout.
-   Depends on: 2
-   Done when: server/tests/lab-04/actions-taken.api.test.ts passes, including authorization and conflict cases.
+ui-spec.md: Actions Taken area on Ticket Detail (list/table, create mode, view/edit mode, read-only Requester view, validation placement, conflict feedback). Ticket status controls showing only permitted transitions. IT Staff and Requester dashboards matching the handout mockups (cards, recent tickets, quick actions), with drill-down targets. Admin dashboard (reuse staff dashboard plus optional user counts). Dashboard navigation with active-page indication. Loading, empty, no-results, forbidden, conflict, not-found, and safe-failure states for every new screen. Responsive behavior at desktop/tablet/mobile. Accessibility rules. A visual + accessibility checklist for grading Part 9. Keep everything consistent with the Lab 2/3 Zen Green conventions.
 
-4. Title: "Ticket workflow + resolution gate"
-   Branch: lab4/feat/4-ticket-workflow
-   Scope: Backend enforces the final transition matrix and role permissions. Resolution gate. The Requester "problem appears resolved" action stays advisory. Optimistic concurrency on status changes. Append-only status history with stable ordering. UI status controls show only permitted transitions and refresh the Ticket summary on success.
-   Depends on: 2
-   Done when: ticket-workflow.api.test.ts, TicketWorkflow.test.tsx, and e2e/lab-04/ticket-resolution.spec.ts pass.
+api-spec.md: exact paths, methods, request/response shapes, validation, authorization per role, status codes, and safe error shapes for: Actions Taken list/create/update, Ticket status transition changes, Requester dashboard, IT Staff dashboard (and Admin variant), plus any query params the Queue / My Tickets need for dashboard drill-down. Define conflict handling (409 shape and how the client recovers). Define duplicate-submit handling. State that all Lab 2/3 APIs continue unchanged unless the spec explicitly modifies them.
 
-5. Title: "Actions Taken UI"
-   Branch: lab4/feat/5-actions-taken-ui
-   Scope: Actions Taken area on Ticket Detail: list/table, create mode, view/edit mode, validation placement, conflict and safe-failure feedback, read-only Requester view, responsive layout, Zen Green styling.
-   Depends on: 3
-   Done when: ActionsTaken.test.tsx and e2e/lab-04/actions-taken-flow.spec.ts pass; desktop/tablet/mobile have no clipping or horizontal overflow.
+tests.md (first pass): use the Lab 3 table format (Test ID, Type, Requirement/AC, What It Tests, Expected Result, Automated Test File, Final). Plan tests across unit, API/integration, UI component, UI style, responsive, authorization, workflow, migration/regression, performance-smoke, and E2E. Map every AC to at least one test. Use the file paths from handout section 12:
+- server/tests/lab-04/{actions-taken,ticket-workflow,requester-dashboard,staff-dashboard}.api.test.ts
+- client/.../lab-04 tests/{StaffDashboard,RequesterDashboard,ActionsTaken,TicketWorkflow}.test.tsx (find the real client test location used in Lab 3)
+- e2e/lab-04/{actions-taken-flow,ticket-resolution,dashboards}.spec.ts
+Include a traceability matrix (AC -> Test IDs) and a Labs 1-3 regression section.
 
-6. Title: "Dashboard APIs"
-   Branch: lab4/feat/6-dashboard-api
-   Scope: Requester dashboard endpoint (owned Tickets only) and IT Staff dashboard endpoint (Admin reuses it, optionally with user-account counts). Endpoints return concise metrics and short lists, not full collections. Every metric calculated on the backend exactly as specified, with Asia/Bangkok date boundaries and drill-down query params.
-   Depends on: 2
-   Done when: requester-dashboard.api.test.ts and staff-dashboard.api.test.ts pass, including zero-data and ownership cases.
+Keep the specs concise. Don't copy the handout. Resolve choices and state assumptions instead.
 
-7. Title: "IT Staff Dashboard UI"
-   Branch: lab4/feat/7-staff-dashboard-ui
-   Scope: Metric cards, recent/urgent Tickets, current user's recent Actions Taken, quick actions. Drill-down into the filtered Ticket Queue (extend Queue filters if needed). Dashboard navigation with active-page indication. Loading, empty, forbidden, and safe-failure states. Responsive.
-   Depends on: 6
-   Done when: StaffDashboard.test.tsx passes; displayed counts match the seeded database.
+Do not write any implementation code, migrations, or tests in this issue. Docs only. Do not touch docs/lab-04/ai-use.md or docs/lab-04/reviewer.md.
 
-8. Title: "Requester Dashboard UI"
-   Branch: lab4/feat/8-requester-dashboard-ui
-   Scope: Owned-Ticket metric cards, attention-required (Waiting for Requester), recently updated and recently resolved Tickets, quick actions. Drill-down into filtered My Tickets. All feedback states. Responsive. Doesn't duplicate the full My Tickets screen.
-   Depends on: 6
-   Done when: RequesterDashboard.test.tsx passes; a Requester sees only their own data.
-
-9. Title: "Final hardening + Zen Green polish"
-   Branch: lab4/feat/9-final-hardening
-   Scope: Consistent loading, validation, success, empty, forbidden, conflict, not-found, and safe-failure feedback app-wide. Duplicate-click/retry protection. Important forms keep entered data after recoverable failures. Remove console errors, broken links, placeholders, and leftover or duplicate UI from Labs 1-3. Accessibility fixes (focus, keyboard, labels, non-color status cues). README setup/seed/migration/test/demo instructions brought up to date.
-   Depends on: 4, 5, 7, 8
-   Done when: the visual and accessibility checklist in ui-spec.md is fully ticked.
-
-10. Title: "Test DD + full regression coverage"
-    Branch: lab4/feat/10-test-coverage
-    Scope: Finalize docs/lab-04/tests.md with AC-to-test traceability and real file paths. Fill coverage gaps. Labs 1-3 regression suite (auth, My Tickets, Ticket Detail, attachments, comments, internal notes, staff functions, admin user management). Migration test. Performance smoke test. e2e/lab-04/dashboards.spec.ts.
-    Depends on: 2-9
-    Done when: the full unit, API, UI, and E2E suite passes on lab4-staging and the output is captured.
-
-11. Title: "Release integration"
-    Branch: lab4/feat/11-release-integration
-    Scope: Capture desktop/tablet/mobile screenshots into artifacts/lab-04/screenshots/ (staff-dashboard, requester-dashboard, actions-taken). Final check against the Definition of Done. Merge lab4-staging into main. Move all Kanban cards to Done. ai-use.md and reviewer.md are out of scope; I'm writing those myself.
-    Depends on: 1-10
-    Done when: main contains the full sprint and every Lab 4 issue is Done.
-
-When finished, print a summary table with the GitHub issue number, title, branch, labels, and board status, so I can check it against the board.
+When done:
+- Commit on this branch.
+- Open a PR against lab4-staging named exactly "[Lab 4] 1: Sprint 4 engineering contract".
+- Link the PR to the GitHub issue (Closes #<issue number>). Use the issue description as the base for the PR description, run it through unslop, and summarize the key decisions (a/b/c above plus the transition matrix and the dashboard metrics).
+- Move the Kanban card to "PR Review".
+- Report back with the PR link and any open ambiguities.
 ```
 
 ### Reflection

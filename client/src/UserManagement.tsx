@@ -6,8 +6,9 @@ import {
   setAdminUserPassword,
   updateAdminUser,
 } from './apiClient'
-import { RoleBadge } from './badges'
-import Forbidden from './Forbidden'
+import { useSearchParams } from 'react-router-dom'
+import { RoleBadge, UserStatusBadge } from './badges'
+import { EmptyState, ErrorState, Forbidden } from './FeedbackState'
 import { isStrongPassword } from './lib/password-rules'
 import { roleHomePath } from './lib/role-routes'
 import PasswordChecklist from './PasswordChecklist'
@@ -18,7 +19,7 @@ import type { AdminUser, UserRole } from './types'
 // Every disabled control here is a convenience: the server enforces the same
 // rules regardless (FR-06).
 
-type LoadState = 'loading' | 'ready' | 'error'
+type LoadState = 'loading' | 'ready' | 'error' | 'forbidden'
 type Panel = { mode: 'create' } | { mode: 'edit'; user: AdminUser } | null
 type FieldErrors = Partial<Record<'name' | 'email' | 'role' | 'initialPassword', string>>
 
@@ -29,15 +30,6 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'ADMINISTRATOR', label: 'Administrator' },
 ]
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function StatusPill({ active }: { active: boolean }) {
-  return (
-    <span className={`zg-badge ${active ? 'zg-badge-status-resolved' : 'zg-badge-status-closed'}`}>
-      <i className={`bi ${active ? 'bi-check-circle' : 'bi-slash-circle'}`} aria-hidden="true" />
-      {active ? 'Active' : 'Inactive'}
-    </span>
-  )
-}
 
 function UserPanel({
   panel,
@@ -301,7 +293,7 @@ function UserPanel({
         )}
 
         <div className="zg-um-actions">
-          <button type="submit" className="zg-btn zg-btn-primary" disabled={busy}>
+          <button type="submit" className="zg-btn zg-btn-primary" disabled={busy} aria-busy={busy}>
             {busy ? 'Saving…' : editing ? 'Save Changes' : 'Save User'}
           </button>
           <button type="button" className="zg-btn zg-btn-secondary" onClick={onClose}>
@@ -332,6 +324,8 @@ function UserPanel({
                 type="password"
                 autoComplete="new-password"
                 className={`zg-field${pwError ? ' zg-field-invalid' : ''}`}
+                aria-invalid={pwError ? true : undefined}
+                aria-describedby={pwError ? 'um-new-password-error' : undefined}
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value)
@@ -339,7 +333,7 @@ function UserPanel({
                 }}
               />
               {pwError && (
-                <p className="zg-error-message" role="alert">
+                <p id="um-new-password-error" className="zg-error-message" role="alert">
                   {pwError}
                 </p>
               )}
@@ -348,6 +342,7 @@ function UserPanel({
                 type="button"
                 className="zg-btn zg-btn-secondary"
                 disabled={pwBusy}
+                aria-busy={pwBusy}
                 onClick={submitPassword}
               >
                 {pwBusy ? 'Saving…' : 'Save Password'}
@@ -371,17 +366,43 @@ function UserManagement() {
 
   const [state, setState] = useState<LoadState>('loading')
   const [users, setUsers] = useState<AdminUser[]>([])
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [role, setRole] = useState<UserRole | ''>('')
+  // Lab 4 ui-spec.md §2.5, §7 (FR-16, AC-47): `role` and `search` come from
+  // the URL, so the dashboard User Accounts links open a filtered list.
+  const [params, setParams] = useSearchParams()
+  const search = params.get('search') ?? ''
+  const role = (params.get('role') ?? '') as UserRole | ''
+  const [searchInput, setSearchInput] = useState(search)
+  // The box follows the URL when something else changes `search` (a nav
+  // link, Back), but not when the debounce below wrote the box's own value.
+  const [syncedSearch, setSyncedSearch] = useState(search)
+  if (search !== syncedSearch) {
+    setSyncedSearch(search)
+    if (search !== searchInput.trim()) setSearchInput(search)
+  }
+  const setFilter = useCallback(
+    (key: 'search' | 'role', value: string) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          if (value) next.set(key, value)
+          else next.delete(key)
+          return next
+        },
+        { replace: true },
+      ),
+    [setParams],
+  )
+  const setRole = (value: UserRole | '') => setFilter('role', value)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS)
+    const timer = setTimeout(() => {
+      if (searchInput.trim() !== search) setFilter('search', searchInput.trim())
+    }, SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [searchInput])
+  }, [searchInput, search, setFilter])
 
   const load = useCallback(() => {
     if (!allowed) return
@@ -391,15 +412,17 @@ function UserManagement() {
         setUsers(res.data)
         setState('ready')
       })
-      .catch(() => setState('error'))
+      .catch((err) =>
+        // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+        setState(err instanceof ApiError && err.code === 'FORBIDDEN' ? 'forbidden' : 'error'),
+      )
   }, [allowed, search, role])
 
   useEffect(load, [load])
 
   const clearFilters = () => {
     setSearchInput('')
-    setSearch('')
-    setRole('')
+    setParams({}, { replace: true })
   }
 
   const openPanel = (next: Panel) => {
@@ -415,7 +438,7 @@ function UserManagement() {
 
   // ui-spec.md §7: a non-Administrator reaching this route gets a full-page
   // forbidden state, not a redirect; the API rejects them with 403 regardless.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return <Forbidden testId="users-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
   }
 
@@ -526,28 +549,17 @@ function UserManagement() {
           )}
 
           {state === 'error' && (
-            <div style={{ marginTop: 'var(--zg-space-4)' }}>
-              <p className="zg-error" role="alert">
-                Unable to load users. Please try again.
-              </p>
-              <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-                Retry
-              </button>
-            </div>
+            <ErrorState message="Unable to load users. Please try again." onAction={load} />
           )}
 
           {state === 'ready' && users.length === 0 && (
-            <div
-              className="zg-callout"
-              style={{ marginTop: 'var(--zg-space-4)', textAlign: 'center' }}
-            >
-              <p>No users match your search.</p>
+            <EmptyState title="No users match your search.">
               {filtered && (
                 <button type="button" className="zg-btn zg-btn-secondary" onClick={clearFilters}>
                   Clear Filters
                 </button>
               )}
-            </div>
+            </EmptyState>
           )}
 
           {users.length > 0 && state !== 'error' && (
@@ -574,7 +586,7 @@ function UserManagement() {
                           <RoleBadge role={u.role} />
                         </td>
                         <td>
-                          <StatusPill active={u.isActive} />
+                          <UserStatusBadge active={u.isActive} />
                         </td>
                         <td>
                           <button
@@ -601,7 +613,7 @@ function UserManagement() {
                     </div>
                     <div className="zg-chip-row" style={{ margin: 'var(--zg-space-2) 0' }}>
                       <RoleBadge role={u.role} />
-                      <StatusPill active={u.isActive} />
+                      <UserStatusBadge active={u.isActive} />
                     </div>
                     <button
                       type="button"

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ActionsTaken from './ActionsTaken'
 import AttachmentSection from './AttachmentSection'
 import {
   ApiError,
   claimTicket,
   fetchActiveItStaff,
+  fetchStaffStatusHistory,
   fetchStaffTicket,
   postStaffComment,
   reassignTicket,
@@ -12,18 +14,24 @@ import {
   updateTicketStatus,
 } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden, NotFound } from './FeedbackState'
+import StatusHistory from './StatusHistory'
+import { formatDateTime } from './lib/datetime'
 import { permittedTransitions } from './lib/ticket-status'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 import type {
   ActiveStaffUser,
   RequestedPriority,
+  ResolutionBlockReason,
   StaffTicketDetail as StaffTicketDetailData,
+  StatusHistoryEntry,
   TicketStatus,
+  TicketWorkflowState,
 } from './types'
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error' | 'forbidden'
+type WorkflowControl = 'owner' | 'priority' | 'status'
 
 const COMMENT_MAX = 2000
 
@@ -38,28 +46,44 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   CANCELLED: 'Cancelled',
 }
 
+const PRIORITY_LABEL: Record<RequestedPriority, string> = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+}
+
 const PRIORITY_OPTIONS: RequestedPriority[] = ['LOW', 'MEDIUM', 'HIGH']
+
+// Lab 4 ui-spec.md §5.1: each failed gate condition in plain words.
+const GATE_REASON_TEXT: Record<ResolutionBlockReason, string> = {
+  NO_DONE_ACTION: 'Record at least one action as Done.',
+  OPEN_ACTIONS: 'Finish or cancel every Planned or In Progress action.',
+  PENDING_FOLLOW_UPS: 'Clear every pending follow-up.',
+}
+
+const FALLBACK_ERROR = 'Something went wrong. Please try again.'
 
 function StaffTicketDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
-  const allowed = user?.role === 'IT_STAFF'
+  // Lab 4 BR-29: the Administrator gets the same screen and controls.
+  const allowed = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
 
   const [state, setState] = useState<LoadState>('loading')
   const [ticket, setTicket] = useState<StaffTicketDetailData | null>(null)
   const [itStaff, setItStaff] = useState<ActiveStaffUser[]>([])
+  const [history, setHistory] = useState<StatusHistoryEntry[] | null>(null)
+  const [historyFailed, setHistoryFailed] = useState(false)
 
-  const [ownerId, setOwnerId] = useState<number | null>(null)
-  const [ownerBusy, setOwnerBusy] = useState(false)
-  const [ownerError, setOwnerError] = useState<string | null>(null)
-
-  const [itPriority, setItPriority] = useState<RequestedPriority>('LOW')
-  const [priorityBusy, setPriorityBusy] = useState(false)
-  const [priorityError, setPriorityError] = useState<string | null>(null)
-
-  const [currentStatus, setCurrentStatus] = useState<TicketStatus>('NEW')
-  const [statusBusy, setStatusBusy] = useState(false)
-  const [statusError, setStatusError] = useState<string | null>(null)
+  // Lab 4 ui-spec.md §2.2-2.3: one workflow write at a time, so every
+  // control sends the version the previous write returned.
+  const [busy, setBusy] = useState<WorkflowControl | null>(null)
+  const [workflowError, setWorkflowError] = useState<{
+    control: WorkflowControl
+    message: string
+  } | null>(null)
+  const [conflict, setConflict] = useState<TicketWorkflowState | null>(null)
+  const [announcement, setAnnouncement] = useState('')
 
   const [publicDraft, setPublicDraft] = useState('')
   const [publicSubmitting, setPublicSubmitting] = useState(false)
@@ -69,27 +93,49 @@ function StaffTicketDetail() {
   const [noteSubmitting, setNoteSubmitting] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
 
+  const loadHistory = useCallback(() => {
+    if (!allowed || !id) return
+    setHistoryFailed(false)
+    fetchStaffStatusHistory(Number(id))
+      .then(setHistory)
+      .catch(() => setHistoryFailed(true))
+  }, [allowed, id])
+
   const load = useCallback(() => {
     if (!allowed || !id) return
     setState('loading')
+    setConflict(null)
+    setWorkflowError(null)
     fetchStaffTicket(Number(id))
       .then((data) => {
         setTicket(data)
-        setOwnerId(data.ownerId)
-        setItPriority(data.itPriority)
-        setCurrentStatus(data.currentStatus)
         setState('ready')
       })
       .catch((err) => {
         if (err instanceof ApiError && err.code === 'NOT_FOUND') {
           setState('not-found')
+        } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
+          // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+          setState('forbidden')
         } else {
           setState('error')
         }
       })
-  }, [allowed, id])
+    loadHistory()
+  }, [allowed, id, loadHistory])
 
   useEffect(load, [load])
+
+  // Lab 4 ui-spec.md §5.2 (AC-27): an Action save can change the resolution
+  // gate, so the Ticket is refetched quietly, without the loading state, and
+  // the status options follow. A failure keeps the last gate; the status
+  // endpoint re-checks it anyway (BR-19).
+  const refreshTicket = useCallback(() => {
+    if (!id) return
+    fetchStaffTicket(Number(id))
+      .then(setTicket)
+      .catch(() => {})
+  }, [id])
 
   useEffect(() => {
     if (!allowed) return
@@ -98,76 +144,84 @@ function StaffTicketDetail() {
       .catch(() => setItStaff([]))
   }, [allowed])
 
-  async function handleClaim() {
-    if (!ticket) return
-    setOwnerBusy(true)
-    setOwnerError(null)
+  // Lab 4 ui-spec.md §5.1: a successful write's TicketWorkflowState updates
+  // the header badge, the controls, and the version in place, no reload.
+  // Selects are controlled by the saved values, so a failed write leaves
+  // them on the last saved value instead of a stuck optimistic one.
+  async function runWorkflowWrite(
+    control: WorkflowControl,
+    write: (version: number) => Promise<TicketWorkflowState>,
+    success: string,
+  ) {
+    if (!ticket || busy) return
+    setBusy(control)
+    setWorkflowError(null)
+    setConflict(null)
     try {
-      const result = await claimTicket(ticket.id)
-      setOwnerId(result.ownerId)
-    } catch (err) {
-      setOwnerError(
-        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
+      const next = await write(ticket.version)
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              version: next.version,
+              currentStatus: next.currentStatus,
+              resolvedAt: next.resolvedAt,
+              ownerId: next.ownerId,
+              ownerName: next.ownerName,
+              itPriority: next.itPriority,
+              updatedAt: next.updatedAt,
+            }
+          : prev,
       )
+      // Failures are announced by their own role="alert" message.
+      setAnnouncement(success)
+      if (control === 'status') loadHistory()
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'STALE_UPDATE' && err.details?.current) {
+        setConflict(err.details.current as TicketWorkflowState)
+      } else if (err instanceof ApiError && err.code === 'RESOLUTION_BLOCKED') {
+        // Lab 4 ui-spec.md §5.1: an Action changed elsewhere since load, so
+        // the callout switches to the server's reasons.
+        const reasons = (err.details?.reasons ?? []) as ResolutionBlockReason[]
+        setTicket((prev) =>
+          prev ? { ...prev, resolutionGate: { canResolve: false, reasons } } : prev,
+        )
+        setWorkflowError({ control, message: err.message })
+      } else {
+        setWorkflowError({
+          control,
+          message: err instanceof ApiError ? err.message : FALLBACK_ERROR,
+        })
+      }
     } finally {
-      setOwnerBusy(false)
+      setBusy(null)
     }
   }
 
-  async function handleReassign(nextOwnerId: number | null) {
-    if (!ticket) return
-    const previous = ownerId
-    setOwnerId(nextOwnerId)
-    setOwnerBusy(true)
-    setOwnerError(null)
-    try {
-      const result = await reassignTicket(ticket.id, nextOwnerId)
-      setOwnerId(result.ownerId)
-    } catch (err) {
-      setOwnerId(previous)
-      setOwnerError(
-        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
-      )
-    } finally {
-      setOwnerBusy(false)
-    }
-  }
+  const handleClaim = () =>
+    runWorkflowWrite('owner', (v) => claimTicket(ticket!.id, v), 'Ticket claimed.')
 
-  async function handlePriorityChange(next: RequestedPriority) {
-    if (!ticket) return
-    const previous = itPriority
-    setItPriority(next)
-    setPriorityBusy(true)
-    setPriorityError(null)
-    try {
-      await updateItPriority(ticket.id, next)
-    } catch (err) {
-      setItPriority(previous)
-      setPriorityError(
-        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
-      )
-    } finally {
-      setPriorityBusy(false)
-    }
-  }
+  const handleReassign = (nextOwnerId: number | null) =>
+    runWorkflowWrite(
+      'owner',
+      (v) => reassignTicket(ticket!.id, nextOwnerId, v),
+      'Ticket Owner updated.',
+    )
 
-  async function handleStatusChange(next: TicketStatus) {
-    if (!ticket || next === currentStatus) return
-    const previous = currentStatus
-    setCurrentStatus(next)
-    setStatusBusy(true)
-    setStatusError(null)
-    try {
-      const result = await updateTicketStatus(ticket.id, next)
-      setCurrentStatus(result.currentStatus)
-    } catch (err) {
-      setCurrentStatus(previous)
-      setStatusError(
-        err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
-      )
-    } finally {
-      setStatusBusy(false)
-    }
+  const handlePriorityChange = (next: RequestedPriority) =>
+    runWorkflowWrite(
+      'priority',
+      (v) => updateItPriority(ticket!.id, next, v),
+      `IT Priority changed to ${PRIORITY_LABEL[next]}.`,
+    )
+
+  const handleStatusChange = (next: TicketStatus) => {
+    if (!ticket || next === ticket.currentStatus) return
+    return runWorkflowWrite(
+      'status',
+      (v) => updateTicketStatus(ticket.id, next, v),
+      `Status changed to ${STATUS_LABEL[next]}.`,
+    )
   }
 
   async function handlePostPublic() {
@@ -208,9 +262,8 @@ function StaffTicketDetail() {
     }
   }
 
-  // ui-spec.md §6: this screen and its route are IT Staff only — an
-  // Administrator's read-only API access (BR-40) has no UI entry point.
-  if (!allowed) {
+  // ui-spec.md §6; Lab 4 BR-29: IT Staff and Administrators only.
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden testId="detail-forbidden" homeTo={user ? roleHomePath(user.role) : '/login'} />
     )
@@ -218,19 +271,33 @@ function StaffTicketDetail() {
 
   const publicComments = ticket?.comments.filter((c) => c.visibility === 'PUBLIC') ?? []
   const internalNotes = ticket?.comments.filter((c) => c.visibility === 'INTERNAL') ?? []
-  const canClaim = ticket !== null && user !== null && (ownerId === null || ownerId === user.id)
-  const statusOptions = [currentStatus, ...permittedTransitions(currentStatus)]
+  const canClaim =
+    ticket !== null && user !== null && (ticket.ownerId === null || ticket.ownerId === user.id)
+  const statusOptions = ticket
+    ? [ticket.currentStatus, ...permittedTransitions(ticket.currentStatus)]
+    : []
+  // Lab 4 ui-spec.md §5.1: Resolved stays offered but disabled while the
+  // gate fails; the server still re-checks it (BR-19).
+  const resolveBlocked =
+    ticket !== null && statusOptions.includes('RESOLVED') && !ticket.resolutionGate.canResolve
+  const workflowLocked = busy !== null
+  const errorFor = (control: WorkflowControl) =>
+    workflowError?.control === control ? workflowError.message : null
 
   return (
     <div>
-      <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
-        <p className="zg-helper" style={{ margin: 0 }}>
-          Ticket Queue &gt; Ticket Detail
-        </p>
-        <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-          Back to Ticket Queue
-        </Link>
-      </div>
+      {/* The not-found card carries its own way back, so the header link
+          would only repeat it. */}
+      {state !== 'not-found' && (
+        <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
+          <p className="zg-helper" style={{ margin: 0 }}>
+            Ticket Queue &gt; Ticket Detail
+          </p>
+          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
+            Back to Ticket Queue
+          </Link>
+        </div>
+      )}
 
       {state === 'loading' && (
         <p className="zg-skeleton" aria-live="polite">
@@ -239,29 +306,18 @@ function StaffTicketDetail() {
       )}
 
       {state === 'not-found' && (
-        <div className="zg-card">
-          <p>Ticket not found.</p>
-          <Link to="/staff/tickets" className="zg-btn zg-btn-secondary">
-            Back to Ticket Queue
-          </Link>
-        </div>
+        <NotFound backTo="/staff/tickets" backLabel="Back to Ticket Queue" />
       )}
 
       {state === 'error' && (
-        <div>
-          <p className="zg-error" role="alert">
-            Unable to load this ticket. Please try again.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load this ticket. Please try again." onAction={load} />
       )}
 
       {state === 'ready' && ticket && (
         <>
           <div className="zg-card">
             <h1 className="zg-title">{ticket.summary}</h1>
+            <p className="zg-helper">Times shown in Bangkok time (UTC+7)</p>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -269,7 +325,9 @@ function StaffTicketDetail() {
               </div>
               <div>
                 <span className="zg-label">Ticket Date</span>
-                <p>{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p>
+                  <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+                </p>
               </div>
               <div>
                 <span className="zg-label">Category</span>
@@ -299,8 +357,39 @@ function StaffTicketDetail() {
             </div>
           </div>
 
-          <div className="zg-card" style={{ marginTop: 'var(--zg-space-4)' }}>
-            <h2 className="zg-section-heading">Ownership, Priority &amp; Status</h2>
+          <section
+            className="zg-card"
+            style={{ marginTop: 'var(--zg-space-4)' }}
+            aria-labelledby="workflow-heading"
+            aria-busy={workflowLocked}
+          >
+            <h2 className="zg-section-heading" id="workflow-heading">
+              Ownership, Priority &amp; Status
+            </h2>
+
+            {/* Lab 4 ui-spec.md §2.2 (BR-26): the selects already show the
+                last saved values; Reload latest fetches the newer copy. */}
+            {conflict !== null && (
+              <div
+                className="zg-banner-warning"
+                role="alert"
+                style={{ marginTop: 'var(--zg-space-4)' }}
+                data-testid="workflow-conflict"
+              >
+                <p style={{ margin: 0, fontWeight: 600 }}>
+                  Someone else changed this ticket while you were editing.
+                </p>
+                <p style={{ margin: 'var(--zg-space-1) 0 var(--zg-space-2)' }}>
+                  Latest values: status {STATUS_LABEL[conflict.currentStatus]}, owner{' '}
+                  {conflict.ownerName ?? 'Unassigned'}, IT Priority{' '}
+                  {PRIORITY_LABEL[conflict.itPriority]}.
+                </p>
+                <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
+                  Reload latest
+                </button>
+              </div>
+            )}
+
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label" id="ticket-owner-label">
@@ -309,9 +398,9 @@ function StaffTicketDetail() {
                 <select
                   aria-labelledby="ticket-owner-label"
                   className="zg-field"
-                  value={ownerId ?? ''}
-                  disabled={ownerBusy}
-                  aria-disabled={ownerBusy}
+                  value={ticket.ownerId ?? ''}
+                  disabled={workflowLocked}
+                  aria-disabled={workflowLocked}
                   onChange={(e) =>
                     handleReassign(e.target.value === '' ? null : Number(e.target.value))
                   }
@@ -319,7 +408,10 @@ function StaffTicketDetail() {
                   <option value="">Unassigned</option>
                   {itStaff.map((staff) => (
                     <option key={staff.id} value={staff.id}>
-                      {staff.name}
+                      {/* Lab 4 ui-spec.md §5.1: Administrators carry a role suffix. */}
+                      {staff.role === 'ADMINISTRATOR'
+                        ? `${staff.name} · Administrator`
+                        : staff.name}
                     </option>
                   ))}
                 </select>
@@ -328,16 +420,17 @@ function StaffTicketDetail() {
                     type="button"
                     className="zg-btn zg-btn-secondary"
                     style={{ marginTop: 'var(--zg-space-2)' }}
-                    disabled={ownerBusy}
-                    aria-disabled={ownerBusy}
+                    disabled={workflowLocked}
+                    aria-disabled={workflowLocked}
+                    aria-busy={busy === 'owner'}
                     onClick={handleClaim}
                   >
-                    Claim
+                    {busy === 'owner' ? 'Saving…' : 'Claim'}
                   </button>
                 )}
-                {ownerError && (
+                {errorFor('owner') && (
                   <p className="zg-error-message" role="alert">
-                    {ownerError}
+                    {errorFor('owner')}
                   </p>
                 )}
               </div>
@@ -349,20 +442,20 @@ function StaffTicketDetail() {
                 <select
                   aria-labelledby="it-priority-label"
                   className="zg-field"
-                  value={itPriority}
-                  disabled={priorityBusy}
-                  aria-disabled={priorityBusy}
+                  value={ticket.itPriority}
+                  disabled={workflowLocked}
+                  aria-disabled={workflowLocked}
                   onChange={(e) => handlePriorityChange(e.target.value as RequestedPriority)}
                 >
                   {PRIORITY_OPTIONS.map((p) => (
                     <option key={p} value={p}>
-                      {p === 'LOW' ? 'Low' : p === 'MEDIUM' ? 'Medium' : 'High'}
+                      {PRIORITY_LABEL[p]}
                     </option>
                   ))}
                 </select>
-                {priorityError && (
+                {errorFor('priority') && (
                   <p className="zg-error-message" role="alert">
-                    {priorityError}
+                    {errorFor('priority')}
                   </p>
                 )}
               </div>
@@ -373,27 +466,62 @@ function StaffTicketDetail() {
                 </span>
                 <select
                   aria-labelledby="current-status-label"
+                  aria-describedby={resolveBlocked ? 'resolution-gate-callout' : undefined}
                   className="zg-field"
-                  value={currentStatus}
-                  disabled={statusBusy}
-                  aria-disabled={statusBusy}
+                  value={ticket.currentStatus}
+                  disabled={workflowLocked}
+                  aria-disabled={workflowLocked}
                   onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
                 >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </option>
-                  ))}
+                  {statusOptions.map((s) =>
+                    s === 'RESOLVED' && resolveBlocked ? (
+                      <option key={s} value={s} disabled>
+                        Resolved (blocked)
+                      </option>
+                    ) : (
+                      <option key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </option>
+                    ),
+                  )}
                 </select>
+                {busy === 'status' && (
+                  <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
+                    Saving status…
+                  </p>
+                )}
+                {resolveBlocked && (
+                  <div
+                    className="zg-callout"
+                    id="resolution-gate-callout"
+                    style={{ marginTop: 'var(--zg-space-2)' }}
+                    data-testid="resolution-gate-callout"
+                  >
+                    <p style={{ margin: 0, fontWeight: 600 }}>
+                      <i className="bi bi-lock" aria-hidden="true" /> Resolved is blocked until:
+                    </p>
+                    <ul className="zg-gate-reasons">
+                      {ticket.resolutionGate.reasons.map((r) => (
+                        <li key={r}>
+                          <a href="#actions-taken">{GATE_REASON_TEXT[r]}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {/* Lab 3 ui-spec §6 / Lab 4 BR-20: informational only; it
+                    never enables Resolved. */}
                 {ticket.requesterConfirmedResolvedAt && (
                   <p className="zg-helper" style={{ marginTop: 'var(--zg-space-1)' }}>
                     Requester confirms resolved ·{' '}
-                    {new Date(ticket.requesterConfirmedResolvedAt).toLocaleDateString()}
+                    <time dateTime={ticket.requesterConfirmedResolvedAt}>
+                      {formatDateTime(ticket.requesterConfirmedResolvedAt)}
+                    </time>
                   </p>
                 )}
-                {statusError && (
+                {errorFor('status') && (
                   <p className="zg-error-message" role="alert">
-                    {statusError}
+                    {errorFor('status')}
                   </p>
                 )}
               </div>
@@ -401,17 +529,24 @@ function StaffTicketDetail() {
               <div>
                 <span className="zg-label">Status Badge</span>
                 <p>
-                  <StatusBadge status={currentStatus} testId="status-badge" />
+                  <StatusBadge status={ticket.currentStatus} testId="status-badge" />
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <AttachmentSection
-            ticketId={ticket.id}
-            initialAttachments={ticket.attachments}
-            readOnly
-          />
+          {user && (
+            <ActionsTaken
+              ticketId={ticket.id}
+              ticketStatus={ticket.currentStatus}
+              staff={{
+                currentUser: user,
+                itStaff,
+                onActionsChanged: refreshTicket,
+                onAnnounce: setAnnouncement,
+              }}
+            />
+          )}
 
           <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
             <h2 className="zg-section-heading">Public Comments</h2>
@@ -428,7 +563,9 @@ function StaffTicketDetail() {
                       <strong>{comment.authorName}</strong>
                       <RoleBadge role={comment.authorRole} />
                       <span className="zg-helper">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        <time dateTime={comment.createdAt}>
+                          {formatDateTime(comment.createdAt)}
+                        </time>
                       </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>
@@ -467,6 +604,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={publicSubmitting || publicDraft.trim().length === 0}
                   aria-disabled={publicSubmitting || publicDraft.trim().length === 0}
+                  aria-busy={publicSubmitting}
                   onClick={handlePostPublic}
                 >
                   {publicSubmitting ? 'Posting…' : 'Post Comment'}
@@ -494,7 +632,9 @@ function StaffTicketDetail() {
                     <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
                       <strong>{note.authorName}</strong>
                       <RoleBadge role={note.authorRole} />
-                      <span className="zg-helper">{new Date(note.createdAt).toLocaleString()}</span>
+                      <span className="zg-helper">
+                        <time dateTime={note.createdAt}>{formatDateTime(note.createdAt)}</time>
+                      </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{note.content}</p>
                   </li>
@@ -532,6 +672,7 @@ function StaffTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={noteSubmitting || noteDraft.trim().length === 0}
                   aria-disabled={noteSubmitting || noteDraft.trim().length === 0}
+                  aria-busy={noteSubmitting}
                   onClick={handlePostNote}
                 >
                   {noteSubmitting ? 'Posting…' : 'Post Internal Note'}
@@ -539,8 +680,22 @@ function StaffTicketDetail() {
               </div>
             </div>
           </div>
+
+          {/* Lab 4 ui-spec.md §5: Attachments follow Internal Notes. */}
+          <AttachmentSection
+            ticketId={ticket.id}
+            initialAttachments={ticket.attachments}
+            readOnly
+          />
+
+          <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
         </>
       )}
+
+      {/* Lab 4 ui-spec.md §9: one polite live region per Ticket Detail. */}
+      <p className="zg-visually-hidden" aria-live="polite" data-testid="workflow-announcement">
+        {announcement}
+      </p>
     </div>
   )
 }

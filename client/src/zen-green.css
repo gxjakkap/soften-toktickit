@@ -2,12 +2,22 @@
    replacing it. Only the rules the shipped screens need live here; later
    screens add their own. */
 :root {
+  /* Lab 4 ui-spec.md §11: plain links (Ticket Numbers in tables) use the
+     Zen Green primary, not Bootstrap blue, which also failed 4.5:1 on the
+     page background. */
+  --bs-link-color: #006b3c;
+  --bs-link-color-rgb: 0, 107, 60;
+  --bs-link-hover-color: #0b7a46;
+  --bs-link-hover-color-rgb: 11, 122, 70;
   --zg-primary: #006b3c;
   --zg-secondary: #0b7a46;
   --zg-pale: #eaf6ef;
   --zg-bg: #f5f7f6;
   --zg-surface: #ffffff;
   --zg-text: #1c2b24;
+  /* Lab 4 ui-spec.md §5.2: Cancelled Action rows (paired with a badge and
+     strikethrough, never color alone). 5.9:1 on white. */
+  --zg-text-muted: #56655d;
   --zg-field-editable-bg: #ffffff;
   --zg-field-editable-border: #c9d6d0;
   --zg-field-readonly-bg: #edf3ef;
@@ -94,9 +104,17 @@ body {
 .zg-field:focus-visible,
 .zg-btn:focus-visible,
 .zg-navlink:focus-visible,
-.zg-menu-toggle:focus-visible {
+.zg-menu-toggle:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--zg-secondary);
   outline-offset: 2px;
+}
+
+/* Lab 4 ui-spec.md §9: the green ring is invisible on the green header
+   (about 1.2:1), so header controls get a white one. */
+.zg-header a:focus-visible,
+.zg-header button:focus-visible {
+  outline-color: var(--zg-surface);
 }
 
 .zg-callout {
@@ -384,16 +402,23 @@ textarea.zg-field {
 }
 
 /* Busy Submit button — ui-spec §4. */
-.zg-spinner {
+.zg-spinner,
+.zg-btn[aria-busy='true']::before {
   animation: zg-spin 0.6s linear infinite;
-  border: 2px solid rgb(255 255 255 / 40%);
+  border: 2px solid currentColor;
   border-radius: 50%;
-  border-top-color: #fff;
+  border-top-color: transparent;
   display: inline-block;
   height: 14px;
   margin-right: var(--zg-space-2);
   vertical-align: middle;
   width: 14px;
+}
+
+/* Lab 4 ui-spec.md §2.3 (BR-28): every busy submit button shows the spinner
+   from its aria-busy state, so no screen can forget it. */
+.zg-btn[aria-busy='true']::before {
+  content: '';
 }
 
 @keyframes zg-spin {
@@ -479,7 +504,7 @@ textarea.zg-field {
   color: var(--zg-warning-text);
 }
 
-.zg-badge-status-pending {
+.zg-badge-status-waiting {
   background: var(--zg-warning-bg);
   color: var(--zg-warning-text);
 }
@@ -621,6 +646,32 @@ textarea.zg-field {
 .zg-pagination-pages {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}
+
+/* Mobile: page numbers on their own row, Previous/Next together below,
+   and the "Showing …" line last, instead of wrapping one button alone. */
+@media (max-width: 767px) {
+  .zg-pagination-pages {
+    justify-content: center;
+    order: -1;
+    width: 100%;
+  }
+
+  .zg-pagination > .zg-helper {
+    order: 1;
+    text-align: center;
+    width: 100%;
+  }
+}
+
+.zg-card-badges {
+  justify-content: flex-start;
+}
+
+.zg-card-badge {
+  align-items: center;
+  display: inline-flex;
   gap: var(--zg-space-1);
 }
 
@@ -792,10 +843,42 @@ textarea.zg-field {
 
 /* Full-page Forbidden state — ui-spec.md §5/§6/§7, shared by every
    role-gated screen a wrong role reaches by direct URL. */
+.zg-auth-page .zg-wordmark {
+  color: var(--zg-primary);
+}
+
 .zg-forbidden {
   margin: var(--zg-space-6) auto 0;
   max-width: 480px;
+}
+
+/* Lab 4 ui-spec.md §11: shared feedback states (FeedbackState.tsx). */
+.zg-feedback {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
   text-align: center;
+}
+
+.zg-feedback-icon {
+  font-size: 32px;
+}
+
+.zg-feedback-title {
+  color: var(--zg-text);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.zg-empty-state,
+.zg-error-state {
+  margin-top: var(--zg-space-4);
+}
+
+.zg-error-state .zg-error {
+  margin-bottom: var(--zg-space-2);
 }
 
 .zg-sort-indicator {
@@ -870,5 +953,470 @@ textarea.zg-field {
     position: fixed;
     z-index: 1040;
     border-radius: 0;
+  }
+}
+
+/* Lab 4 ui-spec.md §5.1, §5.3: resolution-gate callout and Status History. */
+.zg-gate-reasons {
+  margin: var(--zg-space-1) 0 0;
+  padding-left: var(--zg-space-5);
+}
+
+.zg-gate-reasons a {
+  color: var(--zg-text);
+}
+
+.zg-gate-reasons a:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+.zg-history {
+  list-style: none;
+  margin: var(--zg-space-4) 0 0;
+  padding: 0;
+}
+
+.zg-history-entry {
+  align-items: center;
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+  padding: var(--zg-space-2) 0;
+}
+
+.zg-history-entry:last-child {
+  border-bottom: 0;
+}
+
+/* Mobile: each part of an entry on its own line, so no "·" separator is
+   left dangling at the start of a wrapped line. */
+@media (max-width: 767px) {
+  .zg-history-entry {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--zg-space-1);
+  }
+
+  .zg-history-sep {
+    display: none;
+  }
+}
+
+.zg-history-change {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-1);
+}
+
+/* Lab 4 ui-spec.md §8: Action Status and Follow-Up badges. In Progress and
+   Cancelled reuse the Ticket badge colors. */
+.zg-badge-action-planned {
+  background: var(--zg-field-readonly-bg);
+  color: var(--zg-text);
+}
+
+.zg-badge-action-done {
+  background: var(--zg-success-bg);
+  color: var(--zg-success-text);
+}
+
+.zg-badge-follow-up {
+  background: var(--zg-warning-bg);
+  color: var(--zg-warning-text);
+}
+
+/* Lab 4 ui-spec.md §5.2: Actions Taken list, cards, and form. */
+.zg-actions-table {
+  /* Fixed widths for the short columns; the text columns share the rest
+     and wrap, so long unbroken strings can't widen the table (§10). */
+  table-layout: fixed;
+}
+
+.zg-actions-table .zg-col-date {
+  width: 6.5rem;
+}
+
+.zg-actions-table .zg-col-status {
+  width: 8.5rem;
+}
+
+.zg-actions-table .zg-col-edit {
+  width: 7rem;
+}
+
+/* Buttons and badges break only between words, never mid-word, and a
+   badge wraps instead of spilling into the next column. */
+.zg-actions-table .zg-btn,
+.zg-actions-table .zg-badge {
+  overflow-wrap: normal;
+}
+
+.zg-actions-table .zg-badge {
+  white-space: normal;
+}
+
+@media (max-width: 991px) {
+  .zg-actions-table th,
+  .zg-actions-table td {
+    padding: var(--zg-space-2);
+  }
+
+  .zg-actions-table .zg-col-date {
+    width: 5.5rem;
+  }
+
+  .zg-actions-table .zg-col-status {
+    width: 7rem;
+  }
+
+  .zg-actions-table .zg-col-edit {
+    width: 6.5rem;
+  }
+}
+
+.zg-actions-table tbody tr {
+  cursor: default;
+}
+
+.zg-actions-table td,
+.zg-action-card dd {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.zg-actions-table tbody tr:hover {
+  background: none;
+}
+
+.zg-actions-table tbody tr.is-new,
+.zg-action-card.is-new {
+  background: var(--zg-pale);
+}
+
+.zg-action-text {
+  white-space: pre-wrap;
+}
+
+.zg-clamp-3 {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.zg-actions-table tr.is-cancelled,
+.zg-action-card.is-cancelled {
+  color: var(--zg-text-muted);
+}
+
+.is-cancelled .zg-action-description {
+  text-decoration: line-through;
+}
+
+.zg-action-card {
+  cursor: default;
+}
+
+.zg-action-card:hover {
+  border-color: var(--zg-field-readonly-border);
+}
+
+.zg-action-card-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+  justify-content: space-between;
+}
+
+.zg-action-card dl {
+  margin: var(--zg-space-3) 0;
+}
+
+.zg-action-card dt {
+  font-weight: 600;
+  margin-top: var(--zg-space-2);
+}
+
+.zg-action-card dd {
+  margin: 0;
+}
+
+.zg-action-form {
+  background: var(--zg-surface);
+  border: 1px solid var(--zg-secondary);
+  border-radius: 8px;
+  margin: var(--zg-space-4) 0;
+  padding: var(--zg-space-4);
+}
+
+.zg-action-form-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.zg-action-form-grid > .zg-detail-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .zg-action-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.zg-action-form .zg-field-readonly-value {
+  background: var(--zg-field-readonly-bg);
+  border: 1px solid var(--zg-field-readonly-border);
+  border-radius: 6px;
+  margin: 0;
+  min-height: 38px;
+  overflow-wrap: anywhere;
+  padding: 6px var(--zg-space-3);
+  white-space: pre-wrap;
+}
+
+/* Lab 4 ui-spec.md §2.4, §3, §4, §10: dashboards. Metric cards 3/2/1 per
+   row, breakdowns and lists side by side on desktop, stacked on mobile. */
+.zg-text-muted {
+  color: var(--zg-text-muted);
+}
+
+.zg-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zg-dashboard-header {
+  align-items: flex-start;
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-dashboard-header p {
+  margin: 0;
+}
+
+.zg-dashboard-error {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  margin-bottom: var(--zg-space-4);
+}
+
+.zg-metric-grid {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zg-metric-grid > li {
+  display: flex;
+}
+
+.zg-metric-card {
+  color: var(--zg-text);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--zg-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.zg-metric-card:hover,
+.zg-metric-card:focus-visible {
+  background: var(--zg-pale);
+  color: var(--zg-text);
+}
+
+.zg-metric-card:focus-visible,
+.zg-breakdown a:focus-visible,
+.zg-dashboard-list a:focus-visible,
+.zg-dashboard-footer:focus-visible,
+.zg-user-accounts a:focus-visible {
+  outline: 2px solid var(--zg-secondary);
+  outline-offset: 2px;
+}
+
+/* ui-spec.md §3: the warning icon is the non-color cue; the value takes
+   the warning text color (#8a5a00 passes AA on white). */
+.zg-metric-card.is-attention .zg-label .bi,
+.zg-metric-card.is-attention .zg-metric-value {
+  color: var(--zg-warning-text);
+}
+
+.zg-metric-value {
+  color: var(--zg-text);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.zg-metric-link {
+  color: var(--zg-secondary);
+  font-size: 13px;
+  margin-top: auto;
+  padding-top: var(--zg-space-2);
+}
+
+.zg-metric-skeleton {
+  min-height: 150px;
+}
+
+.zg-list-skeleton {
+  min-height: 260px;
+}
+
+.zg-dashboard-columns {
+  display: grid;
+  gap: var(--zg-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--zg-space-4);
+}
+
+.zg-dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
+  margin-top: var(--zg-space-4);
+  min-width: 0;
+}
+
+.zg-dashboard-columns > .zg-dashboard-section {
+  margin-top: 0;
+}
+
+/* Lab 4 ui-spec.md §3 (BR-40): the Requester with no Tickets at all. */
+.zg-dashboard-blank {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zg-space-3);
+  text-align: center;
+}
+
+.zg-dashboard-blank > .bi {
+  font-size: 32px;
+}
+
+.zg-dashboard-empty {
+  margin: 0;
+}
+
+.zg-dashboard-footer {
+  color: var(--zg-secondary);
+  font-weight: 500;
+  margin-top: auto;
+}
+
+.zg-breakdown,
+.zg-dashboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zg-breakdown a {
+  align-items: center;
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  color: var(--zg-text);
+  display: flex;
+  gap: var(--zg-space-3);
+  justify-content: space-between;
+  padding: var(--zg-space-2) 0;
+  text-decoration: none;
+}
+
+.zg-breakdown a:hover {
+  background: var(--zg-pale);
+}
+
+.zg-breakdown-value {
+  font-weight: 600;
+}
+
+.zg-dashboard-list > li {
+  border-bottom: 1px solid var(--zg-field-readonly-border);
+  min-width: 0;
+  padding: var(--zg-space-3) 0;
+}
+
+.zg-dashboard-list-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.zg-dashboard-list-text {
+  margin: var(--zg-space-1) 0;
+  overflow-wrap: anywhere;
+}
+
+.zg-dashboard-list-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--zg-space-2);
+}
+
+.zg-user-accounts tbody tr {
+  cursor: default;
+}
+
+@media (max-width: 991px) {
+  .zg-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zg-dashboard-lists {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .zg-metric-grid,
+  .zg-dashboard-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* ui-spec.md §10: User Accounts becomes 3 rows of "Active n · Inactive n". */
+  .zg-user-accounts thead {
+    display: none;
+  }
+
+  .zg-user-accounts tr {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--zg-space-2);
+  }
+
+  .zg-user-accounts th,
+  .zg-user-accounts td {
+    border-bottom: 0;
+    padding: var(--zg-space-1);
+  }
+
+  .zg-user-accounts tr {
+    border-bottom: 1px solid var(--zg-field-readonly-border);
+  }
+
+  .zg-user-accounts td::before {
+    content: attr(data-label) ' ';
+  }
+
+  .zg-user-accounts td + td::before {
+    content: '· ' attr(data-label) ' ';
   }
 }

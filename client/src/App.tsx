@@ -5,7 +5,9 @@ import CreateTicket from './CreateTicket'
 import { roleHomePath } from './lib/role-routes'
 import Login from './Login'
 import MyTickets from './MyTickets'
+import RequesterDashboard from './RequesterDashboard'
 import RequesterTicketDetail from './RequesterTicketDetail'
+import StaffDashboard from './StaffDashboard'
 import StaffTicketDetail from './StaffTicketDetail'
 import StaffTicketQueue from './StaffTicketQueue'
 import UserManagement from './UserManagement'
@@ -45,6 +47,13 @@ function RequireAuthForPasswordChange() {
   return <ChangePassword />
 }
 
+// Lab 4 ui-spec.md §1, §3, §4: one /dashboard route that renders by role, so
+// no role can open the other role's dashboard. The API stays the authority.
+function Dashboard() {
+  const { user } = useAuth()
+  return user?.role === 'REQUESTER' ? <RequesterDashboard /> : <StaffDashboard />
+}
+
 function DefaultRedirect() {
   const { user, status } = useAuth()
   if (status === 'loading') return null
@@ -61,6 +70,7 @@ export function AppRoutes() {
       <Route path="/system-check" element={<SystemCheck />} />
 
       <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/new" element={<CreateTicket />} />
         <Route path="/tickets/:id" element={<RequesterTicketDetail />} />

@@ -5,10 +5,12 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "e2e": "playwright test",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "test": "pnpm --filter server test && pnpm --filter client test && pnpm e2e",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@playwright/test": "^1.63.0",
@@ -32,7 +34,7 @@
       "oxlint",
       "oxfmt"
     ],
-    "playwright.config.ts": [
+    "playwright*.config.ts": [
       "oxlint",
       "oxfmt"
     ]

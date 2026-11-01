@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ActionsTaken from './ActionsTaken'
 import AttachmentSection from './AttachmentSection'
-import { ApiError, fetchTicket, markResolved, postComment } from './apiClient'
+import { ApiError, fetchStatusHistory, fetchTicket, markResolved, postComment } from './apiClient'
 import { PriorityBadge, RoleBadge, StatusBadge } from './badges'
-import Forbidden from './Forbidden'
+import { ErrorState, Forbidden, NotFound } from './FeedbackState'
+import ModalDialog from './ModalDialog'
+import StatusHistory from './StatusHistory'
+import { formatDate, formatDateTime } from './lib/datetime'
 import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
-import type { TicketComment, TicketDetail } from './types'
+import type { StatusHistoryEntry, TicketComment, TicketDetail } from './types'
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error' | 'forbidden'
 
 const COMMENT_MAX = 2000
 
@@ -28,6 +32,19 @@ function RequesterTicketDetail() {
   const [confirmingResolve, setConfirmingResolve] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
+  const [history, setHistory] = useState<StatusHistoryEntry[] | null>(null)
+  const [historyFailed, setHistoryFailed] = useState(false)
+
+  // Lab 4 ui-spec.md §6 (FR-09): the same read-only Status History as staff.
+  const loadHistory = useCallback(() => {
+    if (!user || !id || !allowed) return
+    setHistoryFailed(false)
+    fetchStatusHistory(Number(id))
+      .then(setHistory)
+      .catch(() => setHistoryFailed(true))
+  }, [user, id, allowed])
+
+  useEffect(loadHistory, [loadHistory])
 
   const load = useCallback(() => {
     if (!user || !id || !allowed) return
@@ -44,6 +61,9 @@ function RequesterTicketDetail() {
         // the UI shows the same safe "not found" message either way.
         if (err instanceof ApiError && err.code === 'NOT_FOUND') {
           setState('not-found')
+        } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
+          // Lab 4 ui-spec.md §11: an API 403 shows the forbidden state.
+          setState('forbidden')
         } else {
           setState('error')
         }
@@ -91,7 +111,7 @@ function RequesterTicketDetail() {
   // specification.md §12-14: an IT Staff or Administrator reaching this
   // Requester route directly gets the full-page forbidden state, with no
   // Ticket request made.
-  if (!allowed) {
+  if (!allowed || state === 'forbidden') {
     return (
       <Forbidden
         testId="requester-detail-forbidden"
@@ -102,14 +122,18 @@ function RequesterTicketDetail() {
 
   return (
     <div>
-      <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
-        <p className="zg-helper" style={{ margin: 0 }}>
-          My Tickets &gt; Ticket Detail
-        </p>
-        <Link to="/tickets" className="zg-btn zg-btn-secondary">
-          Back to My Tickets
-        </Link>
-      </div>
+      {/* The not-found card carries its own way back, so the header link
+          would only repeat it. */}
+      {state !== 'not-found' && (
+        <div className="zg-actions" style={{ marginBottom: 'var(--zg-space-4)' }}>
+          <p className="zg-helper" style={{ margin: 0 }}>
+            My Tickets &gt; Ticket Detail
+          </p>
+          <Link to="/tickets" className="zg-btn zg-btn-secondary">
+            Back to My Tickets
+          </Link>
+        </div>
+      )}
 
       {state === 'loading' && (
         <p className="zg-skeleton" aria-live="polite">
@@ -117,24 +141,10 @@ function RequesterTicketDetail() {
         </p>
       )}
 
-      {state === 'not-found' && (
-        <div className="zg-card">
-          <p>Ticket not found.</p>
-          <Link to="/tickets" className="zg-btn zg-btn-secondary">
-            Back to My Tickets
-          </Link>
-        </div>
-      )}
+      {state === 'not-found' && <NotFound backTo="/tickets" backLabel="Back to My Tickets" />}
 
       {state === 'error' && (
-        <div>
-          <p className="zg-error" role="alert">
-            Unable to load this ticket. Please try again.
-          </p>
-          <button type="button" className="zg-btn zg-btn-secondary" onClick={load}>
-            Retry
-          </button>
-        </div>
+        <ErrorState message="Unable to load this ticket. Please try again." onAction={load} />
       )}
 
       {state === 'ready' && ticket && user && (
@@ -146,19 +156,27 @@ function RequesterTicketDetail() {
               <div className="zg-actions" style={{ justifyContent: 'flex-start' }}>
                 {resolvedAt ? (
                   <span className="zg-badge zg-badge-status-resolved" data-testid="resolved-badge">
-                    Marked resolved by you on {new Date(resolvedAt).toLocaleDateString()}
+                    Marked resolved by you on{' '}
+                    <time dateTime={resolvedAt}>{formatDate(resolvedAt)}</time>
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    className="zg-btn zg-btn-secondary"
-                    onClick={() => {
-                      setResolveError(null)
-                      setConfirmingResolve(true)
-                    }}
-                  >
-                    Problem Appears Resolved
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="zg-btn zg-btn-secondary"
+                      aria-describedby="appears-resolved-hint"
+                      onClick={() => {
+                        setResolveError(null)
+                        setConfirmingResolve(true)
+                      }}
+                    >
+                      Problem Appears Resolved
+                    </button>
+                    {/* Lab 4 BR-20: a request to IT Staff, never a resolution. */}
+                    <span className="zg-helper" id="appears-resolved-hint">
+                      Lets IT Staff know it looks fixed. Only IT Staff can resolve the ticket.
+                    </span>
+                  </>
                 )}
               </div>
             )}
@@ -166,6 +184,7 @@ function RequesterTicketDetail() {
             <h1 className="zg-title" style={{ marginTop: 'var(--zg-space-3)' }}>
               {ticket.summary}
             </h1>
+            <p className="zg-helper">Times shown in Bangkok time (UTC+7)</p>
             <div className="zg-detail-grid" style={{ marginTop: 'var(--zg-space-4)' }}>
               <div>
                 <span className="zg-label">Ticket No.</span>
@@ -173,7 +192,9 @@ function RequesterTicketDetail() {
               </div>
               <div>
                 <span className="zg-label">Ticket Date</span>
-                <p>{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p>
+                  <time dateTime={ticket.createdAt}>{formatDateTime(ticket.createdAt)}</time>
+                </p>
               </div>
               <div>
                 <span className="zg-label">Category</span>
@@ -208,6 +229,11 @@ function RequesterTicketDetail() {
 
           <AttachmentSection ticketId={ticket.id} initialAttachments={ticket.attachments} />
 
+          {/* Lab 4 ui-spec.md §6 (FR-05, AC-07): read-only, every field shown. */}
+          <ActionsTaken ticketId={ticket.id} ticketStatus={ticket.currentStatus} />
+
+          <StatusHistory entries={history} failed={historyFailed} onRetry={loadHistory} />
+
           <div className="zg-card" style={{ marginTop: 'var(--zg-space-5)' }}>
             <h2 className="zg-section-heading">Public Comments</h2>
 
@@ -223,7 +249,9 @@ function RequesterTicketDetail() {
                       <strong>{comment.authorName}</strong>
                       <RoleBadge role={comment.authorRole} />
                       <span className="zg-helper">
-                        {new Date(comment.createdAt).toLocaleString()}
+                        <time dateTime={comment.createdAt}>
+                          {formatDateTime(comment.createdAt)}
+                        </time>
                       </span>
                     </div>
                     <p style={{ marginTop: 'var(--zg-space-1)' }}>{comment.content}</p>
@@ -262,6 +290,7 @@ function RequesterTicketDetail() {
                   className="zg-btn zg-btn-primary"
                   disabled={commentSubmitting || commentDraft.trim().length === 0}
                   aria-disabled={commentSubmitting || commentDraft.trim().length === 0}
+                  aria-busy={commentSubmitting}
                   onClick={handlePostComment}
                 >
                   {commentSubmitting ? 'Posting…' : 'Post Comment'}
@@ -271,62 +300,44 @@ function RequesterTicketDetail() {
           </div>
 
           {confirmingResolve && (
-            <>
-              <div
-                className="modal d-block"
-                tabIndex={-1}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="resolve-confirm-title"
-              >
-                <div className="modal-dialog">
-                  <div className="modal-content zg-modal-content">
-                    <div className="modal-header">
-                      <h5 className="zg-modal-title" id="resolve-confirm-title">
-                        Problem Appears Resolved
-                      </h5>
-                      <button
-                        type="button"
-                        className="btn-close"
-                        aria-label="Close"
-                        title="Close"
-                        onClick={() => setConfirmingResolve(false)}
-                      />
-                    </div>
-                    <div className="modal-body">
-                      <p>
-                        This tells IT Staff your issue looks fixed — it does not close the Ticket.
-                        IT Staff will confirm and formally resolve it.
-                      </p>
-                      {resolveError && (
-                        <p className="zg-error-message" role="alert">
-                          {resolveError}
-                        </p>
-                      )}
-                    </div>
-                    <div className="modal-footer">
-                      <button
-                        type="button"
-                        className="zg-btn zg-btn-secondary"
-                        onClick={() => setConfirmingResolve(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="zg-btn zg-btn-primary"
-                        disabled={resolving}
-                        aria-disabled={resolving}
-                        onClick={confirmMarkResolved}
-                      >
-                        {resolving ? 'Confirming…' : 'Confirm'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-backdrop show" />
-            </>
+            <ModalDialog
+              id="resolve-confirm"
+              title="Problem Appears Resolved"
+              onClose={() => setConfirmingResolve(false)}
+              busy={resolving}
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-secondary"
+                    disabled={resolving}
+                    onClick={() => setConfirmingResolve(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="zg-btn zg-btn-primary"
+                    disabled={resolving}
+                    aria-disabled={resolving}
+                    aria-busy={resolving}
+                    onClick={confirmMarkResolved}
+                  >
+                    {resolving ? 'Confirming…' : 'Confirm'}
+                  </button>
+                </>
+              }
+            >
+              <p>
+                This tells IT Staff your issue looks fixed — it does not close the Ticket. IT Staff
+                will confirm and formally resolve it.
+              </p>
+              {resolveError && (
+                <p className="zg-error-message" role="alert">
+                  {resolveError}
+                </p>
+              )}
+            </ModalDialog>
           )}
         </>
       )}

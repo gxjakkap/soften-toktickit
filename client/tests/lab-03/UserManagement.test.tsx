@@ -126,11 +126,13 @@ describe('list (AC-27, BR-39)', () => {
     expect(screen.queryByRole('navigation', { name: /pagination/i })).toBeNull()
   })
 
-  it('shows User Management in the Administrator nav only', async () => {
+  // Lab 4 (docs/lab-04/tests.md §6): BR-29 adds the Ticket Queue to the
+  // Administrator nav; User Management stays Administrator-only.
+  it('shows User Management and Ticket Queue in the Administrator nav', async () => {
     mockApi()
     renderScreen()
     expect(await screen.findByRole('link', { name: 'User Management' })).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Ticket Queue' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Ticket Queue' })).toBeTruthy()
   })
 
   it('shows a safe error with Retry when loading fails', async () => {

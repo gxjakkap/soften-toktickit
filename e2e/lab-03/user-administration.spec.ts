@@ -11,7 +11,9 @@ const TEMP_PASSWORD = 'Temp1234!'
 test('an Administrator creates a user, who must change their password at first login', async ({
   page,
 }) => {
-  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
+  // Lab 4 FR-17 (docs/lab-04/tests.md §6): login lands on the Dashboard.
+  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/dashboard')
+  await page.goto('/admin/users')
 
   const email = `e2e-created-${Date.now()}@lab3.admin-e2e.test.invalid`
   await page.getByRole('button', { name: 'Create User' }).click()
@@ -52,7 +54,9 @@ test('editing a user takes effect immediately, deactivating kills their session,
   await loginViaApi(request, email, TEMP_PASSWORD)
   expect((await request.get('/api/auth/me')).status()).toBe(200)
 
-  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
+  // Lab 4 FR-17 (docs/lab-04/tests.md §6): login lands on the Dashboard.
+  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/dashboard')
+  await page.goto('/admin/users')
 
   // FR-22: edit name/role.
   await page.getByRole('button', { name: `Edit ${name}`, exact: true }).click()
@@ -81,7 +85,9 @@ test('editing a user takes effect immediately, deactivating kills their session,
 test("disables the sole Administrator's own Active toggle and Role select, with explanations", async ({
   page,
 }) => {
-  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/admin/users')
+  // Lab 4 FR-17 (docs/lab-04/tests.md §6): login lands on the Dashboard.
+  await loginViaUi(page, ADMIN.email, SEED_PASSWORD, '**/dashboard')
+  await page.goto('/admin/users')
 
   await page.getByRole('button', { name: `Edit ${ADMIN.name}` }).click()
   const panel = page.getByTestId('user-panel')

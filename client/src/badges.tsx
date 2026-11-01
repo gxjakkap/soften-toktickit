@@ -1,31 +1,26 @@
-import type { RequestedPriority, TicketStatus, UserRole } from './types'
+import { ACTION_STATUS_LABEL, STATUS_LABEL } from './lib/ticket-status'
+import type { ActionStatus, RequestedPriority, TicketStatus, UserRole } from './types'
 
 // ui-spec.md §9: Pending/In Progress and Cancelled/Closed share a badge
 // colour, so each pair also carries a distinct icon (never colour alone).
-// Single source of truth so My Tickets and Ticket Detail can't drift apart.
-const STATUS_ICON: Partial<Record<TicketStatus, string>> = {
+// Lab 4 ui-spec.md §12: every Status and IT Priority badge carries text and
+// an icon. Single source of truth so no two screens can drift apart.
+const STATUS_ICON: Record<TicketStatus, string> = {
+  NEW: 'bi-plus-circle',
+  OPEN: 'bi-folder2-open',
+  RESOLVED: 'bi-check-circle-fill',
+  REOPENED: 'bi-arrow-counterclockwise',
   WAITING_FOR_REQUESTER: 'bi-hourglass-split',
   IN_PROGRESS: 'bi-arrow-repeat',
   CANCELLED: 'bi-x-circle',
   CLOSED: 'bi-check2-circle',
 }
 
-const STATUS_LABEL: Record<TicketStatus, string> = {
-  NEW: 'New',
-  OPEN: 'Open',
-  IN_PROGRESS: 'In Progress',
-  WAITING_FOR_REQUESTER: 'Waiting for Requester',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-  REOPENED: 'Reopened',
-  CANCELLED: 'Cancelled',
-}
-
 const STATUS_BADGE_CLASS: Record<TicketStatus, string> = {
   NEW: 'zg-badge-status-new',
   OPEN: 'zg-badge-status-open',
   IN_PROGRESS: 'zg-badge-status-in-progress',
-  WAITING_FOR_REQUESTER: 'zg-badge-status-pending',
+  WAITING_FOR_REQUESTER: 'zg-badge-status-waiting',
   RESOLVED: 'zg-badge-status-resolved',
   CLOSED: 'zg-badge-status-closed',
   REOPENED: 'zg-badge-status-reopened',
@@ -38,6 +33,12 @@ const PRIORITY_LABEL: Record<RequestedPriority, string> = {
   HIGH: 'High',
 }
 
+const PRIORITY_ICON: Record<RequestedPriority, string> = {
+  LOW: 'bi-arrow-down',
+  MEDIUM: 'bi-dash-lg',
+  HIGH: 'bi-exclamation-triangle',
+}
+
 const PRIORITY_BADGE_CLASS: Record<RequestedPriority, string> = {
   LOW: 'zg-badge-priority-low',
   MEDIUM: 'zg-badge-priority-medium',
@@ -45,10 +46,9 @@ const PRIORITY_BADGE_CLASS: Record<RequestedPriority, string> = {
 }
 
 export function StatusBadge({ status, testId }: { status: TicketStatus; testId?: string }) {
-  const icon = STATUS_ICON[status]
   return (
     <span className={`zg-badge ${STATUS_BADGE_CLASS[status]}`} data-testid={testId}>
-      {icon && <i className={`bi ${icon}`} aria-hidden="true" />}
+      <i className={`bi ${STATUS_ICON[status]}`} aria-hidden="true" />
       {STATUS_LABEL[status]}
     </span>
   )
@@ -63,6 +63,7 @@ export function PriorityBadge({
 }) {
   return (
     <span className={`zg-badge ${PRIORITY_BADGE_CLASS[priority]}`} data-testid={testId}>
+      <i className={`bi ${PRIORITY_ICON[priority]}`} aria-hidden="true" />
       {PRIORITY_LABEL[priority]}
     </span>
   )
@@ -86,6 +87,44 @@ export function RoleBadge({ role, testId }: { role: UserRole; testId?: string })
   return (
     <span className={`zg-badge ${ROLE_BADGE_CLASS[role]}`} data-testid={testId}>
       {ROLE_LABEL[role]}
+    </span>
+  )
+}
+
+// ui-spec.md §8 (Lab 3): the user Active/Inactive badge, shared by User
+// Management and the Actions Taken assignee (Lab 4 ui-spec.md §8).
+export function UserStatusBadge({ active }: { active: boolean }) {
+  return (
+    <span className={`zg-badge ${active ? 'zg-badge-status-resolved' : 'zg-badge-status-closed'}`}>
+      <i className={`bi ${active ? 'bi-check-circle' : 'bi-slash-circle'}`} aria-hidden="true" />
+      {active ? 'Active' : 'Inactive'}
+    </span>
+  )
+}
+
+// Lab 4 ui-spec.md §8: every Action Status badge has text and an icon.
+const ACTION_STATUS_STYLE: Record<ActionStatus, { className: string; icon: string }> = {
+  PLANNED: { className: 'zg-badge-action-planned', icon: 'bi-circle' },
+  IN_PROGRESS: { className: 'zg-badge-status-in-progress', icon: 'bi-circle-half' },
+  DONE: { className: 'zg-badge-action-done', icon: 'bi-check-circle' },
+  CANCELLED: { className: 'zg-badge-status-cancelled', icon: 'bi-slash-circle' },
+}
+
+export function ActionStatusBadge({ status }: { status: ActionStatus }) {
+  const { className, icon } = ACTION_STATUS_STYLE[status]
+  return (
+    <span className={`zg-badge ${className}`}>
+      <i className={`bi ${icon}`} aria-hidden="true" />
+      {ACTION_STATUS_LABEL[status]}
+    </span>
+  )
+}
+
+export function FollowUpBadge() {
+  return (
+    <span className="zg-badge zg-badge-follow-up">
+      <i className="bi bi-flag" aria-hidden="true" />
+      Follow-up
     </span>
   )
 }

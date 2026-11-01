@@ -51,11 +51,12 @@ test.describe('Problem Appears Resolved', () => {
 })
 
 test.describe('Requester regression: real login replaces the Lab 2 selector', () => {
-  test('signing in through the real Login screen reaches My Tickets with a Logout action', async ({
+  // Lab 4 (docs/lab-04/tests.md §6, §11-8): the landing screen is now the Dashboard.
+  test('signing in through the real Login screen reaches the Dashboard with a Logout action', async ({
     page,
   }) => {
     await loginViaUi(page, REQUESTERS.jennifer.email)
-    await expect(page.getByRole('heading', { name: 'My Tickets' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
     await expect(page.getByTestId('current-user')).toContainText('Jennifer Anderson')
     await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Change Requester' })).toHaveCount(0)

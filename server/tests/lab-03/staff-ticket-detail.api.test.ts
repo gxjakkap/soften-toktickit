@@ -8,6 +8,13 @@ import { loginCookie } from '../helpers/auth.js'
 // Issue #7, specification.md §5 (FR-13..17, BR-18..22, BR-40) and
 // api-spec.md §4.2-4.6: IT Staff Ticket Detail retrieval, ownership
 // (claim/reassign), IT Priority, and Current Status transitions.
+//
+// Lab 4 (docs/lab-04/tests.md §6): every claim/owner/priority/status call
+// sends the Ticket `version` (BR-24, API-61..74); success bodies are now the
+// TicketWorkflowState superset, so exact-shape checks use toMatchObject;
+// fixtures for ->Resolved get a Done Action first (BR-18, API-71); an active
+// Administrator is a valid owner and appears in the assignable list (BR-30,
+// API-60, API-67).
 
 const TAG = 'lab3.staff-ticket-detail.test.invalid'
 const PASSWORD = 'DevPass123!'
@@ -16,6 +23,7 @@ const email = (name: string) => `${name}@${TAG}`
 let staffAId: number
 let staffBId: number
 let staffInactiveId: number
+let adminId: number
 let requesterId: number
 let categoryId: number
 let relatedSystemId: number
@@ -26,7 +34,7 @@ let adminCookie: string
 
 beforeAll(async () => {
   const passwordHash = await hashPassword(PASSWORD)
-  const [staffA, staffB, staffInactive, requester] = await Promise.all([
+  const [staffA, staffB, staffInactive, requester, admin] = await Promise.all([
     prisma.user.create({
       data: { name: 'Detail Staff A', email: email('staff-a'), role: 'IT_STAFF', passwordHash },
     }),
@@ -58,6 +66,7 @@ beforeAll(async () => {
   staffBId = staffB.id
   staffInactiveId = staffInactive.id
   requesterId = requester.id
+  adminId = admin.id
 
   staffACookie = await loginCookie(app, email('staff-a'), PASSWORD)
   staffBCookie = await loginCookie(app, email('staff-b'), PASSWORD)
@@ -72,6 +81,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.ticketComment.deleteMany({ where: { ticket: { requesterId } } })
+  // Lab 4 BR-22: history and Action rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({ where: { ticket: { requesterId } } })
+  await prisma.actionTaken.deleteMany({ where: { ticket: { requesterId } } })
   await prisma.ticket.deleteMany({ where: { requesterId } })
   await prisma.user.deleteMany({ where: { email: { endsWith: TAG } } })
   await prisma.category.deleteMany({ where: { name: { endsWith: TAG } } })
@@ -109,6 +121,21 @@ async function createTicket(
       itPriority: overrides.itPriority ?? 'MEDIUM',
       ownerId: overrides.ownerId,
       currentStatus: overrides.currentStatus,
+    },
+  })
+}
+
+// Lab 4 BR-18: a Done Action satisfies the resolution gate.
+async function addDoneAction(ticketId: number) {
+  await prisma.actionTaken.create({
+    data: {
+      ticketId,
+      performedById: staffAId,
+      assignedToId: staffAId,
+      actionAt: new Date(),
+      description: 'Fixed it.',
+      result: 'Works now.',
+      status: 'DONE',
     },
   })
 }
@@ -184,12 +211,13 @@ describe('GET /api/staff/it-staff-users', () => {
     expect(res.status).toBe(403)
   })
 
-  it('lists only active IT Staff, ordered by name', async () => {
+  it('lists only active IT Staff and Administrators, ordered by name', async () => {
     const res = await request(app).get('/api/staff/it-staff-users').set('Cookie', staffACookie)
     expect(res.status).toBe(200)
     const ids = res.body.map((u: { id: number }) => u.id)
     expect(ids).toContain(staffAId)
     expect(ids).toContain(staffBId)
+    expect(ids).toContain(adminId)
     expect(ids).not.toContain(staffInactiveId)
     expect(ids).not.toContain(requesterId)
   })
@@ -201,8 +229,13 @@ describe('PATCH /api/staff/tickets/:id/claim', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/claim`)
       .set('Cookie', staffACookie)
+      .send({ version: 1 })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ id: ticket.id, ownerId: staffAId, ownerName: 'Detail Staff A' })
+    expect(res.body).toMatchObject({
+      id: ticket.id,
+      ownerId: staffAId,
+      ownerName: 'Detail Staff A',
+    })
   })
 
   it('BR-19: claiming a ticket the caller already owns is a no-op success', async () => {
@@ -210,6 +243,7 @@ describe('PATCH /api/staff/tickets/:id/claim', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/claim`)
       .set('Cookie', staffACookie)
+      .send({ version: 1 })
     expect(res.status).toBe(200)
     expect(res.body.ownerId).toBe(staffAId)
   })
@@ -219,6 +253,7 @@ describe('PATCH /api/staff/tickets/:id/claim', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/claim`)
       .set('Cookie', staffBCookie)
+      .send({ version: 1 })
     expect(res.status).toBe(409)
     expect(res.body.error.code).toBe('ALREADY_OWNED')
     expect(res.body.error.message).toMatch(/reassign/i)
@@ -236,6 +271,7 @@ describe('PATCH /api/staff/tickets/:id/claim', () => {
     const notFound = await request(app)
       .patch('/api/staff/tickets/999999999/claim')
       .set('Cookie', staffACookie)
+      .send({ version: 1 })
     expect(notFound.status).toBe(404)
   })
 })
@@ -246,9 +282,13 @@ describe('PATCH /api/staff/tickets/:id/owner', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/owner`)
       .set('Cookie', staffBCookie)
-      .send({ ownerId: staffBId })
+      .send({ version: 1, ownerId: staffBId })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ id: ticket.id, ownerId: staffBId, ownerName: 'Detail Staff B' })
+    expect(res.body).toMatchObject({
+      id: ticket.id,
+      ownerId: staffBId,
+      ownerName: 'Detail Staff B',
+    })
   })
 
   it('clears ownership back to unassigned with ownerId: null', async () => {
@@ -256,9 +296,19 @@ describe('PATCH /api/staff/tickets/:id/owner', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/owner`)
       .set('Cookie', staffACookie)
-      .send({ ownerId: null })
+      .send({ version: 1, ownerId: null })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ id: ticket.id, ownerId: null, ownerName: null })
+    expect(res.body).toMatchObject({ id: ticket.id, ownerId: null, ownerName: null })
+  })
+
+  it('Lab 4 BR-30: an active Administrator is a valid owner', async () => {
+    const ticket = await createTicket()
+    const res = await request(app)
+      .patch(`/api/staff/tickets/${ticket.id}/owner`)
+      .set('Cookie', staffACookie)
+      .send({ version: 1, ownerId: adminId })
+    expect(res.status).toBe(200)
+    expect(res.body).toMatchObject({ id: ticket.id, ownerId: adminId, ownerName: 'Detail Admin' })
   })
 
   it('400 INVALID_OWNER for a Requester id, an inactive IT Staff id, or a nonexistent id', async () => {
@@ -267,7 +317,7 @@ describe('PATCH /api/staff/tickets/:id/owner', () => {
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set('Cookie', staffACookie)
-        .send({ ownerId })
+        .send({ version: 1, ownerId })
       expect(res.status).toBe(400)
       expect(res.body.error.code).toBe('INVALID_OWNER')
     }
@@ -277,13 +327,13 @@ describe('PATCH /api/staff/tickets/:id/owner', () => {
     const forbidden = await request(app)
       .patch('/api/staff/tickets/1/owner')
       .set('Cookie', requesterCookie)
-      .send({ ownerId: staffAId })
+      .send({ version: 1, ownerId: staffAId })
     expect(forbidden.status).toBe(403)
 
     const notFound = await request(app)
       .patch('/api/staff/tickets/999999999/owner')
       .set('Cookie', staffACookie)
-      .send({ ownerId: staffAId })
+      .send({ version: 1, ownerId: staffAId })
     expect(notFound.status).toBe(404)
   })
 })
@@ -294,9 +344,9 @@ describe('PATCH /api/staff/tickets/:id/priority', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/priority`)
       .set('Cookie', staffACookie)
-      .send({ itPriority: 'HIGH' })
+      .send({ version: 1, itPriority: 'HIGH' })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ id: ticket.id, itPriority: 'HIGH' })
+    expect(res.body).toMatchObject({ id: ticket.id, itPriority: 'HIGH' })
 
     const unchanged = await prisma.ticket.findUnique({ where: { id: ticket.id } })
     expect(unchanged?.requestedPriority).toBe('LOW')
@@ -307,7 +357,7 @@ describe('PATCH /api/staff/tickets/:id/priority', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/priority`)
       .set('Cookie', staffACookie)
-      .send({ itPriority: 'URGENT' })
+      .send({ version: 1, itPriority: 'URGENT' })
     expect(res.status).toBe(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
@@ -317,7 +367,7 @@ describe('PATCH /api/staff/tickets/:id/priority', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/priority`)
       .set('Cookie', requesterCookie)
-      .send({ itPriority: 'HIGH' })
+      .send({ version: 1, itPriority: 'HIGH' })
     expect(res.status).toBe(403)
   })
 })
@@ -346,12 +396,13 @@ describe('PATCH /api/staff/tickets/:id/status', () => {
 
   it.each(permitted)('allows %s -> %s', async (from, to) => {
     const ticket = await createTicket({ currentStatus: from })
+    if (to === 'RESOLVED') await addDoneAction(ticket.id)
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/status`)
       .set('Cookie', staffACookie)
-      .send({ status: to })
+      .send({ version: 1, status: to })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ id: ticket.id, currentStatus: to })
+    expect(res.body).toMatchObject({ id: ticket.id, currentStatus: to })
   })
 
   // A sample of disallowed transitions, including AC-18/AC-19's examples and
@@ -374,7 +425,7 @@ describe('PATCH /api/staff/tickets/:id/status', () => {
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/status`)
         .set('Cookie', staffACookie)
-        .send({ status: to })
+        .send({ version: 1, status: to })
       expect(res.status).toBe(409)
       expect(res.body.error.code).toBe('INVALID_TRANSITION')
 
@@ -388,7 +439,7 @@ describe('PATCH /api/staff/tickets/:id/status', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/status`)
       .set('Cookie', staffACookie)
-      .send({ status: 'REOPENED' })
+      .send({ version: 1, status: 'REOPENED' })
     expect(res.status).toBe(200)
     expect(res.body.currentStatus).toBe('REOPENED')
   })
@@ -398,7 +449,7 @@ describe('PATCH /api/staff/tickets/:id/status', () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticket.id}/status`)
       .set('Cookie', staffACookie)
-      .send({ status: 'ARCHIVED' })
+      .send({ version: 1, status: 'ARCHIVED' })
     expect(res.status).toBe(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
@@ -407,13 +458,13 @@ describe('PATCH /api/staff/tickets/:id/status', () => {
     const forbidden = await request(app)
       .patch('/api/staff/tickets/1/status')
       .set('Cookie', requesterCookie)
-      .send({ status: 'OPEN' })
+      .send({ version: 1, status: 'OPEN' })
     expect(forbidden.status).toBe(403)
 
     const notFound = await request(app)
       .patch('/api/staff/tickets/999999999/status')
       .set('Cookie', staffACookie)
-      .send({ status: 'OPEN' })
+      .send({ version: 1, status: 'OPEN' })
     expect(notFound.status).toBe(404)
   })
 })

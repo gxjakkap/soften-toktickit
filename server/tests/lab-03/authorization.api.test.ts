@@ -8,6 +8,10 @@ import { hashPassword } from '../../src/lib/password.js'
 // §0.1, §1.5, §4, §5: role/ownership guards wired onto the current-user route
 // and the Ticket Queue/Detail/Admin stub routes.
 //
+// Lab 4 (docs/lab-04/tests.md §6): specification.md BR-29 supersedes Lab 3
+// BR-40/AC-37, so the Administrator rows now assert access to the Queue and
+// its mutation routes instead of 403. Mutation calls send `version` (BR-24).
+//
 // Fixtures live under TAG and are removed in afterAll (sessions cascade with users).
 const TAG = 'lab3.authz.test.invalid'
 const PASSWORD = 'DevPass123!'
@@ -77,10 +81,10 @@ describe('Ticket Queue / Detail role guards (api-spec.md §4)', () => {
     expect(res.status).toBe(200)
   })
 
-  it('403 FORBIDDEN when an Administrator calls the Queue (BR-40/AC-37)', async () => {
+  it('Lab 4 BR-29: an Administrator reaches the Queue (supersedes BR-40/AC-37)', async () => {
     const cookie = await loginCookie(email('admin'))
     const res = await request(app).get('/api/staff/tickets').set('Cookie', cookie)
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(200)
   })
 
   it('Administrator is allowed on Ticket Detail read-only (BR-40/AC-36), Requester is not (AC-04)', async () => {
@@ -102,23 +106,44 @@ describe('Ticket Queue / Detail role guards (api-spec.md §4)', () => {
     expect(JSON.stringify(requesterRes.body)).not.toMatch(/internal|content/i)
   })
 
-  it('Administrator is rejected from every Queue mutation route (BR-40/AC-37)', async () => {
+  it('Lab 4 BR-29: an Administrator passes the guard on every Queue mutation route (supersedes BR-40/AC-37)', async () => {
     const cookie = await loginCookie(email('admin'))
+    // A nonexistent id 404s only once the role guard has let the caller in.
+    const url = '/api/staff/tickets/999999999'
     for (const call of [
-      () => request(app).patch('/api/staff/tickets/1/claim').set('Cookie', cookie),
-      () => request(app).patch('/api/staff/tickets/1/owner').set('Cookie', cookie),
-      () => request(app).patch('/api/staff/tickets/1/priority').set('Cookie', cookie),
-      () => request(app).patch('/api/staff/tickets/1/status').set('Cookie', cookie),
-      () => request(app).post('/api/staff/tickets/1/comments').set('Cookie', cookie),
+      () => request(app).patch(`${url}/claim`).set('Cookie', cookie).send({ version: 1 }),
+      () =>
+        request(app)
+          .patch(`${url}/owner`)
+          .set('Cookie', cookie)
+          .send({ version: 1, ownerId: null }),
+      () =>
+        request(app)
+          .patch(`${url}/priority`)
+          .set('Cookie', cookie)
+          .send({ version: 1, itPriority: 'LOW' }),
+      () =>
+        request(app)
+          .patch(`${url}/status`)
+          .set('Cookie', cookie)
+          .send({ version: 1, status: 'OPEN' }),
+      () =>
+        request(app)
+          .post(`${url}/comments`)
+          .set('Cookie', cookie)
+          .send({ visibility: 'PUBLIC', content: 'Hello' }),
     ]) {
       const res = await call()
-      expect(res.status).toBe(403)
+      expect(res.status).toBe(404)
     }
   })
 
   it('an IT Staff mutation route passes the guard chain through to the real route (Issue #7)', async () => {
     const cookie = await loginCookie(email('staff'))
-    const res = await request(app).patch('/api/staff/tickets/999999999/claim').set('Cookie', cookie)
+    const res = await request(app)
+      .patch('/api/staff/tickets/999999999/claim')
+      .set('Cookie', cookie)
+      .send({ version: 1 })
     expect(res.status).toBe(404)
   })
 })

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { roleHomePath } from './lib/role-routes'
 import { useAuth } from './useAuth'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -11,6 +12,8 @@ function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+  const myTicketsActive = /^\/tickets(\/(?!new$)[^/]+)?$/.test(pathname)
 
   // ui-spec.md §1: available at all times from the Profile menu; ends the
   // session and returns to Login (replaces Lab 2's Change Requester action).
@@ -24,7 +27,8 @@ function AppShell({ children }: { children: ReactNode }) {
     <>
       <header className="zg-header">
         <div className="zg-header-inner">
-          <NavLink to="/tickets" className="zg-wordmark">
+          {/* Lab 4 ui-spec.md §1: the wordmark goes to /dashboard for every role. */}
+          <NavLink to={user ? roleHomePath(user.role) : '/login'} className="zg-wordmark">
             TokTickIT
           </NavLink>
 
@@ -53,13 +57,24 @@ function AppShell({ children }: { children: ReactNode }) {
               {user?.role === 'REQUESTER' && (
                 <>
                   <NavLink
-                    to="/tickets"
+                    to="/dashboard"
                     className={navClass}
                     end
                     onClick={() => setMenuOpen(false)}
                   >
-                    My Tickets
+                    Dashboard
                   </NavLink>
+                  {/* Lab 4 ui-spec.md §1: My Tickets stays active on
+                      /tickets/:id but not on /tickets/new, which belongs to
+                      Create Ticket, so NavLink's own matching can't decide it. */}
+                  <Link
+                    to="/tickets"
+                    className={navClass({ isActive: myTicketsActive })}
+                    aria-current={myTicketsActive ? 'page' : undefined}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My Tickets
+                  </Link>
                   <NavLink
                     to="/tickets/new"
                     className={navClass}
@@ -69,14 +84,28 @@ function AppShell({ children }: { children: ReactNode }) {
                   </NavLink>
                 </>
               )}
-              {user?.role === 'IT_STAFF' && (
-                <NavLink
-                  to="/staff/tickets"
-                  className={navClass}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Ticket Queue
-                </NavLink>
+              {/* Lab 4 ui-spec.md §1 (BR-29, FR-17): Dashboard first, and the
+                  Administrator also gets the Queue. NavLink sets
+                  aria-current="page"; `end` keeps Dashboard active only on
+                  /dashboard itself. */}
+              {(user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR') && (
+                <>
+                  <NavLink
+                    to="/dashboard"
+                    className={navClass}
+                    end
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/staff/tickets"
+                    className={navClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Ticket Queue
+                  </NavLink>
+                </>
               )}
               {user?.role === 'ADMINISTRATOR' && (
                 <NavLink to="/admin/users" className={navClass} onClick={() => setMenuOpen(false)}>

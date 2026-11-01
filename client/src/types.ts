@@ -65,6 +65,8 @@ export type TicketSortField =
   | 'summary'
   | 'requestedPriority'
   | 'currentStatus'
+  // Lab 4 api-spec.md §4.2: the "View all" link from Recently Updated (BR-43).
+  | 'updatedAt'
 export type SortDirection = 'asc' | 'desc'
 
 export type TicketListResponse = {
@@ -153,10 +155,42 @@ export type StaffTicketComment = TicketComment & { visibility: CommentVisibility
 export type StaffTicketDetail = Omit<TicketDetail, 'comments'> & {
   ownerId: number | null
   comments: StaffTicketComment[]
+  // Lab 4 api-spec.md §3.5.
+  version: number
+  resolvedAt: string | null
+  resolutionGate: ResolutionGate
 }
 
-// api-spec.md §4.1b: the Reassign dropdown's option list.
-export type ActiveStaffUser = { id: number; name: string }
+// Lab 4 specification.md BR-18, in the server's fixed order.
+export type ResolutionBlockReason = 'NO_DONE_ACTION' | 'OPEN_ACTIONS' | 'PENDING_FOLLOW_UPS'
+
+export type ResolutionGate = { canResolve: boolean; reasons: ResolutionBlockReason[] }
+
+// Lab 4 api-spec.md §0.5: returned by every Ticket workflow write and in a
+// STALE_UPDATE's `details.current`.
+export type TicketWorkflowState = {
+  id: number
+  version: number
+  currentStatus: TicketStatus
+  resolvedAt: string | null
+  ownerId: number | null
+  ownerName: string | null
+  itPriority: RequestedPriority
+  updatedAt: string
+}
+
+// Lab 4 api-spec.md §0.5. fromStatus is null only on the creation entry.
+export type StatusHistoryEntry = {
+  id: number
+  fromStatus: TicketStatus | null
+  toStatus: TicketStatus
+  changedBy: { id: number; name: string; role: UserRole }
+  changedAt: string
+}
+
+// api-spec.md §4.1b: the Reassign dropdown's option list. Lab 4 §3.9 adds
+// Administrators and each user's role.
+export type ActiveStaffUser = { id: number; name: string; role: UserRole }
 
 // api-spec.md §5 (Issue #8): Administrator User Management.
 export type AdminUser = {
@@ -168,3 +202,89 @@ export type AdminUser = {
 }
 
 export type AdminUserListResponse = { data: AdminUser[]; totalCount: number }
+
+// Lab 4 api-spec.md §0.5 (BR-07): an Action Taken's own status.
+export type ActionStatus = 'PLANNED' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED'
+
+// Lab 4 api-spec.md §0.5: one Action Taken, as both the staff and the
+// Requester endpoints return it.
+export type ActionTaken = {
+  id: number
+  ticketId: number
+  actionAt: string
+  description: string
+  result: string | null
+  status: ActionStatus
+  performedBy: { id: number; name: string; role: UserRole }
+  assignedTo: { id: number; name: string; role: UserRole; isActive: boolean }
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+// Lab 4 api-spec.md §5.2: every metric carries the client route it drills
+// down to, so link targets are defined only on the server.
+export type DashboardMetric = { value: number; drillDown: string }
+
+export type StaffDashboardActionItem = {
+  actionId: number
+  ticketId: number
+  ticketNumber: string
+  description: string
+  status: ActionStatus
+  actionAt: string
+  drillDown: string
+}
+
+export type StaffDashboardTicketItem = {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: TicketStatus
+  ownerName: string | null
+  updatedAt: string
+}
+
+// Lab 4 api-spec.md §5.1 (BR-39..BR-44): every value is scoped to the caller.
+export type RequesterDashboardTicketItem = {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: TicketStatus
+}
+
+export type RequesterDashboard = {
+  generatedAt: string
+  hasAnyTickets: boolean
+  metrics: {
+    openTickets: DashboardMetric
+    waitingForYou: DashboardMetric
+    resolvedLast30Days: DashboardMetric & { windowStart: string }
+  }
+  recentlyUpdated: (RequesterDashboardTicketItem & { updatedAt: string })[]
+  recentlyResolved: (RequesterDashboardTicketItem & { resolvedAt: string })[]
+}
+
+export type UserAccountCounts = { active: number; inactive: number; drillDown: string }
+
+export type StaffDashboard = {
+  generatedAt: string
+  today: string
+  metrics: {
+    myOpenActions: DashboardMetric & { ticketCount: number }
+    unassigned: DashboardMetric
+    myActiveTickets: DashboardMetric
+    followUpsPending: DashboardMetric
+    highPriority: DashboardMetric
+    resolvedToday: DashboardMetric
+  }
+  byStatus: (DashboardMetric & { status: TicketStatus })[]
+  activeByItPriority: (DashboardMetric & { itPriority: RequestedPriority })[]
+  myOpenActionList: StaffDashboardActionItem[]
+  recentlyUpdated: StaffDashboardTicketItem[]
+  // BR-55: present only for an Administrator.
+  userAccounts?: Record<UserRole, UserAccountCounts>
+}

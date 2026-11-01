@@ -34,7 +34,7 @@ jobs:
       - run: pnpm exec oxfmt --check
       - run: pnpm --filter server build
       - run: pnpm --filter client build
-      - run: pnpm --filter client test -- --reporter=default --reporter=json --outputFile.json=client-test-results.json
+      - run: pnpm --filter client test --reporter=default --reporter=json --outputFile.json=client-test-results.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -73,7 +73,7 @@ jobs:
       - run: pnpm --filter server prisma:generate
       - run: pnpm --filter server exec prisma migrate deploy
       - run: pnpm --filter server prisma:seed
-      - run: pnpm --filter server test -- --reporter=default --reporter=json --outputFile.json=server-test-results.json
+      - run: pnpm --filter server test --reporter=default --reporter=json --outputFile.json=server-test-results.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,7 +113,7 @@ jobs:
       - run: pnpm --filter server exec prisma migrate deploy
       - run: pnpm --filter server prisma:seed
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm e2e -- --reporter=list,json
+      - run: pnpm e2e --reporter=list,json
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-test-results.json
       - uses: actions/upload-artifact@v4

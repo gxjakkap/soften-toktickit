@@ -1,0 +1,107 @@
+TokTickIT Lab 4 - Playwright E2E suite (run 3 of 3)
+Date: 2026-10-22 17:55:24 +07
+Branch: lab4/feat/10-test-coverage (from lab4-staging fd02fd2)
+Commit: 3ee14181be920fec6cac4c993ab80de1fbda7742
+Command: pnpm e2e
+
+
+> toktickit@ e2e /Users/jakka/Code/soften-toktickit
+> playwright test
+
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> server@1.0.0 clean:e2e-fixtures /Users/jakka/Code/soften-toktickit/server
+> tsx scripts/clean-e2e-fixtures.ts
+
+cleaned 0 e2e fixture user(s), 0 fixture ticket(s)
+
+Running 67 tests using 1 worker
+
+  ✓   1 e2e/lab-02/requester-ticket-flow.spec.ts:14:7 › E2E-01 (AC-01, AC-09, AC-16, AC-24): create -> find -> open › signing in, creating a Ticket with an attachment, finding it by search, and opening its detail all agree (1.0s)
+  ✓   2 e2e/lab-02/requester-ticket-flow.spec.ts:61:7 › E2E-02 (AC-03, AC-23): cross-Requester isolation › Requester B never sees Requester A's ticket, in the list or by direct navigation (1.1s)
+  ✓   3 e2e/lab-02/requester-ticket-flow.spec.ts:87:7 › E2E-03 (AC-14, AC-15): attachment lifecycle › upload, download while active, soft-remove, then download fails safely (621ms)
+  ✓   4 e2e/lab-03/authentication.spec.ts:15:7 › Login › signs a Requester in and reaches their default landing screen (383ms)
+  ✓   5 e2e/lab-03/authentication.spec.ts:21:7 › Login › shows a generic invalid-credentials banner for a wrong password (394ms)
+  ✓   6 e2e/lab-03/authentication.spec.ts:31:7 › Login › shows a distinct inactive-account banner (392ms)
+  ✓   7 e2e/lab-03/authentication.spec.ts:45:7 › Role-scoped navigation › a Requester sees only Dashboard, My Tickets, and Create Ticket (415ms)
+  ✓   8 e2e/lab-03/authentication.spec.ts:57:7 › Role-scoped navigation › IT Staff sees Dashboard and Ticket Queue (382ms)
+  ✓   9 e2e/lab-03/authentication.spec.ts:71:7 › Role-scoped navigation › an Administrator sees Dashboard, Ticket Queue, and User Management (384ms)
+  ✓  10 e2e/lab-03/authentication.spec.ts:85:7 › Mandatory first-login password change › a freshly Administrator-created user must change their password before reaching the app (1.0s)
+  ✓  11 e2e/lab-03/authentication.spec.ts:126:7 › Logout › ends the session and blocks further access to protected routes (602ms)
+  ✓  12 e2e/lab-03/requester-comments-and-resolved.spec.ts:9:7 › Public Comments › a Requester posts a comment and sees it appear immediately (1.8s)
+  ✓  13 e2e/lab-03/requester-comments-and-resolved.spec.ts:31:7 › Problem Appears Resolved › a Requester confirms the dialog and sees a success badge in place of the button (472ms)
+  ✓  14 e2e/lab-03/requester-comments-and-resolved.spec.ts:55:7 › Requester regression: real login replaces the Lab 2 selector › signing in through the real Login screen reaches the Dashboard with a Logout action (392ms)
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> server@1.0.0 clean:e2e-fixtures /Users/jakka/Code/soften-toktickit/server
+> tsx scripts/clean-e2e-fixtures.ts
+
+cleaned 1 e2e fixture user(s), 5 fixture ticket(s)
+  ✓  15 e2e/lab-03/screenshots.spec.ts:47:7 › Screenshot audit: Create Ticket › initial, validation failure, submitting, success, API failure, invalid attachment (2.7s)
+  ✓  16 e2e/lab-03/screenshots.spec.ts:119:7 › Screenshot audit: My Tickets › Requester A's list vs. Requester B's list (isolation) (661ms)
+  ✓  17 e2e/lab-03/screenshots.spec.ts:133:7 › Screenshot audit: My Tickets › search, filters, sorting, pagination, empty state, no-results (2.6s)
+  ✓  18 e2e/lab-03/screenshots.spec.ts:186:7 › Screenshot audit: Ticket Detail and Attachments › owned detail, add/download/remove attachment, retained metadata, blocked download (968ms)
+  ✓  19 e2e/lab-03/screenshots.spec.ts:241:7 › Screenshot audit: Ticket Detail and Attachments › unauthorized ticket-access rejection (BR-15/AC-03) (388ms)
+  ✓  20 e2e/lab-03/screenshots.spec.ts:265:9 › STYLE-02/03/04 (AC-25): responsive screenshots › create-ticket, my-tickets, ticket-detail at desktop (808ms)
+  ✓  21 e2e/lab-03/screenshots.spec.ts:265:9 › STYLE-02/03/04 (AC-25): responsive screenshots › create-ticket, my-tickets, ticket-detail at tablet (844ms)
+  ✓  22 e2e/lab-03/screenshots.spec.ts:265:9 › STYLE-02/03/04 (AC-25): responsive screenshots › create-ticket, my-tickets, ticket-detail at mobile (832ms)
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> server@1.0.0 clean:e2e-fixtures /Users/jakka/Code/soften-toktickit/server
+> tsx scripts/clean-e2e-fixtures.ts
+
+cleaned 0 e2e fixture user(s), 7 fixture ticket(s)
+  ✓  23 e2e/lab-03/staff-and-admin-screenshots.spec.ts:33:9 › STYLE: responsive screenshots — authentication, staff queue, staff ticket detail, user management › at desktop (1.9s)
+  ✓  24 e2e/lab-03/staff-and-admin-screenshots.spec.ts:33:9 › STYLE: responsive screenshots — authentication, staff queue, staff ticket detail, user management › at tablet (1.9s)
+  ✓  25 e2e/lab-03/staff-and-admin-screenshots.spec.ts:33:9 › STYLE: responsive screenshots — authentication, staff queue, staff ticket detail, user management › at mobile (1.9s)
+  ✓  26 e2e/lab-03/staff-ticket-flow.spec.ts:17:5 › IT Staff finds, claims, triages and annotates a Ticket; the Requester sees the comment but not the note (2.6s)
+  ✓  27 e2e/lab-03/user-administration.spec.ts:11:5 › an Administrator creates a user, who must change their password at first login (1.0s)
+  ✓  28 e2e/lab-03/user-administration.spec.ts:35:5 › editing a user takes effect immediately, deactivating kills their session, and blocks their next login (1.3s)
+  ✓  29 e2e/lab-03/user-administration.spec.ts:85:5 › disables the sole Administrator's own Active toggle and Role select, with explanations (592ms)
+  ✓  30 e2e/lab-04/accessibility.spec.ts:52:5 › A11Y-02: Tab reaches every staff dashboard card in order, visibly, and Enter drills down (382ms)
+  ✓  31 e2e/lab-04/accessibility.spec.ts:77:5 › A11Y-02: the Actions Taken form opens, saves, and closes by keyboard with focus return (568ms)
+  ✓  32 e2e/lab-04/actions-taken-flow.spec.ts:49:5 › E2E-01: staff record, edit, and finish Actions until the Ticket can be Resolved (10.9s)
+  ✓  33 e2e/lab-04/actions-taken-flow.spec.ts:190:9 › AC-41: Actions Taken layout › has no horizontal overflow at desktop (861ms)
+  ✓  34 e2e/lab-04/actions-taken-flow.spec.ts:190:9 › AC-41: Actions Taken layout › has no horizontal overflow at tablet (821ms)
+  ✓  35 e2e/lab-04/actions-taken-flow.spec.ts:190:9 › AC-41: Actions Taken layout › has no horizontal overflow at mobile (757ms)
+  ✓  36 e2e/lab-04/actions-taken-flow.spec.ts:242:5 › AC-41, AC-44: an open edit survives crossing the mobile breakpoint (1.5s)
+  ✓  37 e2e/lab-04/dashboards.spec.ts:65:7 › IT Staff dashboard › E2E-08: every card matches the API, and each drill-down list matches its card (1.1s)
+  ✓  38 e2e/lab-04/dashboards.spec.ts:85:7 › IT Staff dashboard › E2E-08: a recent Ticket and a recent open Action open Ticket Detail (576ms)
+  ✓  39 e2e/lab-04/dashboards.spec.ts:110:7 › IT Staff dashboard › has no User Accounts section for IT Staff (421ms)
+  ✓  40 e2e/lab-04/dashboards.spec.ts:116:5 › E2E-10: an Administrator lands on the dashboard with User Accounts and drills into User Management (470ms)
+  ✓  41 e2e/lab-04/dashboards.spec.ts:135:5 › E2E-10: an Administrator uses the Queue, claims, changes status, notes, and records an Action (3.4s)
+  ✓  42 e2e/lab-04/dashboards.spec.ts:204:7 › Requester dashboard › E2E-09: every card matches the API, and each drill-down list matches its card (774ms)
+  ✓  43 e2e/lab-04/dashboards.spec.ts:252:7 › Requester dashboard › E2E-09: a Ticket waiting for the Requester opens where they can reply (560ms)
+  ✓  44 e2e/lab-04/dashboards.spec.ts:269:7 › Requester dashboard › E2E-09: Create Ticket opens from the dashboard and View all opens My Tickets (538ms)
+  ✓  45 e2e/lab-04/dashboards.spec.ts:287:7 › Requester dashboard › E2E-09 / AC-31: a Requester with no Tickets sees the empty state (408ms)
+  ✓  46 e2e/lab-04/dashboards.spec.ts:300:7 › Requester dashboard › AC-02: a second Requester never sees the first one's Tickets (878ms)
+  ✓  47 e2e/lab-04/dashboards.spec.ts:338:7 › Requester dashboard › IT Staff opening /dashboard gets the staff dashboard, and the API refuses the Requester one (539ms)
+  ✓  48 e2e/lab-04/dashboards.spec.ts:355:9 › STYLE-01: staff dashboard responsive layout › at desktop (383ms)
+  ✓  49 e2e/lab-04/dashboards.spec.ts:355:9 › STYLE-01: staff dashboard responsive layout › at tablet (411ms)
+  ✓  50 e2e/lab-04/dashboards.spec.ts:355:9 › STYLE-01: staff dashboard responsive layout › at mobile (394ms)
+  ✓  51 e2e/lab-04/dashboards.spec.ts:380:9 › STYLE-01: requester dashboard responsive layout › at desktop (419ms)
+  ✓  52 e2e/lab-04/dashboards.spec.ts:380:9 › STYLE-01: requester dashboard responsive layout › at tablet (434ms)
+  ✓  53 e2e/lab-04/dashboards.spec.ts:380:9 › STYLE-01: requester dashboard responsive layout › at mobile (402ms)
+  ✓  54 e2e/lab-04/hardening.spec.ts:87:5 › HARD-01: login, change password, and system check (14.4s)
+  ✓  55 e2e/lab-04/hardening.spec.ts:138:5 › HARD-01: Requester screens (38.0s)
+  ✓  56 e2e/lab-04/hardening.spec.ts:276:5 › HARD-01: IT Staff screens (27.1s)
+  ✓  57 e2e/lab-04/hardening.spec.ts:295:5 › HARD-01: Administrator screens (30.8s)
+  ✓  58 e2e/lab-04/hardening.spec.ts:322:5 › HARD-02: dates render in Bangkok time under a non-Bangkok browser zone (599ms)
+  ✓  59 e2e/lab-04/hardening.spec.ts:362:5 › HARD-03: focus ring is visible on header and page links (376ms)
+  ✓  60 e2e/lab-04/regression.spec.ts:46:5 › E2E-12: one Ticket through Requester, two IT Staff, and the Administrator (8.5s)
+  ✓  61 e2e/lab-04/regression.spec.ts:228:5 › E2E-13: a New York browser sees Bangkok times on Requester and staff screens (1.2s)
+  ✓  62 e2e/lab-04/ticket-resolution.spec.ts:47:5 › E2E-03: a Ticket with a Done Action is worked through to Resolved, then Closed (1.3s)
+  ✓  63 e2e/lab-04/ticket-resolution.spec.ts:81:5 › E2E-03/E2E-04: a Ticket without qualifying Actions is blocked at Resolved, in the UI and by direct API call (845ms)
+  ✓  64 e2e/lab-04/ticket-resolution.spec.ts:109:5 › E2E-03: a seeded Ticket with open Actions shows Resolved as blocked (569ms)
+  ✓  65 e2e/lab-04/ticket-resolution.spec.ts:122:5 › E2E-05: the Requester "Problem Appears Resolved" action is advisory only (1.6s)
+  ✓  66 e2e/lab-04/ticket-resolution.spec.ts:151:5 › E2E-06: a stale status change shows the conflict banner and Reload latest (1.3s)
+  ✓  67 e2e/lab-04/ticket-resolution.spec.ts:181:5 › E2E-07: Resolved -> Closed -> Reopened, then blocked again by a new Planned Action (1.1s)
+server                                   |  WARN  The field "pnpm.onlyBuiltDependencies" was found in /Users/jakka/Code/soften-toktickit/server/package.json. This will not take effect. You should configure "pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+
+> server@1.0.0 clean:e2e-fixtures /Users/jakka/Code/soften-toktickit/server
+> tsx scripts/clean-e2e-fixtures.ts
+
+cleaned 3 e2e fixture user(s), 17 fixture ticket(s)
+
+  67 passed (3.2m)
+Exit code: 0

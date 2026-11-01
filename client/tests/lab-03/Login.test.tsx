@@ -20,6 +20,7 @@ function mockApi(loginResponse: () => Promise<Response> | Response) {
     }
     if (url === '/api/auth/login') return loginResponse()
     if (url === '/api/categories') return jsonResponse([])
+    if (url === '/api/dashboard/requester') return new Promise<Response>(() => {})
     if (url.startsWith('/api/tickets')) {
       return jsonResponse({
         data: [],
@@ -74,12 +75,13 @@ describe('Login validation', () => {
 })
 
 describe('Login submit', () => {
+  // Lab 4 ui-spec.md §1 (§11-8): the Requester now lands on the Dashboard.
   it('AC-01: signs in and routes to the Requester default landing screen', async () => {
     mockApi(() => jsonResponse(testUser))
     renderLogin()
     await fillAndSubmit(testUser.email, 'DevPass123!')
 
-    expect(await screen.findByRole('heading', { name: /my tickets/i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy()
   })
 
   it('shows the Busy state while the request is in flight', async () => {
@@ -148,13 +150,15 @@ describe('Login submit', () => {
   })
 })
 
+// Lab 3 ui-spec §2 allowed the link only as an inert control ("if shown at
+// all"). Lab 4 FR-24 removes unfinished controls, so it is now absent
+// (docs/lab-04/tests.md §6).
 describe('Login forgot-password link', () => {
-  it('is present but inert, with an explanatory tooltip', async () => {
+  it('is not shown, since password resets are Administrator-only', async () => {
     mockApi(() => jsonResponse(testUser))
     renderLogin()
 
-    const link = await screen.findByRole('button', { name: /forgot your password/i })
-    expect((link as HTMLButtonElement).disabled).toBe(true)
-    expect(link.getAttribute('title')).toMatch(/administrator/i)
+    await screen.findByRole('button', { name: 'Sign In' })
+    expect(screen.queryByText(/forgot your password/i)).toBeNull()
   })
 })

@@ -50,6 +50,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.ticketComment.deleteMany({ where: { ticket: { requesterId } } })
+  // Lab 4 BR-22: history rows (FK Restrict) go before their Tickets.
+  await prisma.ticketStatusHistory.deleteMany({ where: { ticket: { requesterId } } })
   await prisma.ticket.deleteMany({ where: { requesterId } })
   await prisma.user.deleteMany({ where: { email: { endsWith: TAG } } })
   await prisma.category.deleteMany({ where: { name: { endsWith: TAG } } })
@@ -176,12 +178,17 @@ describe('POST /api/staff/tickets/:id/comments (FR-18, FR-19, BR-26..30)', () =>
     expect(JSON.stringify(res.body)).not.toContain('Attempted internal note from a Requester.')
   })
 
-  it('BR-40: an Administrator cannot post a comment or note here', async () => {
+  // Lab 4 (docs/lab-04/tests.md §6): specification.md BR-29 supersedes
+  // Lab 3 BR-40, so an Administrator now posts here like IT Staff.
+  it('Lab 4 BR-29: an Administrator can post a comment and an internal note here', async () => {
     const ticketId = await createOwnedTicket()
-    const res = await request(app)
-      .post(`/api/staff/tickets/${ticketId}/comments`)
-      .set('Cookie', adminCookie)
-      .send({ visibility: 'PUBLIC', content: 'Admin attempting to post.' })
-    expect(res.status).toBe(403)
+    for (const visibility of ['PUBLIC', 'INTERNAL']) {
+      const res = await request(app)
+        .post(`/api/staff/tickets/${ticketId}/comments`)
+        .set('Cookie', adminCookie)
+        .send({ visibility, content: 'Admin posting.' })
+      expect(res.status).toBe(201)
+      expect(res.body.visibility).toBe(visibility)
+    }
   })
 })

@@ -1,4 +1,5 @@
 import type {
+  ActionTaken,
   ActiveStaffUser,
   AdminUser,
   AdminUserListResponse,
@@ -8,9 +9,12 @@ import type {
   CommentVisibility,
   RelatedSystem,
   RequestedPriority,
+  RequesterDashboard,
   SortDirection,
+  StaffDashboard,
   StaffTicketComment,
   StaffTicketDetail,
+  StatusHistoryEntry,
   Ticket,
   TicketComment,
   TicketDetail,
@@ -19,6 +23,7 @@ import type {
   TicketQueueSortField,
   TicketSortField,
   TicketStatus,
+  TicketWorkflowState,
   UserRole,
 } from './types'
 
@@ -29,10 +34,14 @@ import type {
 export class ApiError extends Error {
   field?: string
   code?: string
-  constructor(message: string, field?: string, code?: string) {
+  // Lab 4 api-spec.md §0.2: `details.current` on STALE_UPDATE,
+  // `details.reasons` on RESOLUTION_BLOCKED.
+  details?: { current?: unknown; reasons?: string[] }
+  constructor(message: string, field?: string, code?: string, details?: ApiError['details']) {
     super(message)
     this.field = field
     this.code = code
+    this.details = details
   }
 }
 
@@ -49,10 +58,16 @@ async function parseJsonOrThrow<T>(res: Response): Promise<T> {
     if (body?.error?.code === 'UNAUTHENTICATED') {
       sessionInvalidated.dispatchEvent(new Event('invalidated'))
     }
+    // Lab 3 BR-02: an Administrator reset this user's password mid-session,
+    // so every protected route now answers 403 until it is changed.
+    if (body?.error?.code === 'PASSWORD_CHANGE_REQUIRED') {
+      sessionInvalidated.dispatchEvent(new Event('passwordChangeRequired'))
+    }
     throw new ApiError(
       body?.error?.message ?? 'Something went wrong. Please try again.',
       body?.error?.field,
       body?.error?.code,
+      body?.error?.details,
     )
   }
   return body as T
@@ -115,6 +130,9 @@ export type TicketListParams = {
   categoryId?: number
   requestedPriority?: RequestedPriority
   status?: TicketStatus
+  // Lab 4 api-spec.md §4.2: drill-down filters from the Requester dashboard.
+  statusGroup?: 'active'
+  resolvedFrom?: string
   sortBy?: TicketSortField
   sortDir?: SortDirection
   page?: number
@@ -129,6 +147,8 @@ export function fetchTickets(params: TicketListParams = {}): Promise<TicketListR
   if (params.categoryId !== undefined) query.set('categoryId', String(params.categoryId))
   if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
   if (params.status) query.set('status', params.status)
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
+  if (params.resolvedFrom) query.set('resolvedFrom', params.resolvedFrom)
   if (params.sortBy) query.set('sortBy', params.sortBy)
   if (params.sortDir) query.set('sortDir', params.sortDir)
   if (params.page) query.set('page', String(params.page))
@@ -146,6 +166,12 @@ export type TicketQueueParams = {
   itPriority?: RequestedPriority
   status?: TicketStatus
   ownerId?: number | 'unassigned'
+  // Lab 4 api-spec.md §4.1: drill-down filters from the dashboard.
+  statusGroup?: 'active'
+  resolvedFrom?: string
+  resolvedTo?: string
+  followUp?: 'pending'
+  openActionAssigneeId?: number
   sortBy?: TicketQueueSortField
   sortDir?: SortDirection
   page?: number
@@ -161,6 +187,12 @@ export function fetchStaffTickets(params: TicketQueueParams = {}): Promise<Ticke
   if (params.itPriority) query.set('itPriority', params.itPriority)
   if (params.status) query.set('status', params.status)
   if (params.ownerId !== undefined) query.set('ownerId', String(params.ownerId))
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
+  if (params.resolvedFrom) query.set('resolvedFrom', params.resolvedFrom)
+  if (params.resolvedTo) query.set('resolvedTo', params.resolvedTo)
+  if (params.followUp) query.set('followUp', params.followUp)
+  if (params.openActionAssigneeId !== undefined)
+    query.set('openActionAssigneeId', String(params.openActionAssigneeId))
   if (params.sortBy) query.set('sortBy', params.sortBy)
   if (params.sortDir) query.set('sortDir', params.sortDir)
   if (params.page) query.set('page', String(params.page))
@@ -225,45 +257,91 @@ export function fetchActiveItStaff(): Promise<ActiveStaffUser[]> {
   return fetch('/api/staff/it-staff-users').then((res) => parseJsonOrThrow<ActiveStaffUser[]>(res))
 }
 
-export function claimTicket(
+// Lab 4 api-spec.md §3.1-3.4 (BR-24): every Ticket workflow write sends the
+// version the screen last loaded and gets back the new TicketWorkflowState.
+function patchWorkflow(
   ticketId: number,
-): Promise<{ id: number; ownerId: number; ownerName: string }> {
-  return fetch(`/api/staff/tickets/${ticketId}/claim`, { method: 'PATCH' }).then((res) =>
-    parseJsonOrThrow(res),
-  )
-}
-
-export function reassignTicket(
-  ticketId: number,
-  ownerId: number | null,
-): Promise<{ id: number; ownerId: number | null; ownerName: string | null }> {
-  return fetch(`/api/staff/tickets/${ticketId}/owner`, {
+  action: 'claim' | 'owner' | 'priority' | 'status',
+  body: Record<string, unknown>,
+): Promise<TicketWorkflowState> {
+  return fetch(`/api/staff/tickets/${ticketId}/${action}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerId }),
-  }).then((res) => parseJsonOrThrow(res))
+    body: JSON.stringify(body),
+  }).then((res) => parseJsonOrThrow<TicketWorkflowState>(res))
 }
 
-export function updateItPriority(
+export const claimTicket = (ticketId: number, version: number) =>
+  patchWorkflow(ticketId, 'claim', { version })
+
+export const reassignTicket = (ticketId: number, ownerId: number | null, version: number) =>
+  patchWorkflow(ticketId, 'owner', { ownerId, version })
+
+export const updateItPriority = (
   ticketId: number,
   itPriority: RequestedPriority,
-): Promise<{ id: number; itPriority: RequestedPriority }> {
-  return fetch(`/api/staff/tickets/${ticketId}/priority`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itPriority }),
-  }).then((res) => parseJsonOrThrow(res))
+  version: number,
+) => patchWorkflow(ticketId, 'priority', { itPriority, version })
+
+export const updateTicketStatus = (ticketId: number, status: TicketStatus, version: number) =>
+  patchWorkflow(ticketId, 'status', { status, version })
+
+// Lab 4 api-spec.md §3.6: oldest first; read-only.
+export function fetchStaffStatusHistory(ticketId: number): Promise<StatusHistoryEntry[]> {
+  return fetch(`/api/staff/tickets/${ticketId}/status-history`)
+    .then((res) => parseJsonOrThrow<{ data: StatusHistoryEntry[] }>(res))
+    .then((body) => body.data)
 }
 
-export function updateTicketStatus(
+export function fetchStatusHistory(ticketId: number): Promise<StatusHistoryEntry[]> {
+  return fetch(`/api/tickets/${ticketId}/status-history`)
+    .then((res) => parseJsonOrThrow<{ data: StatusHistoryEntry[] }>(res))
+    .then((body) => body.data)
+}
+
+// Lab 4 api-spec.md §2.1, §2.4 (BR-13): oldest first, Cancelled included.
+// The Requester endpoint is read-only and ownership-scoped (BR-12).
+export function fetchActions(ticketId: number, asStaff: boolean): Promise<ActionTaken[]> {
+  return fetch(`/api${asStaff ? '/staff' : ''}/tickets/${ticketId}/actions`)
+    .then((res) => parseJsonOrThrow<{ data: ActionTaken[] }>(res))
+    .then((body) => body.data)
+}
+
+export type ActionInput = {
+  actionAt: string
+  description: string
+  result: string | null
+  status: ActionTaken['status']
+  assignedToId: number
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+}
+
+// Lab 4 api-spec.md §2.2 (BR-14, BR-28): the form's clientRequestId makes a
+// retried create return the first Action instead of a second one.
+export function createAction(
   ticketId: number,
-  status: TicketStatus,
-): Promise<{ id: number; currentStatus: TicketStatus }> {
-  return fetch(`/api/staff/tickets/${ticketId}/status`, {
+  input: ActionInput & { clientRequestId: string },
+): Promise<ActionTaken> {
+  return fetch(`/api/staff/tickets/${ticketId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).then((res) => parseJsonOrThrow<ActionTaken>(res))
+}
+
+// Lab 4 api-spec.md §2.3 (BR-25): the version last read plus changed fields.
+export function updateAction(
+  ticketId: number,
+  actionId: number,
+  changes: Partial<ActionInput> & { version: number },
+): Promise<ActionTaken> {
+  return fetch(`/api/staff/tickets/${ticketId}/actions/${actionId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  }).then((res) => parseJsonOrThrow(res))
+    body: JSON.stringify(changes),
+  }).then((res) => parseJsonOrThrow<ActionTaken>(res))
 }
 
 export function postStaffComment(
@@ -327,4 +405,14 @@ export function setAdminUserPassword(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ newPassword }),
   }).then((res) => parseJsonOrThrow(res))
+}
+
+// Lab 4 api-spec.md §5.2 (FR-13, FR-14): IT Staff and Administrator only.
+// Lab 4 api-spec.md §5.1: scoped to the session; no query params (AC-02).
+export function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  return fetch('/api/dashboard/requester').then((res) => parseJsonOrThrow<RequesterDashboard>(res))
+}
+
+export function fetchStaffDashboard(): Promise<StaffDashboard> {
+  return fetch('/api/dashboard/staff').then((res) => parseJsonOrThrow<StaffDashboard>(res))
 }

@@ -74,7 +74,9 @@ describe('seed script (specification.md §8.4)', () => {
     for (const t of tickets) {
       expect(t.requester.role).toBe('REQUESTER') // BR-17
       if (t.owner) {
-        expect(t.owner.role).toBe('IT_STAFF') // BR-18
+        // BR-18, widened by Lab 4 BR-30 (docs/lab-04/tests.md §6): an active
+        // Administrator may also own a Ticket.
+        expect(['IT_STAFF', 'ADMINISTRATOR']).toContain(t.owner.role)
         expect(t.owner.isActive).toBe(true)
       }
     }
